@@ -1,0 +1,343 @@
+.offer-detail-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.offer-detail-modal-content {
+  background: white;
+  border-radius: 12px;
+  max-width: 800px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e8e8e8;
+  position: sticky;
+  top: 0;
+  background: white;
+  z-index: 10;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  color: #2d2d2d;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.close-button:hover {
+  background: #f0f0f0;
+  color: #2d2d2d;
+}
+
+.modal-body {
+  padding: 1.5rem;
+}
+
+.offer-info {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.offer-info p {
+  margin: 0.5rem 0;
+  color: #333;
+}
+
+.offer-items-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.offer-items-table th,
+.offer-items-table td {
+  padding: 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #e8e8e8;
+}
+
+.offer-items-table th {
+  background: #f5f5f5;
+  font-weight: 600;
+  color: #2d2d2d;
+}
+
+.offer-items-table td {
+  color: #333;
+}
+
+.tier-section {
+  margin-bottom: 2rem;
+}
+
+.tier-section h3 {
+  margin: 0 0 1rem 0;
+  color: #2d2d2d;
+  font-size: 1.2rem;
+}
+
+.modal-loading,
+.modal-error {
+  padding: 2rem;
+  text-align: center;
+  color: #666;
+}
+
+.modal-close-btn {
+  margin: 1rem auto;
+  display: block;
+  padding: 0.5rem 1.5rem;
+  background: #2d2d2d;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.modal-close-btn:hover {
+  background: #1a1a1a;
+}
+
+.eveready-brand-card {
+  background: #f8f9fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.eveready-brand-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.eveready-logo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.eveready-brand-text {
+  flex: 1;
+}
+
+.eveready-brand-headline {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin: 0 0 0.75rem 0;
+  line-height: 1.3;
+}
+
+.eveready-brand-description {
+  font-size: 1rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.eveready-brand-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.eveready-product-image {
+  max-width: 450px;
+  height: auto;
+  object-fit: contain;
+}
+
+.energizer-brand-card {
+  background: #f8f9fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.energizer-brand-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.energizer-logo {
+  height: 80px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.energizer-brand-text {
+  flex: 1;
+}
+
+.energizer-brand-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 1rem 0;
+  text-align: left;
+}
+
+.energizer-brand-bullets li {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin-bottom: 0.4rem;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.3;
+}
+
+.energizer-brand-bullets li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #2d2d2d;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.energizer-brand-description {
+  font-size: 1rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+}
+
+.energizer-brand-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.energizer-product-image {
+  max-width: 450px;
+  height: auto;
+  object-fit: contain;
+}
+
+.armorall-brand-card {
+  background: #f8f9fa;
+  border: 1px solid #e8e8e8;
+  border-radius: 12px;
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.armorall-brand-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.armorall-logo {
+  height: 120px;
+  width: auto;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.armorall-brand-text {
+  flex: 1;
+}
+
+.armorall-brand-bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+}
+
+.armorall-brand-bullets li {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin-bottom: 0.4rem;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.3;
+}
+
+.armorall-brand-bullets li:before {
+  content: "•";
+  position: absolute;
+  left: 0;
+  color: #2d2d2d;
+  font-weight: 700;
+  font-size: 1.2rem;
+}
+
+.armorall-brand-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.armorall-product-image {
+  max-width: 450px;
+  height: auto;
+  object-fit: contain;
+}
+
+.modal-product-image-section {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 2rem;
+}
+
+.modal-product-image {
+  max-width: 450px;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+}
+

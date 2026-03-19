@@ -1,0 +1,104 @@
+.empty-cart-thankyou-container {
+  min-height: 100vh;
+  background-color: #DADBDC;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.empty-cart-thankyou-content {
+  background: white;
+  border-radius: 12px;
+  padding: 3rem 4rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-width: 800px;
+  width: 100%;
+  text-align: center;
+}
+
+.empty-cart-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #2d2d2d;
+  margin-bottom: 1.5rem;
+}
+
+.empty-cart-message {
+  font-size: 1.5rem;
+  color: #666;
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.empty-cart-encouragement {
+  font-size: 1.3rem;
+  color: #2d2d2d;
+  font-weight: 600;
+  margin-bottom: 3rem;
+}
+
+.empty-cart-actions {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.empty-cart-back-btn,
+.empty-cart-thank-btn {
+  padding: 1rem 2.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.empty-cart-back-btn {
+  background: #6c757d;
+  color: white;
+}
+
+.empty-cart-back-btn:hover {
+  background: #5a6268;
+}
+
+.empty-cart-thank-btn {
+  background: #28a745;
+  color: white;
+}
+
+.empty-cart-thank-btn:hover {
+  background: #218838;
+}
+
+@media (max-width: 768px) {
+  .empty-cart-thankyou-content {
+    padding: 2rem;
+  }
+
+  .empty-cart-title {
+    font-size: 2rem;
+  }
+
+  .empty-cart-message {
+    font-size: 1.2rem;
+  }
+
+  .empty-cart-encouragement {
+    font-size: 1.1rem;
+  }
+
+  .empty-cart-actions {
+    flex-direction: column;
+  }
+
+  .empty-cart-back-btn,
+  .empty-cart-thank-btn {
+    width: 100%;
+  }
+}
+
+
+

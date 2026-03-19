@@ -1,0 +1,356 @@
+/**
+ * iPad / tablet resolution optimisations
+ * Targets 768px–1280px (iPad portrait through iPad Pro landscape).
+ * Touch targets min 44px; safe-area padding for notched devices.
+ */
+
+/* Base: slightly larger body for arm's-length reading */
+@media (min-width: 768px) and (max-width: 1280px) {
+  html {
+    font-size: 18px;
+  }
+
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .App {
+    padding-bottom: 80px;
+  }
+}
+
+/* Form card & home: larger max-width so it doesn’t look tiny on 1024px */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .user-form-container {
+    padding: 28px;
+  }
+
+  .form-card {
+    max-width: 520px;
+    padding: 48px 44px;
+    border-radius: 24px;
+  }
+
+  .home-title {
+    font-size: 2.5rem;
+  }
+
+  .logo {
+    max-width: 360px;
+  }
+
+  .rounded-logo {
+    max-width: 420px !important;
+  }
+
+  .home-armorall-logo {
+    max-width: 400px !important;
+  }
+
+  .start-btn {
+    min-height: 52px;
+    padding: 18px 48px;
+    font-size: 1.5rem;
+    min-width: 220px;
+    border-radius: 16px;
+  }
+
+  .back-btn-step {
+    min-height: 48px;
+    padding: 14px 24px;
+    font-size: 1.1rem;
+    bottom: calc(24px + env(safe-area-inset-bottom));
+    left: calc(24px + env(safe-area-inset-left));
+  }
+
+  .form-input {
+    min-height: 48px;
+    font-size: 1.25rem;
+    padding: 14px 18px;
+    border-radius: 12px;
+  }
+
+  .nav-btn.next-btn {
+    min-height: 52px;
+    padding: 14px 28px;
+    font-size: 1.25rem;
+    border-radius: 12px;
+  }
+
+  .input-hint {
+    font-size: 1rem;
+  }
+
+  .keyboard-close {
+    min-width: 48px;
+    min-height: 48px;
+    font-size: 1.5rem;
+  }
+
+  .keyboard-input-display {
+    min-height: 52px;
+    font-size: 1.25rem;
+  }
+}
+
+/* Store confirm */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .store-confirm {
+    padding: 28px;
+    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+  }
+
+  .store-confirm-card {
+    max-width: 480px;
+    padding: 2.5rem;
+    border-radius: 20px;
+  }
+
+  .store-confirm-title {
+    font-size: 1.75rem;
+  }
+
+  .store-confirm-name {
+    font-size: 1.4rem;
+  }
+
+  .store-confirm-meta,
+  .store-confirm-banner {
+    font-size: 1.05rem;
+  }
+
+  .store-confirm-intro {
+    font-size: 1.1rem;
+  }
+
+  .store-confirm-back,
+  .store-confirm-continue {
+    min-height: 52px;
+    padding: 16px 28px;
+    font-size: 1.15rem;
+    border-radius: 12px;
+  }
+}
+
+/* Loading step */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .loading-container {
+    padding: 28px;
+  }
+
+  .loading-card {
+    border-radius: 24px;
+    padding: 28px;
+  }
+
+  .loading-title,
+  .thank-you-title {
+    font-size: 2rem;
+  }
+
+  .next-button {
+    min-height: 52px;
+    min-width: 52px;
+    padding: 16px 32px;
+    font-size: 1.25rem;
+    border-radius: 14px;
+  }
+
+  .store-name {
+    font-size: 1.5rem;
+  }
+
+  .store-number,
+  .store-banner {
+    font-size: 1.1rem;
+  }
+
+  .energizer-text {
+    font-size: 1.15rem;
+  }
+}
+
+/* Offers listing */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .offers-listing-container {
+    padding: 1.25rem;
+    padding-bottom: calc(1.25rem + 80px + env(safe-area-inset-bottom));
+  }
+
+  .offers-header {
+    top: calc(1rem + env(safe-area-inset-top));
+    left: calc(1rem + env(safe-area-inset-left));
+    right: calc(1rem + env(safe-area-inset-right));
+    padding: 1.25rem 1.5rem;
+    border-radius: 16px;
+  }
+
+  .offers-header .back-button,
+  .offers-header .next-button {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    width: 48px !important;
+    height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+    font-size: 1.5rem !important;
+  }
+
+  .offers-header .next-button.has-items {
+    min-height: 48px;
+    padding: 0.6rem 1.25rem;
+    font-size: 1rem;
+  }
+
+  .store-info h2 {
+    font-size: 1.35rem;
+  }
+
+  .offer-card,
+  .offer-row {
+    padding: 1rem 1.25rem;
+  }
+
+  .qty-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.25rem;
+  }
+
+  .offer-quantity-controls .qty-display {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 1.2rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+}
+
+/* Order summary */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .order-summary-container {
+    padding: 1.5rem;
+    padding-bottom: calc(1.5rem + 80px + env(safe-area-inset-bottom));
+  }
+
+  .order-header {
+    top: calc(1rem + env(safe-area-inset-top));
+    left: calc(1rem + env(safe-area-inset-left));
+    right: calc(1rem + env(safe-area-inset-right));
+    padding: 1.25rem 1.5rem;
+  }
+
+  .order-header .back-button {
+    min-width: 48px !important;
+    min-height: 48px !important;
+    width: 48px !important;
+    height: 48px !important;
+    max-width: 48px !important;
+    max-height: 48px !important;
+  }
+
+  .order-content {
+    padding-top: 100px;
+  }
+
+  .order-items-section h2 {
+    font-size: 1.4rem;
+  }
+
+  .order-item {
+    padding: 1.25rem;
+  }
+
+  .submit-order-btn {
+    min-height: 56px;
+    font-size: 1.25rem;
+    padding: 16px 28px;
+    border-radius: 14px;
+  }
+
+  .order-form input {
+    min-height: 48px;
+    font-size: 1.15rem;
+    padding: 14px 18px;
+  }
+}
+
+/* Thank you / UserForm thank you screen */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .thank-you-title {
+    font-size: 2.25rem;
+  }
+
+  .thank-you-subtitle {
+    font-size: 1.35rem;
+  }
+
+  .thank-you-message {
+    font-size: 1.15rem;
+  }
+
+  .thank-you-btn {
+    min-height: 56px;
+    padding: 18px 40px;
+    font-size: 1.25rem;
+    border-radius: 14px;
+  }
+}
+
+/* Empty cart thank you */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .empty-cart-thankyou .thank-you-btn,
+  .empty-cart-thankyou .back-btn {
+    min-height: 52px;
+    padding: 16px 28px;
+    font-size: 1.15rem;
+  }
+}
+
+/* Footer & start-over: touch-friendly and safe area */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .footer {
+    padding: 18px 16px;
+    padding-left: calc(16px + env(safe-area-inset-left));
+    padding-right: calc(16px + env(safe-area-inset-right));
+    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .footer-content {
+    font-size: 1rem;
+  }
+
+  .status-circle {
+    width: 20px;
+    height: 20px;
+  }
+
+  .start-over-button {
+    width: 56px !important;
+    height: 56px !important;
+    min-width: 56px !important;
+    min-height: 56px !important;
+    bottom: calc(24px + env(safe-area-inset-bottom)) !important;
+    left: calc(24px + env(safe-area-inset-left)) !important;
+    font-size: 28px !important;
+  }
+}
+
+/* Offer detail: back and add to cart */
+@media (min-width: 768px) and (max-width: 1280px) {
+  .offer-detail-header .back-button,
+  .offer-detail .back-button {
+    min-width: 48px;
+    min-height: 48px;
+    padding: 14px 24px;
+    font-size: 1.2rem;
+  }
+
+  .offer-detail .add-to-cart-btn {
+    min-height: 52px;
+    padding: 16px 28px;
+    font-size: 1.2rem;
+  }
+}
