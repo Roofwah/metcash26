@@ -167,7 +167,7 @@
     min-height: 44px;
     min-width: 130px;
     border-radius: 12px;
-    margin-top: 4px;
+    margin-top: 28px;
     letter-spacing: 0.5px;
   }
 
@@ -284,6 +284,31 @@
     letter-spacing: 0.3px;
   }
 
+  .nav-btn.next-btn {
+    padding: 10px 26px;
+    font-size: 0.92rem;
+    min-height: 44px;
+    min-width: 130px;
+    border-radius: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  /* Force Step 1 NEXT to match START on iPad (beats legacy UserForm.css mobile rules) */
+  .user-form-container .form-navigation.step-1-nav .nav-btn.next-btn {
+    width: auto !important;
+    max-width: none !important;
+    padding: 10px 26px !important;
+    font-size: 0.92rem !important;
+    min-height: 44px !important;
+    min-width: 130px !important;
+    border-radius: 12px !important;
+    letter-spacing: 0.5px !important;
+    text-transform: uppercase !important;
+    background: linear-gradient(135deg, #dc2626, #ef4444, #f87171) !important;
+    color: #fff !important;
+  }
+
   .back-btn-step {
     min-height: 44px;
     padding: 10px 18px;
@@ -314,7 +339,7 @@
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
 
   .form-card:has(.home-screen) {
-    max-width: min(96vw, 980px);
+    max-width: min(98.5vw, 1090px);
     height: auto;
     min-height: calc(100dvh - 120px);
     min-height: calc(100vh - 120px);
@@ -361,7 +386,7 @@
   }
   .form-card:has(.home-screen) .home-content .start-btn {
     grid-column: 1 / -1; grid-row: 5; justify-self: center;
-    margin-top: 0.2rem;
+    margin-top: 1.8rem;
   }
 
   .form-card:has(.home-screen) .logo-divider {
@@ -398,8 +423,8 @@
     min-height: calc(100vh - 230px);
     max-height: calc(100dvh - 96px);
     max-height: calc(100vh - 96px);
-    padding-top: 16px;
-    padding-bottom: 16px;
+    padding-top: 10px;
+    padding-bottom: 10px;
   }
 }
 
@@ -1000,7 +1025,7 @@
   }
 
   .footer .footer-content {
-    font-size: 0.78rem;
+    font-size: 0.86rem;
     line-height: 1.25;
     gap: 6px;
     padding-left:  8px;
@@ -1099,34 +1124,56 @@
 
 
 /* ═══════════════════════════════════════════════════════════
-   12. LANDSCAPE-SPECIFIC  (1024px – 1366px)
+   12. FINAL LOCK — card size consistency across pages
    ═══════════════════════════════════════════════════════════ */
 
-@media (min-width: 1024px) and (max-width: 1366px) {
-
-  /* Wizard card — constrain a bit more */
-  .form-card:not(:has(.home-screen)) {
-    max-width: min(80vw, 480px);
+/* Portrait iPad card lock */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .user-form-container .form-card,
+  .store-confirm-card,
+  .loading-card,
+  .order-summary-container,
+  .offer-detail-content,
+  .empty-cart-thankyou-content {
+    width: 100% !important;
+    max-width: min(94vw, 740px) !important;
+    min-height: calc(100dvh - 230px) !important;
+    min-height: calc(100vh - 230px) !important;
+    max-height: calc(100dvh - 96px) !important;
+    max-height: calc(100vh - 96px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    overflow: auto !important;
   }
 
-  /* State grid: more columns */
-  .state-grid {
-    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  .user-form-container .form-group {
+    display: flex;
+    justify-content: center;
   }
 
-  /* Offers nav pills — slightly more space */
-  .offers-navigation .nav-button {
-    font-size: 0.63rem;
-    padding: 0.3rem 0.5rem;
+  .user-form-container .form-group .form-input,
+  .user-form-container .form-group .form-select {
+    width: 100%;
+    max-width: 520px;
   }
+}
 
-  /* Wider content areas */
-  .order-content        { max-width: 720px; }
-  .offer-detail-content { max-width: 720px; }
-
-  /* Two-column loading layout */
-  .two-column-layout {
-    flex-direction: row;
-    gap: 20px;
+/* Landscape iPad card lock */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  .user-form-container .form-card,
+  .store-confirm-card,
+  .loading-card,
+  .order-summary-container,
+  .offer-detail-content,
+  .empty-cart-thankyou-content {
+    width: 100% !important;
+    max-width: min(98.5vw, 1090px) !important;
+    min-height: calc(100dvh - 120px) !important;
+    min-height: calc(100vh - 120px) !important;
+    max-height: calc(100dvh - 56px) !important;
+    max-height: calc(100vh - 56px) !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    overflow: auto !important;
   }
 }

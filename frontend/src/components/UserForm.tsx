@@ -188,7 +188,7 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
               />
             </div>
             <div className="form-navigation step-1-nav">
-              <button type="button" onClick={() => fullName.trim() && setCurrentStep(STEP_STATE)} className="nav-btn next-btn" disabled={!fullName.trim()}>Next →</button>
+              <button type="button" onClick={() => fullName.trim() && setCurrentStep(STEP_STATE)} className="nav-btn next-btn" disabled={!fullName.trim()}>NEXT</button>
             </div>
           </div>
         );
