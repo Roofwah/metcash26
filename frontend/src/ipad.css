@@ -1151,10 +1151,27 @@
     justify-content: center;
   }
 
+  /* !important beats UserForm.css @media (max-width: 1079px) { .form-input { max-width: 100% } } which loads later */
   .user-form-container .form-group .form-input,
   .user-form-container .form-group .form-select {
-    width: 100%;
-    max-width: 520px;
+    width: 100% !important;
+    max-width: 520px !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* Same name-field cap when orientation: portrait is unreliable (split view, some Safari builds) */
+@media (min-width: 768px) and (max-width: 1366px) and (max-aspect-ratio: 1/1) {
+  .user-form-container .form-group {
+    display: flex;
+    justify-content: center;
+  }
+
+  .user-form-container .form-group .form-input,
+  .user-form-container .form-group .form-select {
+    width: 100% !important;
+    max-width: 520px !important;
+    box-sizing: border-box !important;
   }
 }
 
