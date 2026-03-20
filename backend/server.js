@@ -152,6 +152,8 @@ function parseCSV(filePath, transform) {
 
 let fallbackMcashStores = null;
 let fallbackMcashStoresPromise = null;
+let fallbackOffersRows = null;
+let fallbackOffersPromise = null;
 
 function loadFallbackMcashStores() {
   if (fallbackMcashStores) return Promise.resolve(fallbackMcashStores);
@@ -191,6 +193,44 @@ function loadFallbackMcashStores() {
     });
 
   return fallbackMcashStoresPromise;
+}
+
+function loadFallbackOffersRows() {
+  if (fallbackOffersRows) return Promise.resolve(fallbackOffersRows);
+  if (fallbackOffersPromise) return fallbackOffersPromise;
+
+  const filePath = path.resolve(__dirname, 'offers.csv');
+  if (!fs.existsSync(filePath)) {
+    fallbackOffersRows = [];
+    return Promise.resolve(fallbackOffersRows);
+  }
+
+  fallbackOffersPromise = parseCSV(filePath, (clean) => ({
+    OFFER: (clean.OFFER || '').trim(),
+    'Offer Group': (clean['Offer Group'] || '').trim(),
+    'Offer Tier': (clean['Offer Tier'] || '').trim(),
+    Brand: (clean.Brand || '').trim(),
+    Range: (clean.Range || '').trim(),
+    'Min Order Value (ex GST)': (clean['Min Order Value (ex GST)'] || '').trim(),
+    Save: (clean.Save || '').trim(),
+    'Expo Total Cost': (clean['Expo Total Cost'] || '').trim(),
+    Description: (clean.Description || '').trim(),
+    Qty: (clean.Qty || '').trim(),
+    'Expo Charge Back Cost': (clean['Expo Charge Back Cost'] || '').trim(),
+  }))
+    .then((rows) => {
+      fallbackOffersRows = rows;
+      fallbackOffersPromise = null;
+      console.log(`Loaded ${rows.length} fallback offer rows.`);
+      return rows;
+    })
+    .catch((err) => {
+      fallbackOffersPromise = null;
+      console.error('Failed loading fallback offers:', err.message);
+      return [];
+    });
+
+  return fallbackOffersPromise;
 }
 
 // ---------------------------------------------------------------------------
@@ -512,18 +552,26 @@ app.get('/api/mcash-stores', async (req, res) => {
 
 // Warm fallback cache at startup so first request is fast
 loadFallbackMcashStores().catch(() => {});
+loadFallbackOffersRows().catch(() => {});
 
 // ---------------------------------------------------------------------------
 // API – offers
 // ---------------------------------------------------------------------------
 app.get('/api/offers', async (req, res) => {
   try {
-    const { rows } = await pool.query(`
+    let rows = [];
+    try {
+      const dbResult = await pool.query(`
       SELECT "Offer Group","OFFER","Brand","Range","Min Order Value (ex GST)",
              "Save","Expo Total Cost","Offer Tier","Description","Qty","Expo Charge Back Cost"
       FROM offers
       ORDER BY "OFFER","Offer Tier"
     `);
+      rows = dbResult.rows;
+    } catch {
+      rows = await loadFallbackOffersRows();
+    }
+    if (rows.length === 0) rows = await loadFallbackOffersRows();
 
     const grouped = {};
     rows.forEach(row => {
@@ -567,19 +615,57 @@ app.get('/api/offers', async (req, res) => {
     res.json(Object.values(grouped));
   } catch (err) {
     console.error('GET /api/offers error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch offers' });
+    const rows = await loadFallbackOffersRows();
+    const grouped = {};
+    rows.forEach(row => {
+      const key = row.OFFER || row['Offer Group'];
+      if (!key) return;
+      if (!grouped[key]) {
+        grouped[key] = {
+          offerId: key,
+          offerGroup: row['Offer Group'],
+          brand: row.Brand,
+          range: row.Range,
+          minOrderValue: row['Min Order Value (ex GST)'],
+          save: row.Save || '',
+          totalCost: row['Expo Total Cost'] || '',
+          offerTier: row['Offer Tier'] || '',
+          descriptions: [],
+          expoChargeBackCost: 0,
+        };
+      }
+      if (row.Description) grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
+      grouped[key].expoChargeBackCost +=
+        (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
+    });
+    Object.keys(grouped).forEach((key) => {
+      grouped[key].expoChargeBackCost = grouped[key].expoChargeBackCost.toFixed(2);
+      if (key === 'Energizer 7') grouped[key].save = '50%';
+    });
+    res.json(Object.values(grouped));
   }
 });
 
 app.get('/api/offers/:offerId', async (req, res) => {
   try {
     const { offerId } = req.params;
-    const { rows } = await pool.query(
-      `SELECT * FROM offers
-       WHERE "OFFER" = $1 OR "Offer Group" = $1
-       ORDER BY "Offer Tier","Description"`,
-      [offerId]
-    );
+    let rows = [];
+    try {
+      const dbResult = await pool.query(
+        `SELECT * FROM offers
+         WHERE "OFFER" = $1 OR "Offer Group" = $1
+         ORDER BY "Offer Tier","Description"`,
+        [offerId]
+      );
+      rows = dbResult.rows;
+    } catch {
+      const fallbackRows = await loadFallbackOffersRows();
+      rows = fallbackRows.filter((row) => row.OFFER === offerId || row['Offer Group'] === offerId);
+    }
+    if (rows.length === 0) {
+      const fallbackRows = await loadFallbackOffersRows();
+      rows = fallbackRows.filter((row) => row.OFFER === offerId || row['Offer Group'] === offerId);
+    }
     if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
 
     const first = rows[0];
@@ -604,7 +690,29 @@ app.get('/api/offers/:offerId', async (req, res) => {
     });
   } catch (err) {
     console.error('GET /api/offers/:id error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch offer details' });
+    const { offerId } = req.params;
+    const fallbackRows = await loadFallbackOffersRows();
+    const rows = fallbackRows.filter((row) => row.OFFER === offerId || row['Offer Group'] === offerId);
+    if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
+    const first = rows[0];
+    const hasTiers = first['Offer Tier'] &&
+      !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(first['Offer Tier']);
+    if (hasTiers) {
+      const tiers = {};
+      rows.forEach((row) => {
+        const t = row['Offer Tier'];
+        if (!tiers[t]) tiers[t] = [];
+        tiers[t].push(row);
+      });
+      return res.json({
+        offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
+        hasTiers: true, tiers, allItems: rows,
+      });
+    }
+    res.json({
+      offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
+      hasTiers: false, items: rows,
+    });
   }
 });
 
