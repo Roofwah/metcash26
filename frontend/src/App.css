@@ -1,0 +1,15 @@
+.App {
+  text-align: center;
+}
+
+/* Push content below the fixed top nav and above the fixed footer */
+.App.with-nav {
+  padding-top: 0;
+  padding-bottom: 60px;
+}
+
+@media (min-width: 768px) {
+  .App.with-nav {
+    padding-top: 0;
+  }
+}

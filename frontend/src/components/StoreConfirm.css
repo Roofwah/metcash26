@@ -1,0 +1,79 @@
+.store-confirm {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.store-confirm-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 420px;
+  width: 100%;
+  text-align: center;
+}
+
+.store-confirm-title {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+  color: #fff;
+}
+
+.store-confirm-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: #fff;
+}
+
+.store-confirm-meta,
+.store-confirm-banner {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 0.5rem;
+}
+
+.store-confirm-intro {
+  margin: 1.5rem 0;
+  color: rgba(255, 255, 255, 0.9);
+  line-height: 1.5;
+}
+
+.store-confirm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 1.5rem;
+}
+
+.store-confirm-back {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.store-confirm-back:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.store-confirm-continue {
+  background: #667eea;
+  border: none;
+  color: #fff;
+  padding: 14px 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.store-confirm-continue:hover {
+  background: #5a6fd6;
+}
