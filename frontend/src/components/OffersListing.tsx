@@ -361,7 +361,6 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
   return (
     <div className="offers-listing-container">
       <div className="offers-header">
-        <button onClick={onBack} className="back-button">‹</button>
         <div className="store-info-container">
           <div className="store-info">
             <h2>{storeData.storeName}</h2>

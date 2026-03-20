@@ -23,9 +23,6 @@ const StoreConfirm: React.FC<StoreConfirmProps> = ({ userData, storeData, onCont
         )}
         <p className="store-confirm-intro">Hi {userData.fullName}, you can now enter your sales input for this store.</p>
         <div className="store-confirm-actions">
-          <button type="button" className="store-confirm-back" onClick={onBack}>
-            ← Change store
-          </button>
           <button type="button" className="store-confirm-continue" onClick={onContinue}>
             Continue to offers
           </button>

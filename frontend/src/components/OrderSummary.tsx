@@ -175,7 +175,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       <div className="order-summary-container">
         <div className="empty-cart-message">
           <h2>Your cart is empty</h2>
-          <button onClick={onBack} className="back-button">← Back to Offers</button>
         </div>
       </div>
     );
@@ -184,7 +183,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   return (
     <div className="order-summary-container">
       <div className="order-header">
-        <button onClick={onBack} className="back-button">‹</button>
         <div className="store-info">
           <h2>{storeData.storeName}</h2>
           {storeData.banner !== '-' && <p>{storeData.banner}</p>}

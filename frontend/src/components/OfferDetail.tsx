@@ -185,7 +185,6 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
     return (
       <div className="offer-detail-container">
         <div className="error-message">{error || 'Offer not found'}</div>
-        <button onClick={onBack} className="back-button">← Back to Offers</button>
       </div>
     );
   }
@@ -195,7 +194,6 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
   return (
     <div className="offer-detail-container">
       <div className="offer-header">
-        <button onClick={onBack} className="back-button">← Back</button>
         <div className="store-info">
           <h2>{storeData.storeName}</h2>
           {storeData.banner !== '-' && <p>{storeData.banner}</p>}

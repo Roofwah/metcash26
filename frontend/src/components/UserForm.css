@@ -307,6 +307,33 @@
   margin-bottom: 0;
 }
 
+.logo-divider {
+  width: min(340px, 65%);
+  height: 1px;
+  margin: 4px auto 2px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(120, 129, 145, 0.25) 14%,
+    rgba(120, 129, 145, 0.6) 50%,
+    rgba(120, 129, 145, 0.25) 86%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  position: relative;
+}
+
+.logo-divider::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -1px;
+  width: 18px;
+  height: 2px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  background: rgba(255, 124, 31, 0.5);
+}
+
 .logo-container {
   margin-bottom: 20px;
   display: flex;

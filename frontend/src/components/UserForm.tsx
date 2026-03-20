@@ -19,6 +19,7 @@ interface UserFormProps {
   showThankYou?: boolean;
   userData?: { fullName: string; storeNo: string; position: string };
   printData?: any;
+  onBackChange?: (handler: (() => void) | null) => void;
 }
 
 const STEP_HOME = 0;
@@ -27,7 +28,7 @@ const STEP_STATE = 2;
 const STEP_SUBURB = 3;
 const STEP_BANNER = 4;
 
-const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showThankYou: externalShowThankYou, userData: externalUserData }) => {
+const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showThankYou: externalShowThankYou, userData: externalUserData, onBackChange }) => {
   const [currentStep, setCurrentStep] = useState(STEP_HOME);
   const [fullName, setFullName] = useState('');
   const [states, setStates] = useState<string[]>([]);
@@ -81,6 +82,16 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       .catch(() => setStoresInSuburb([]))
       .finally(() => setLoading(false));
   }, [currentStep, selectedState, selectedSuburb]);
+
+  // Tell parent what the back handler is whenever step changes
+  useEffect(() => {
+    if (!onBackChange) return;
+    if (currentStep === STEP_HOME) {
+      onBackChange(null);
+    } else {
+      onBackChange(() => handleBack);
+    }
+  }, [currentStep]); // eslint-disable-line
 
   const submitWithStore = (store: McashStore) => {
     const storeData: StoreData = {
@@ -148,11 +159,11 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
               <div className="logo-container">
                 <img src="/metexpo.png" alt="Metexpo Logo" className="logo rounded-logo" />
               </div>
+              <div className="logo-divider" aria-hidden="true" />
               <div className="logo-container">
                 <img src="/energizer.png" alt="Energizer Logo" className="logo home-armorall-logo" />
               </div>
-              <h1 className="home-title">Metcash – Store lookup &amp; sales input</h1>
-              <p>Select your state and suburb to find your store</p>
+              <h1 className="home-title">Metcash 2026 Expo Deals &amp; Insights</h1>
               <button type="button" onClick={handleStart} className="start-btn">Start</button>
             </div>
           </div>
@@ -160,7 +171,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       case STEP_NAME:
         return (
           <div className="step-content">
-            <button type="button" onClick={() => setCurrentStep(STEP_HOME)} className="back-btn-step">← Back</button>
             <div className="logo-container">
               <img src="/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
@@ -185,7 +195,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       case STEP_STATE:
         return (
           <div className="step-content">
-            <button type="button" onClick={handleBack} className="back-btn-step">← Back</button>
             <div className="logo-container">
               <img src="/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
@@ -205,7 +214,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       case STEP_SUBURB:
         return (
           <div className="step-content">
-            <button type="button" onClick={handleBack} className="back-btn-step">← Back</button>
             <div className="logo-container">
               <img src="/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
@@ -225,7 +233,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       case STEP_BANNER:
         return (
           <div className="step-content">
-            <button type="button" onClick={handleBack} className="back-btn-step">← Back</button>
             <div className="logo-container">
               <img src="/energizer.png" alt="Energizer Logo" className="logo" />
             </div>

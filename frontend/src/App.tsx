@@ -48,6 +48,7 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
   const [showPresentation, setShowPresentation] = useState(false);
+  const [formBackHandler, setFormBackHandler] = useState<(() => void) | null>(null);
 
   const connectedDatasets = [
     'Products API',
@@ -206,6 +207,20 @@ function App() {
     if (action === 'offers') setCurrentStep('offers-listing');
   };
 
+  // Centralised back handler — drives the footer back button
+  const getBackHandler = (): (() => void) | null => {
+    switch (currentStep) {
+      case 'form':                return formBackHandler;
+      case 'store-confirm':       return handleStoreConfirmBack;
+      case 'loading':             return () => setCurrentStep('form');
+      case 'offers-listing':      return () => setCurrentStep('store-confirm');
+      case 'offer-detail':        return handleBackFromOfferDetail;
+      case 'order-summary':       return handleBackFromOrderSummary;
+      case 'empty-cart-thankyou': return () => setCurrentStep('offers-listing');
+      default:                    return null;
+    }
+  };
+
   const handleEmptyCartThank = async () => {
     if (!userData || !storeData) return;
     try {
@@ -232,7 +247,7 @@ function App() {
         onLogout={handleThankYouComplete}
       />
 
-      {currentStep === 'form' && <UserForm onSubmit={handleFormSubmit} />}
+      {currentStep === 'form' && <UserForm onSubmit={handleFormSubmit} onBackChange={h => setFormBackHandler(h ? () => h : null)} />}
 
       {currentStep === 'loading' && userData && (
         <LoadingStep userData={userData} onComplete={handleLoadingComplete} onBack={() => setCurrentStep('form')} />
@@ -303,7 +318,7 @@ function App() {
         />
       )}
 
-      <Footer />
+      <Footer onBack={getBackHandler()} />
 
       {/* ── Presentation Player overlay ─────────────────────────── */}
       {showPresentation && (

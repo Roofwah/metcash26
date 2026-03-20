@@ -115,21 +115,21 @@
 
   /* Logos */
   .form-card:has(.home-screen) .logo {
-    max-width: min(180px, 26vw);
-    max-height: 13vh;
+    max-width: min(240px, 34vw);
+    max-height: 18vh;
     width: auto;
     height: auto;
     object-fit: contain;
   }
 
   .form-card:has(.home-screen) .rounded-logo {
-    max-width: min(190px, 28vw) !important;
-    max-height: 13vh;
+    max-width: min(250px, 36vw) !important;
+    max-height: 18vh;
   }
 
   .form-card:has(.home-screen) .home-armorall-logo {
-    max-width: min(180px, 26vw) !important;
-    max-height: 12vh;
+    max-width: min(240px, 34vw) !important;
+    max-height: 16vh;
   }
 
   /* Home copy */
@@ -314,11 +314,13 @@
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
 
   .form-card:has(.home-screen) {
-    max-width: min(96vw, 900px);
-    height: calc(100dvh - 20px);
-    height: calc(100vh - 20px);
-    max-height: none;
-    padding: 14px 18px;
+    max-width: min(96vw, 980px);
+    height: auto;
+    min-height: calc(100dvh - 120px);
+    min-height: calc(100vh - 120px);
+    max-height: calc(100dvh - 56px);
+    max-height: calc(100vh - 56px);
+    padding: 20px 22px;
   }
 
   .form-card:has(.home-screen) .home-content {
@@ -326,12 +328,19 @@
     grid-template-columns: 1fr 1fr;
     grid-template-rows: auto auto auto auto;
     align-items: center;
-    column-gap: 0.75rem;
-    row-gap: 0.2rem;
+    align-content: center;
+    justify-items: center;
+    column-gap: 1.1rem;
+    row-gap: 0.55rem;
     width: 100%;
     max-width: 860px;
     margin-inline: auto;
     min-height: 0;
+  }
+
+  .form-card:has(.home-screen) .logo-divider {
+    width: min(420px, 76%);
+    margin: 6px auto 4px;
   }
 
   .form-card:has(.home-screen) .home-content .logo-container:first-of-type {
@@ -341,20 +350,56 @@
     grid-column: 2; grid-row: 1; justify-self: start;
   }
   .form-card:has(.home-screen) .home-content .home-title {
-    grid-column: 1 / -1; grid-row: 2;
+    grid-column: 1 / -1; grid-row: 3;
+    font-size: clamp(1.2rem, 2.1vw, 1.6rem);
+    margin: 0;
   }
   .form-card:has(.home-screen) .home-content > p {
-    grid-column: 1 / -1; grid-row: 3;
+    grid-column: 1 / -1; grid-row: 4;
+    font-size: 0.95rem;
+    margin: 0;
   }
   .form-card:has(.home-screen) .home-content .start-btn {
-    grid-column: 1 / -1; grid-row: 4; justify-self: center;
+    grid-column: 1 / -1; grid-row: 5; justify-self: center;
+    margin-top: 0.2rem;
+  }
+
+  .form-card:has(.home-screen) .logo-divider {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: min(460px, 70%);
+    height: 1px;
+    margin: 4px auto 2px;
+    opacity: 0.7;
   }
 
   .form-card:has(.home-screen) .logo,
   .form-card:has(.home-screen) .rounded-logo,
   .form-card:has(.home-screen) .home-armorall-logo {
-    max-width: min(190px, 22vw) !important;
-    max-height: min(110px, 18vh);
+    max-width: min(340px, 38vw) !important;
+    max-height: min(205px, 30vh);
+  }
+}
+
+/* iPad Air / 820x1180 specific bump */
+@media (width: 820px) and (height: 1180px), (width: 1180px) and (height: 820px) {
+  .form-card:has(.home-screen) .logo,
+  .form-card:has(.home-screen) .rounded-logo,
+  .form-card:has(.home-screen) .home-armorall-logo {
+    max-width: min(380px, 44vw) !important;
+    max-height: min(230px, 34vh);
+  }
+}
+
+/* iPad portrait 820x1180: slightly taller home card */
+@media (width: 820px) and (height: 1180px) and (orientation: portrait) {
+  .form-card:has(.home-screen) {
+    min-height: calc(100dvh - 230px);
+    min-height: calc(100vh - 230px);
+    max-height: calc(100dvh - 96px);
+    max-height: calc(100vh - 96px);
+    padding-top: 16px;
+    padding-bottom: 16px;
   }
 }
 
