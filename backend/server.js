@@ -150,6 +150,49 @@ function parseCSV(filePath, transform) {
   });
 }
 
+let fallbackMcashStores = null;
+let fallbackMcashStoresPromise = null;
+
+function loadFallbackMcashStores() {
+  if (fallbackMcashStores) return Promise.resolve(fallbackMcashStores);
+  if (fallbackMcashStoresPromise) return fallbackMcashStoresPromise;
+
+  const filePath = path.resolve(__dirname, 'mcash26.csv');
+  if (!fs.existsSync(filePath)) {
+    fallbackMcashStores = [];
+    return Promise.resolve(fallbackMcashStores);
+  }
+
+  fallbackMcashStoresPromise = parseCSV(filePath, (clean) => {
+    const name = (clean.Store || clean.store || '').trim();
+    const suburb = (clean.Suburb || clean.suburb || '').trim();
+    const state = (clean.State || clean.state || '').trim();
+    if (!name || !suburb || !state) return null;
+    return {
+      id: `${state}-${suburb}-${name}`,
+      name,
+      address: (clean.Address || clean.address || '').trim(),
+      suburb,
+      state,
+      pcode: (clean.Pcode || clean.pcode || '').trim(),
+      banner: ((clean.Banner || clean.banner || '-').trim()) || '-',
+    };
+  })
+    .then((rows) => {
+      fallbackMcashStores = rows;
+      fallbackMcashStoresPromise = null;
+      console.log(`Loaded ${rows.length} fallback mcash stores.`);
+      return rows;
+    })
+    .catch((err) => {
+      fallbackMcashStoresPromise = null;
+      console.error('Failed loading fallback mcash stores:', err.message);
+      return [];
+    });
+
+  return fallbackMcashStoresPromise;
+}
+
 // ---------------------------------------------------------------------------
 // CSV loaders
 // ---------------------------------------------------------------------------
@@ -376,9 +419,16 @@ app.get('/api/states', async (req, res) => {
       `SELECT DISTINCT state FROM mcash_stores
        WHERE state IS NOT NULL AND state <> '' ORDER BY state`
     );
-    res.json(rows.map(r => r.state));
+    if (rows.length > 0) {
+      return res.json(rows.map(r => r.state));
+    }
+    const fallbackRows = await loadFallbackMcashStores();
+    const states = [...new Set(fallbackRows.map((r) => r.state))].sort();
+    res.json(states);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch states' });
+    const fallbackRows = await loadFallbackMcashStores();
+    const states = [...new Set(fallbackRows.map((r) => r.state))].sort();
+    res.json(states);
   }
 });
 
@@ -391,9 +441,22 @@ app.get('/api/suburbs', async (req, res) => {
        WHERE state = $1 AND suburb IS NOT NULL AND suburb <> '' ORDER BY suburb`,
       [state]
     );
-    res.json(rows.map(r => r.suburb));
+    if (rows.length > 0) {
+      return res.json(rows.map(r => r.suburb));
+    }
+    const fallbackRows = await loadFallbackMcashStores();
+    const suburbs = [...new Set(
+      fallbackRows.filter((r) => r.state === state).map((r) => r.suburb)
+    )].sort();
+    res.json(suburbs);
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch suburbs' });
+    const state = (req.query.state || '').trim();
+    if (!state) return res.status(400).json({ error: 'state required' });
+    const fallbackRows = await loadFallbackMcashStores();
+    const suburbs = [...new Set(
+      fallbackRows.filter((r) => r.state === state).map((r) => r.suburb)
+    )].sort();
+    res.json(suburbs);
   }
 });
 
@@ -407,19 +470,48 @@ app.get('/api/mcash-stores', async (req, res) => {
        FROM mcash_stores WHERE state = $1 AND suburb = $2 ORDER BY name`,
       [state, suburb]
     );
-    res.json(rows.map(r => ({
-      id:      r.id,
-      name:    r.name,
+    if (rows.length > 0) {
+      return res.json(rows.map(r => ({
+        id:      r.id,
+        name:    r.name,
+        address: r.address || '',
+        suburb:  r.suburb,
+        state:   r.state,
+        pcode:   r.pcode  || '',
+        banner:  r.banner || '-',
+      })));
+    }
+    const fallbackRows = await loadFallbackMcashStores();
+    const matches = fallbackRows.filter((r) => r.state === state && r.suburb === suburb);
+    res.json(matches.map((r, idx) => ({
+      id: idx + 1,
+      name: r.name,
       address: r.address || '',
-      suburb:  r.suburb,
-      state:   r.state,
-      pcode:   r.pcode  || '',
-      banner:  r.banner || '-',
+      suburb: r.suburb,
+      state: r.state,
+      pcode: r.pcode || '',
+      banner: r.banner || '-',
     })));
   } catch (err) {
-    res.status(500).json({ error: 'Failed to fetch stores' });
+    const state  = (req.query.state  || '').trim();
+    const suburb = (req.query.suburb || '').trim();
+    if (!state || !suburb) return res.status(400).json({ error: 'state and suburb required' });
+    const fallbackRows = await loadFallbackMcashStores();
+    const matches = fallbackRows.filter((r) => r.state === state && r.suburb === suburb);
+    res.json(matches.map((r, idx) => ({
+      id: idx + 1,
+      name: r.name,
+      address: r.address || '',
+      suburb: r.suburb,
+      state: r.state,
+      pcode: r.pcode || '',
+      banner: r.banner || '-',
+    })));
   }
 });
+
+// Warm fallback cache at startup so first request is fast
+loadFallbackMcashStores().catch(() => {});
 
 // ---------------------------------------------------------------------------
 // API – offers
