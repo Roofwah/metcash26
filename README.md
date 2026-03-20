@@ -3,7 +3,7 @@
 Standalone extraction of the `metcash26` flow, split into:
 
 - `frontend` (React + TypeScript)
-- `backend` (Node.js + Express + SQLite)
+- `backend` (Node.js + Express + Postgres)
 
 ## Quick start
 
@@ -35,7 +35,8 @@ Frontend runs on `http://localhost:3000` by default and loads the metcash26 flow
 
 - `PORT` (default `5001`)
 - `CORS_ORIGIN` (default `*`)
-- `DB_PATH` (default `./metcash.db`)
+- `PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE` (Postgres connection)
+- `DB_SSL` (`false` for Render internal Postgres, otherwise SSL with cert verification off)
 
 ### frontend/.env
 
@@ -62,3 +63,19 @@ Backend CSV ingest files:
 - `backend/ihg26stores.csv`
 - `backend/mcash26.csv`
 - `backend/offers.csv`
+
+## Render deployment (single service)
+
+This repo includes `render.yaml` and a root `package.json` so Render can build and run from repo root.
+
+- Build command: `npm run render-build`
+- Start command: `npm run render-start`
+
+Required env vars on Render:
+
+- `PGHOST`
+- `PGPORT`
+- `PGUSER`
+- `PGPASSWORD`
+- `PGDATABASE`
+- `DB_SSL=false` (recommended when using Render private Postgres network)
