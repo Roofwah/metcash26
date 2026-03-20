@@ -19,6 +19,10 @@ const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
+app.get('/healthz', (_req, res) => {
+  res.status(200).json({ ok: true, dbReady });
+});
+
 // ---------------------------------------------------------------------------
 // Schema bootstrap – runs once on startup.
 // Column names preserve the original casing so raw row objects returned to
@@ -598,21 +602,30 @@ if (buildPath) {
 // ---------------------------------------------------------------------------
 // Boot
 // ---------------------------------------------------------------------------
-(async () => {
+let dbReady = false;
+
+async function initDbWithRetry() {
   try {
     await initDb();
-    app.listen(PORT, () => console.log(`Metcash API → http://localhost:${PORT}`));
-    // Load reference data in the background — server is already accepting requests
+    dbReady = true;
+    console.log('Database connection ready.');
+    // Load reference data in the background once DB is reachable.
     loadStoresCSV()
       .then(() => loadMcashStoresCSV())
       .then(() => loadOffersCSV())
       .then(() => console.log('All CSV data loaded.'))
       .catch(err => console.error('CSV load failed:', err.message));
   } catch (err) {
-    console.error('Fatal startup error:', err.message || err);
-    process.exit(1);
+    dbReady = false;
+    console.error('Database init failed, retrying in 10s:', err.message || err);
+    setTimeout(initDbWithRetry, 10000);
   }
-})();
+}
+
+app.listen(PORT, () => {
+  console.log(`Metcash API → http://localhost:${PORT}`);
+  initDbWithRetry();
+});
 
 process.on('SIGINT', async () => {
   await pool.end();
