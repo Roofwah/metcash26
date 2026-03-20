@@ -2,6 +2,6 @@
   "name": "metcash26-client-wrapper",
   "private": true,
   "scripts": {
-    "build": "npm --prefix ../frontend run build"
+    "build": "npm --prefix ../frontend install --include=dev && npm --prefix ../frontend run build"
   }
 }
