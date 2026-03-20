@@ -1,0 +1,7 @@
+{
+  "name": "metcash26-client-wrapper",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix ../frontend run build"
+  }
+}
