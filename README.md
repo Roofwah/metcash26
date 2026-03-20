@@ -73,9 +73,6 @@ This repo includes `render.yaml` and a root `package.json` so Render can build a
 
 Required env vars on Render:
 
-- `PGHOST`
-- `PGPORT`
-- `PGUSER`
-- `PGPASSWORD`
-- `PGDATABASE`
+- `DATABASE_URL` (recommended; Supabase/Render URI format)
+- or `PGHOST` + `PGPORT` + `PGUSER` + `PGPASSWORD` + `PGDATABASE`
 - `DB_SSL=false` (recommended when using Render private Postgres network)

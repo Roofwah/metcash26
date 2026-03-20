@@ -1,11 +1,19 @@
 const { Pool } = require('pg');
 
-// pg reads PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE automatically from
-// the environment — no connection string needed, so special characters in the
-// password are never URL-encoded/decoded.
-const pool = new Pool({
-  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
-});
+const ssl = process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false };
+const databaseUrl = process.env.DATABASE_URL;
+
+// Support both styles:
+// 1) DATABASE_URL (Render/Supabase style)
+// 2) PGHOST/PGPORT/PGUSER/PGPASSWORD/PGDATABASE (node-postgres defaults)
+const pool = databaseUrl
+  ? new Pool({
+      connectionString: databaseUrl,
+      ssl,
+    })
+  : new Pool({
+      ssl,
+    });
 
 pool.on('error', (err) => {
   console.error('Unexpected pg pool error:', err.message);
