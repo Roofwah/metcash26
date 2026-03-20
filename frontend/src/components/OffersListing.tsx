@@ -66,9 +66,10 @@ interface OffersListingProps {
   cartItems: CartItem[];
   onAddToCart: (items: CartItem[]) => void;
   onUpdateCartQuantity?: (offerId: string, quantity: number, offerTier?: string) => void;
+  onViewPresentation?: () => void;
 }
 
-const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSelectOffer, onBack, onGoToCart, cartItemCount, cartItems, onAddToCart, onUpdateCartQuantity }) => {
+const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSelectOffer, onBack, onGoToCart, cartItemCount, cartItems, onAddToCart, onUpdateCartQuantity, onViewPresentation }) => {
   const [brandGroups, setBrandGroups] = useState<BrandGroup[]>([]);
   const [batteryDisplayOffers, setBatteryDisplayOffers] = useState<Offer[]>([]);
   const [lightingOffers, setLightingOffers] = useState<Offer[]>([]);
@@ -316,24 +317,26 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
 
   const scrollToSection = (sectionName: string) => {
     let elementId = '';
-    
+
     if (sectionName === 'Pallet Offers') {
-      // Scroll to the first pallet section (Energizer pallet offers)
       elementId = 'section-energizer';
     } else {
       elementId = `section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`;
     }
-    
+
     const element = document.getElementById(elementId);
-    if (element) {
-      const headerHeight = 100; // Approximate header height
-      const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-      const offsetPosition = elementPosition - headerHeight;
-      window.scrollTo({
-        top: offsetPosition,
-        behavior: 'smooth'
-      });
-    }
+    if (!element) return;
+
+    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // After vertical scroll, align horizontal carousel to the first card (tablet swipe rows)
+    window.setTimeout(() => {
+      const row = element.querySelector<HTMLElement>('.offers-grid');
+      const firstCard = row?.firstElementChild as HTMLElement | undefined;
+      if (row && firstCard) {
+        firstCard.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
+      }
+    }, 380);
   };
 
   if (loading) {
@@ -391,6 +394,26 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
       </div>
 
       <div className="offers-content">
+
+        {/* ── Story Presentation entry point ─────────────────────────── */}
+        {onViewPresentation && (
+          <div className="story-entry-banner" onClick={onViewPresentation}>
+            <div className="story-entry-left">
+              <div className="story-entry-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                  <polygon points="5 3 19 12 5 21 5 3" />
+                </svg>
+              </div>
+              <div className="story-entry-text">
+                <span className="story-entry-label">CATEGORY INSIGHT</span>
+                <span className="story-entry-title">View Story Presentation</span>
+                <span className="story-entry-sub">Energizer Christmas opportunity — 5 scenes</span>
+              </div>
+            </div>
+            <div className="story-entry-arrow">›</div>
+          </div>
+        )}
+
         {/* Battery Display Offers (Energizer 7) */}
         {batteryDisplayOffers.length > 0 && (
           <div id="section-battery-display" className="individual-offers-section">

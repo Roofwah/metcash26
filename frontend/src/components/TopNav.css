@@ -1,0 +1,154 @@
+.floating-nav {
+  position: fixed;
+  top: 14px;
+  left: 14px;
+  z-index: 9000;
+}
+
+.floating-nav-button {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  background: #121212;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.floating-nav-logo-image {
+  width: 32px;
+  height: 32px;
+  display: block;
+  image-rendering: auto;
+}
+
+.floating-nav-modal {
+  margin-top: 10px;
+  min-width: 190px;
+  background: #121212;
+  border: none;
+  outline: none;
+  border-radius: 12px;
+  padding: 10px;
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.55);
+}
+
+.floating-nav-modal-title {
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.floating-nav-user {
+  margin-top: 0;
+  margin-bottom: 2px;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.82rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-nav-profile {
+  margin-top: 8px;
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.floating-nav-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.floating-nav-profile-text {
+  min-width: 0;
+}
+
+.floating-nav-email {
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 0.74rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floating-nav-datasets-title {
+  margin-top: 4px;
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.floating-nav-datasets-list {
+  margin: 6px 0 10px;
+  padding-left: 18px;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.76rem;
+  text-align: left;
+}
+
+.floating-nav-datasets-list li {
+  margin-bottom: 4px;
+}
+
+.floating-nav-datasets-empty {
+  margin-top: 6px;
+  margin-bottom: 10px;
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.74rem;
+  text-align: left;
+}
+
+.floating-nav-logout-row {
+  width: 100%;
+  margin-top: 8px;
+  padding: 10px 2px 2px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 183, 183, 0.92);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.floating-nav-logout-row:hover {
+  color: #ffc4c4;
+}
+
+.floating-nav-logout-icon {
+  width: 16px;
+  height: 16px;
+  line-height: 1;
+  display: inline-flex;
+  color: inherit;
+}
+
+.floating-nav-logout-icon svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+  display: block;
+}

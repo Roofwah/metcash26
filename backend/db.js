@@ -1,20 +1,14 @@
-const path = require('path');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg');
 
-function resolveDbPath() {
-  const configured = (process.env.DB_PATH || '').trim();
-  if (!configured) {
-    return path.resolve(__dirname, 'metcash.db');
-  }
-  return path.isAbsolute(configured)
-    ? configured
-    : path.resolve(__dirname, configured);
-}
+// pg reads PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE automatically from
+// the environment — no connection string needed, so special characters in the
+// password are never URL-encoded/decoded.
+const pool = new Pool({
+  ssl: process.env.DB_SSL === 'false' ? false : { rejectUnauthorized: false },
+});
 
-const dbPath = resolveDbPath();
-const db = new sqlite3.Database(dbPath);
+pool.on('error', (err) => {
+  console.error('Unexpected pg pool error:', err.message);
+});
 
-module.exports = {
-  db,
-  dbPath,
-};
+module.exports = { pool };

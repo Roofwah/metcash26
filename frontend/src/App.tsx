@@ -7,8 +7,10 @@ import OffersListing from './components/OffersListing';
 import OfferDetail from './components/OfferDetail';
 import OrderSummary from './components/OrderSummary';
 import EmptyCartThankYou from './components/EmptyCartThankYou';
+import TopNav from './components/TopNav';
 import Footer from './components/Footer';
-import StartOverButton from './components/StartOverButton';
+import PresentationPlayer from './features/presentations/components/PresentationPlayer';
+import { metcashExpoSampleDeck } from './features/presentations/data/metcashExpoSampleDeck';
 import axios from 'axios';
 import { apiUrl, StoreData } from './api';
 
@@ -37,6 +39,7 @@ type AppStep =
   | 'thankyou'
   | 'empty-cart-thankyou';
 
+
 function App() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
@@ -44,6 +47,14 @@ function App() {
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
+  const [showPresentation, setShowPresentation] = useState(false);
+
+  const connectedDatasets = [
+    'Products API',
+    'Orders API',
+    ...(storeData?.storeName ? [`Store: ${storeData.storeName}`] : []),
+    ...(storeData?.banner ? [`Banner: ${storeData.banner}`] : []),
+  ];
 
   const handleFormSubmit = (data: UserData, storeDataFromForm?: StoreData) => {
     setUserData(data);
@@ -66,12 +77,10 @@ function App() {
   };
 
   const handleStoreConfirmContinue = () => {
-    setCurrentStep('offers-listing');
+    setCurrentStep('offers-listing'); // navigate to offers so they load in background
+    setShowPresentation(true);        // play presentation on top
   };
-
-  const handleStoreConfirmBack = () => {
-    setCurrentStep('form');
-  };
+  const handleStoreConfirmBack    = () => setCurrentStep('form');
 
   const handleSelectOffer = (offerId: string) => {
     setSelectedOfferId(offerId);
@@ -94,18 +103,11 @@ function App() {
   };
 
   const handleGoToCart = () => {
-    if (cartItems.length > 0) {
-      setCurrentStep('order-summary');
-    } else {
-      setCurrentStep('empty-cart-thankyou');
-    }
+    setCurrentStep(cartItems.length > 0 ? 'order-summary' : 'empty-cart-thankyou');
   };
 
   const handleUpdateQuantity = (index: number, quantity: number) => {
-    if (quantity <= 0) {
-      handleRemoveItem(index);
-      return;
-    }
+    if (quantity <= 0) { handleRemoveItem(index); return; }
     setCartItems(prev => {
       const updated = [...prev];
       const currentItem = updated[index];
@@ -114,7 +116,7 @@ function App() {
         const newDropMonths = [...currentDropMonths];
         for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push('March');
         updated[index].dropMonths = newDropMonths;
-      } else if (quantity < currentItem.quantity) {
+      } else {
         updated[index].dropMonths = currentDropMonths.slice(0, quantity);
       }
       updated[index].quantity = quantity;
@@ -141,7 +143,7 @@ function App() {
         const newDropMonths = [...currentDropMonths];
         for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push('March');
         updated[itemIndex].dropMonths = newDropMonths;
-      } else if (quantity < currentItem.quantity) {
+      } else {
         updated[itemIndex].dropMonths = currentDropMonths.slice(0, quantity);
       }
       updated[itemIndex].quantity = quantity;
@@ -195,24 +197,25 @@ function App() {
     setCurrentStep('form');
   };
 
-  const handleBackFromOrderSummary = () => {
-    setCurrentStep('offers-listing');
+  const handleBackFromOrderSummary = () => setCurrentStep('offers-listing');
+
+  const handleViewPresentation = () => setShowPresentation(true);
+  const handlePresentationClose = () => setShowPresentation(false);
+  const handlePresentationCTA = (action: string) => {
+    setShowPresentation(false);
+    if (action === 'offers') setCurrentStep('offers-listing');
   };
 
   const handleEmptyCartThank = async () => {
     if (!userData || !storeData) return;
-    const orderData = {
-      userName: userData.fullName,
-      storeNumber: userData.storeNo,
-      storeName: storeData.storeName,
-      banner: storeData.banner,
-      position: '',
-      purchaseOrder: '',
-      items: [],
-      totalValue: '0.00',
-    };
     try {
-      await axios.post(apiUrl('/api/save-order'), orderData);
+      await axios.post(apiUrl('/api/save-order'), {
+        userName: userData.fullName,
+        storeNumber: userData.storeNo,
+        storeName: storeData.storeName,
+        banner: storeData.banner,
+        position: '', purchaseOrder: '', items: [], totalValue: '0.00',
+      });
     } catch (error) {
       console.error('Error saving order:', error);
     }
@@ -220,7 +223,15 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className="App with-nav">
+
+      <TopNav
+        userName={userData?.fullName}
+        userEmail={userData ? `${userData.fullName.toLowerCase().replace(/\s+/g, '.')}@metcash.local` : undefined}
+        connectedDatasets={connectedDatasets}
+        onLogout={handleThankYouComplete}
+      />
+
       {currentStep === 'form' && <UserForm onSubmit={handleFormSubmit} />}
 
       {currentStep === 'loading' && userData && (
@@ -292,11 +303,17 @@ function App() {
         />
       )}
 
-      {currentStep !== 'form' && currentStep !== 'thankyou' && currentStep !== 'empty-cart-thankyou' && (
-        <StartOverButton onStartOver={handleThankYouComplete} />
+      <Footer />
+
+      {/* ── Presentation Player overlay ─────────────────────────── */}
+      {showPresentation && (
+        <PresentationPlayer
+          deck={metcashExpoSampleDeck}
+          onClose={handlePresentationClose}
+          onCTAAction={handlePresentationCTA}
+        />
       )}
 
-      <Footer />
     </div>
   );
 }

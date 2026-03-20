@@ -11,5 +11,5 @@ code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
 }
 
-/* iPad / tablet optimisations (768px–1280px) */
+/* iPad / tablet density layer (768px–1366px) — see ipad.css */
 @import './ipad.css';

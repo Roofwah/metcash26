@@ -1,7 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import Keyboard from 'react-simple-keyboard';
-import 'react-simple-keyboard/build/css/index.css';
 import './UserForm.css';
 import { apiUrl, StoreData } from '../api';
 
@@ -39,10 +37,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
   const [selectedSuburb, setSelectedSuburb] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [showKeyboard, setShowKeyboard] = useState(false);
-  const [activeInput, setActiveInput] = useState<string | null>(null);
-  const keyboardRef = useRef<any>(null);
-  const keyboardContainerRef = useRef<HTMLDivElement>(null);
   const [storeInfo, setStoreInfo] = useState<{ storeName: string } | null>(null);
 
   useEffect(() => {
@@ -141,71 +135,8 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       .join(' ');
   };
 
-  const handleInputFocus = (inputType: string) => {
-    if (inputType === 'fullName') {
-      setShowKeyboard(true);
-      setActiveInput('fullName');
-    }
-  };
-
-  const handleInputBlur = (e: React.FocusEvent) => {
-    if (showKeyboard) {
-      e.preventDefault();
-      return;
-    }
-    if (activeInput === 'fullName' && fullName.trim()) setFullName(formatName(fullName.trim()));
-    setTimeout(() => {
-      setShowKeyboard(false);
-      setActiveInput(null);
-    }, 100);
-  };
-
-  const onKeyPress = (button: string) => {
-    if (activeInput === 'fullName') {
-      if (button === '{space}') setFullName(prev => prev + ' ');
-      else if (button === '{clear}') setFullName('');
-      else if (button === '{done}') {
-        setFullName(prev => formatName(prev));
-        setShowKeyboard(false);
-        setActiveInput(null);
-      } else {
-        setFullName(prev => prev + button);
-      }
-    }
-  };
-
-  const closeKeyboard = () => {
-    setShowKeyboard(false);
-    setActiveInput(null);
-  };
-
-  const renderKeyboard = () => {
-    if (!showKeyboard || activeInput !== 'fullName') return null;
-    return (
-      <div className="keyboard-overlay">
-        <div className="keyboard-container" ref={keyboardContainerRef}>
-          <div className="keyboard-header">
-            <span>Enter your full name</span>
-            <button type="button" className="keyboard-close" onClick={closeKeyboard}>✕</button>
-          </div>
-          <div className="keyboard-input-display">{fullName || 'Type your full name here...'}</div>
-          <div className="keyboard-wrapper">
-            <Keyboard
-              keyboardRef={r => (keyboardRef.current = r)}
-              layout={{
-                default: ['q w e r t y u i o p', 'a s d f g h j k l', 'z x c v b n m', '{space} {clear} {done}'],
-              }}
-              display={{ '{clear}': 'CLEAR', '{done}': 'DONE', '{space}': 'SPACE' }}
-              onKeyPress={onKeyPress}
-              physicalKeyboardHighlight={true}
-              physicalKeyboardHighlightBgColor="#fff"
-              preventMouseDownDefault={true}
-              preventMouseUpDefault={true}
-            />
-          </div>
-        </div>
-      </div>
-    );
+  const handleInputBlur = () => {
+    if (fullName.trim()) setFullName(formatName(fullName.trim()));
   };
 
   const renderStepContent = () => {
@@ -215,9 +146,9 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
           <div className="step-content home-screen">
             <div className="home-content">
               <div className="logo-container">
-                <img src="/ihg.png" alt="IHG Logo" className="logo rounded-logo" />
+                <img src="/metexpo.png" alt="Metexpo Logo" className="logo rounded-logo" />
               </div>
-              <div className="logo-container" style={{ marginTop: '30px' }}>
+              <div className="logo-container">
                 <img src="/energizer.png" alt="Energizer Logo" className="logo home-armorall-logo" />
               </div>
               <h1 className="home-title">Metcash – Store lookup &amp; sales input</h1>
@@ -240,14 +171,11 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
                 type="text"
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
-                onFocus={() => handleInputFocus('fullName')}
-                onBlur={showKeyboard ? undefined : handleInputBlur}
+                onBlur={handleInputBlur}
                 placeholder="Enter your full name"
                 className="form-input"
-                readOnly={showKeyboard}
                 autoComplete="off"
               />
-              <div className="input-hint">Tap to open keyboard</div>
             </div>
             <div className="form-navigation step-1-nav">
               <button type="button" onClick={() => fullName.trim() && setCurrentStep(STEP_STATE)} className="nav-btn next-btn" disabled={!fullName.trim()}>Next →</button>
@@ -365,7 +293,6 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
           </form>
         </div>
       )}
-      {renderKeyboard()}
     </div>
   );
 };

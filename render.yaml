@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: metcash26-app
+    env: node
+    buildCommand: npm run render-build
+    startCommand: npm run render-start
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 20
+      - key: DB_SSL
+        value: false

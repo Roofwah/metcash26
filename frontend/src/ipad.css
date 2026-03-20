@@ -1,356 +1,1087 @@
 /**
- * iPad / tablet resolution optimisations
- * Targets 768px–1280px (iPad portrait through iPad Pro landscape).
- * Touch targets min 44px; safe-area padding for notched devices.
+ * iPad-Only Layout System
+ * ===========================================================
+ * Portrait:  768px – 1023px  (iPad in hand, one-thumb use)
+ * Landscape: 1024px – 1366px (iPad on table, two-hand use)
+ *
+ * Philosophy:
+ *  - This IS the design target. Not a rescue patch.
+ *  - Compact, modern, touch-friendly without being child-sized.
+ *  - Floating DBLE nav button: intentionally preserved.
+ *  - Presentation player: has its own CSS, untouched here.
+ * ===========================================================
  */
 
-/* Base: slightly larger body for arm's-length reading */
-@media (min-width: 768px) and (max-width: 1280px) {
+/* ═══════════════════════════════════════════════════════════
+   1. BASE RESET + FONT SCALE
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
   html {
-    font-size: 18px;
+    font-size: 14px; /* anchors rem — all rem values shrink proportionally */
   }
 
   body {
-    padding-left: env(safe-area-inset-left);
+    padding-left:  env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
   }
 
   .App {
-    padding-bottom: 80px;
+    padding-bottom: 54px; /* footer clearance */
+    padding-top: 0;       /* floating nav, not fixed bar */
   }
 }
 
-/* Form card & home: larger max-width so it doesn’t look tiny on 1024px */
-@media (min-width: 768px) and (max-width: 1280px) {
+
+/* ═══════════════════════════════════════════════════════════
+   2. USER FORM — wizard + home screen
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
+  /* Container */
   .user-form-container {
-    padding: 28px;
+    min-height: 100dvh;
+    min-height: 100vh;
+    padding: 14px 16px;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+    box-sizing: border-box;
+    align-items: stretch;
   }
 
+  /* ── Card shared ── */
   .form-card {
-    max-width: 520px;
-    padding: 48px 44px;
-    border-radius: 24px;
-  }
-
-  .home-title {
-    font-size: 2.5rem;
-  }
-
-  .logo {
-    max-width: 360px;
-  }
-
-  .rounded-logo {
-    max-width: 420px !important;
-  }
-
-  .home-armorall-logo {
-    max-width: 400px !important;
-  }
-
-  .start-btn {
-    min-height: 52px;
-    padding: 18px 48px;
-    font-size: 1.5rem;
-    min-width: 220px;
+    padding: 20px 22px;
     border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    max-width: min(92vw, 500px);
   }
 
-  .back-btn-step {
-    min-height: 48px;
-    padding: 14px 24px;
-    font-size: 1.1rem;
-    bottom: calc(24px + env(safe-area-inset-bottom));
-    left: calc(24px + env(safe-area-inset-left));
+  .form-card h2 {
+    font-size: 1.35rem;
+    margin-bottom: 10px;
   }
 
-  .form-input {
-    min-height: 48px;
-    font-size: 1.25rem;
-    padding: 14px 18px;
+  .form-card > p {
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  /* ── Home card ── */
+  .form-card:has(.home-screen) {
+    max-width: min(94vw, 740px);
+    width: 100%;
+    padding: 14px 16px;
+    border-radius: 16px;
+    height: calc(100dvh - 80px);
+    height: calc(100vh - 80px);
+    max-height: none;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .form-card:has(.home-screen) .user-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .step-content.home-screen {
+    margin-bottom: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .home-screen {
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .form-card:has(.home-screen) .home-content {
+    min-height: 0;
+    flex: 1;
+    gap: 0.3rem;
+    justify-content: center;
+    padding: 0;
+  }
+
+  /* Logos */
+  .form-card:has(.home-screen) .logo {
+    max-width: min(180px, 26vw);
+    max-height: 13vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+
+  .form-card:has(.home-screen) .rounded-logo {
+    max-width: min(190px, 28vw) !important;
+    max-height: 13vh;
+  }
+
+  .form-card:has(.home-screen) .home-armorall-logo {
+    max-width: min(180px, 26vw) !important;
+    max-height: 12vh;
+  }
+
+  /* Home copy */
+  .home-title {
+    font-size: clamp(1rem, 2.1vw, 1.25rem);
+    line-height: 1.25;
+    max-width: 36em;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+
+  .home-subtitle {
+    font-size: 0.88rem;
+    margin-bottom: 8px;
+    line-height: 1.3;
+  }
+
+  .home-screen .home-content > p {
+    font-size: 0.88rem;
+    line-height: 1.3;
+    color: #555;
+    max-width: 32em;
+    margin-bottom: 0;
+  }
+
+  .year-text {
+    font-size: 1.05rem;
+    margin-top: 4px;
+  }
+
+  /* Start button */
+  .start-btn {
+    padding: 10px 26px;
+    font-size: 0.92rem;
+    min-height: 44px;
+    min-width: 130px;
     border-radius: 12px;
+    margin-top: 4px;
+    letter-spacing: 0.5px;
   }
 
-  .nav-btn.next-btn {
-    min-height: 52px;
-    padding: 14px 28px;
-    font-size: 1.25rem;
-    border-radius: 12px;
+  /* ── Step indicator ── */
+  .step-indicator {
+    margin-bottom: 18px;
+    padding: 0 16px;
+  }
+
+  .step-indicator::before {
+    top: 17px;   /* vertical centre of 34px circles */
+    left: 40px;
+    right: 40px;
+    height: 2px;
+  }
+
+  .step-number {
+    width: 34px;
+    height: 34px;
+    font-size: 0.85rem;
+    margin-bottom: 5px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .step-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── Step content ── */
+  .step-content {
+    margin-bottom: 16px;
+  }
+
+  .step-content h3 {
+    font-size: 1.3rem;
+    margin-bottom: 8px;
+  }
+
+  .step-content p {
+    font-size: 0.9rem;
+    margin-bottom: 14px;
+    line-height: 1.4;
+  }
+
+  .typing-text {
+    font-size: 1.15rem;
+    margin: 0 auto 12px;
+    letter-spacing: 1px;
+  }
+
+  /* ── Form controls ── */
+  .form-group {
+    margin-bottom: 12px;
+  }
+
+  .form-input,
+  .form-select {
+    padding: 10px 14px;
+    font-size: 1rem;
+    border-radius: 10px;
+    border-width: 2px;
+  }
+
+  .form-input::placeholder {
+    font-size: 0.95rem;
   }
 
   .input-hint {
+    font-size: 0.8rem;
+    margin-top: 5px;
+  }
+
+  /* ── State grid ── */
+  .state-grid {
+    gap: 9px;
+    padding: 10px 0;
+  }
+
+  .state-btn {
+    padding: 10px 8px;
     font-size: 1rem;
+    min-height: 44px;
+    border-width: 2px;
+    border-radius: 10px;
   }
 
-  .keyboard-close {
-    min-width: 48px;
-    min-height: 48px;
-    font-size: 1.5rem;
+  /* ── Store grid ── */
+  .store-btn {
+    padding: 10px 14px;
+    font-size: 0.92rem;
+    min-height: 44px;
+    border-radius: 8px;
   }
 
-  .keyboard-input-display {
-    min-height: 52px;
-    font-size: 1.25rem;
+  .store-grid {
+    max-height: 40vh;
+    gap: 8px;
+  }
+
+  /* ── Navigation row ── */
+  .form-navigation {
+    gap: 12px;
+    padding-top: 14px;
+  }
+
+  .nav-btn {
+    padding: 11px 20px;
+    font-size: 0.92rem;
+    font-weight: 600;
+    min-width: 110px;
+    min-height: 44px;
+    border-radius: 10px;
+    letter-spacing: 0.3px;
+  }
+
+  .back-btn-step {
+    min-height: 44px;
+    padding: 10px 18px;
+    font-size: 0.95rem;
+    bottom: calc(22px + env(safe-area-inset-bottom));
+    left: calc(20px + env(safe-area-inset-left));
+  }
+
+  /* ── Inline messages ── */
+  .error-message {
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+  }
+
+  .loading-message {
+    font-size: 0.88rem;
+    padding: 10px 14px;
+    margin-bottom: 10px;
   }
 }
 
-/* Store confirm */
-@media (min-width: 768px) and (max-width: 1280px) {
+
+/* ═══════════════════════════════════════════════════════════
+   2b. HOME SCREEN — landscape (logos side-by-side)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+
+  .form-card:has(.home-screen) {
+    max-width: min(96vw, 900px);
+    height: calc(100dvh - 20px);
+    height: calc(100vh - 20px);
+    max-height: none;
+    padding: 14px 18px;
+  }
+
+  .form-card:has(.home-screen) .home-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto auto auto;
+    align-items: center;
+    column-gap: 0.75rem;
+    row-gap: 0.2rem;
+    width: 100%;
+    max-width: 860px;
+    margin-inline: auto;
+    min-height: 0;
+  }
+
+  .form-card:has(.home-screen) .home-content .logo-container:first-of-type {
+    grid-column: 1; grid-row: 1; justify-self: end;
+  }
+  .form-card:has(.home-screen) .home-content .logo-container:nth-of-type(2) {
+    grid-column: 2; grid-row: 1; justify-self: start;
+  }
+  .form-card:has(.home-screen) .home-content .home-title {
+    grid-column: 1 / -1; grid-row: 2;
+  }
+  .form-card:has(.home-screen) .home-content > p {
+    grid-column: 1 / -1; grid-row: 3;
+  }
+  .form-card:has(.home-screen) .home-content .start-btn {
+    grid-column: 1 / -1; grid-row: 4; justify-self: center;
+  }
+
+  .form-card:has(.home-screen) .logo,
+  .form-card:has(.home-screen) .rounded-logo,
+  .form-card:has(.home-screen) .home-armorall-logo {
+    max-width: min(190px, 22vw) !important;
+    max-height: min(110px, 18vh);
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   3. STORE CONFIRM
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
   .store-confirm {
-    padding: 28px;
-    padding-bottom: calc(28px + env(safe-area-inset-bottom));
+    padding: 20px;
+    padding-bottom: calc(20px + env(safe-area-inset-bottom));
   }
 
   .store-confirm-card {
-    max-width: 480px;
-    padding: 2.5rem;
-    border-radius: 20px;
-  }
-
-  .store-confirm-title {
-    font-size: 1.75rem;
-  }
-
-  .store-confirm-name {
-    font-size: 1.4rem;
-  }
-
-  .store-confirm-meta,
-  .store-confirm-banner {
-    font-size: 1.05rem;
-  }
-
-  .store-confirm-intro {
-    font-size: 1.1rem;
-  }
-
-  .store-confirm-back,
-  .store-confirm-continue {
-    min-height: 52px;
-    padding: 16px 28px;
-    font-size: 1.15rem;
-    border-radius: 12px;
-  }
-}
-
-/* Loading step */
-@media (min-width: 768px) and (max-width: 1280px) {
-  .loading-container {
-    padding: 28px;
-  }
-
-  .loading-card {
-    border-radius: 24px;
-    padding: 28px;
-  }
-
-  .loading-title,
-  .thank-you-title {
-    font-size: 2rem;
-  }
-
-  .next-button {
-    min-height: 52px;
-    min-width: 52px;
-    padding: 16px 32px;
-    font-size: 1.25rem;
+    max-width: 400px;
+    padding: 1.4rem;
     border-radius: 14px;
   }
 
-  .store-name {
-    font-size: 1.5rem;
-  }
+  .store-confirm-title   { font-size: 1.3rem; }
+  .store-confirm-name    { font-size: 1.05rem; }
+  .store-confirm-meta,
+  .store-confirm-banner  { font-size: 0.88rem; }
+  .store-confirm-intro   { font-size: 0.92rem; }
 
-  .store-number,
-  .store-banner {
-    font-size: 1.1rem;
-  }
-
-  .energizer-text {
-    font-size: 1.15rem;
+  .store-confirm-back,
+  .store-confirm-continue {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 0.92rem;
+    border-radius: 10px;
   }
 }
 
-/* Offers listing */
-@media (min-width: 768px) and (max-width: 1280px) {
+
+/* ═══════════════════════════════════════════════════════════
+   4. LOADING STEP
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
+  .loading-container {
+    padding: 16px;
+    padding-top: calc(16px + env(safe-area-inset-top));
+  }
+
+  .loading-card {
+    border-radius: 14px;
+    padding: 18px;
+  }
+
+  /* Titles */
+  .loading-title,
+  .thank-you-title {
+    font-size: 1.4rem;
+    margin-bottom: 10px;
+  }
+
+  /* Loading phase */
+  .loading-phase {
+    min-height: 200px;
+    gap: 14px;
+  }
+
+  .loading-message { font-size: 0.88rem; }
+  .ready-message   { font-size: 0.82rem; }
+  .sales-message   { font-size: 0.9rem; margin: 8px 0; }
+  .deep-dive-message { font-size: 0.88rem; margin: 8px 0; }
+
+  /* Pulse loader */
+  .loading-animation {
+    margin: 14px 0 !important;
+    height: 56px !important;
+  }
+  .pulse-circle {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .pulse-ring {
+    width: 44px !important;
+    height: 44px !important;
+  }
+
+  /* Personalized phase */
+  .personalized-phase {
+    min-height: auto;
+    gap: 14px;
+  }
+
+  .period-message        { font-size: 0.9rem; margin: 8px 0; }
+  .sales-result-message  { font-size: 0.88rem; margin: 8px 0; }
+
+  /* Two-column layout */
+  .two-column-layout {
+    max-width: 100%;
+    gap: 16px;
+    padding: 0;
+  }
+
+  /* Tiles */
+  .tiles-grid {
+    gap: 9px;
+    max-width: 360px;
+    margin: 8px 0;
+  }
+
+  .tile {
+    padding: 10px 14px;
+    min-height: 54px;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  }
+
+  .tile-value       { font-size: 1.65rem; margin-bottom: 3px; }
+  .tile-description { font-size: 0.8rem; }
+
+  /* Category phase */
+  .category-phase {
+    min-height: auto;
+    gap: 14px;
+  }
+
+  .category-title { font-size: 1.3rem; }
+
+  .category-logo {
+    width: min(160px, 24vw);
+    height: auto;
+  }
+
+  .value-card {
+    padding: 14px;
+    gap: 12px;
+    border-radius: 12px;
+    border-width: 1px;
+  }
+
+  .value-number     { font-size: 1.6rem; }
+  .arrow-indicator  { font-size: 1.3rem; }
+
+  /* Product showcase */
+  .product-image {
+    width: min(200px, 36vw) !important;
+    height: auto !important;
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 0 10px 0 !important;
+  }
+
+  .list-header { font-size: 0.95rem; margin-bottom: 8px; }
+
+  .product-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 4px;
+  }
+
+  /* Energizer content */
+  .energizer-content {
+    padding: 18px;
+    min-height: auto;
+    border-radius: 14px;
+    margin: 8px auto;
+  }
+
+  .energizer-text { font-size: 0.92rem; margin-top: 14px; }
+
+  .energizer-message .thank-you-title {
+    font-size: 1.4rem;
+    margin: 12px 0;
+  }
+  .energizer-message .store-name,
+  .energizer-message .store-banner,
+  .energizer-message .store-number {
+    font-size: 1rem;
+    margin: 5px 0;
+  }
+
+  .store-name   { font-size: 1.05rem; }
+  .store-banner,
+  .store-number { font-size: 0.88rem; }
+
+  /* Navigation buttons in loading screens */
+  .button-container {
+    margin-top: 20px;
+    gap: 12px;
+  }
+
+  .next-button,
+  .back-button {
+    min-height: 44px;
+    padding: 10px 20px;
+    font-size: 0.92rem;
+    border-radius: 10px;
+  }
+
+  /* Store info card */
+  .store-info-card {
+    padding: 12px;
+    max-width: 230px;
+    border-radius: 10px;
+    border-width: 1px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    margin: 10px 0;
+  }
+
+  .store-details .store-name { font-size: 1rem; }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   5. OFFERS LISTING
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
   .offers-listing-container {
-    padding: 1.25rem;
-    padding-bottom: calc(1.25rem + 80px + env(safe-area-inset-bottom));
+    padding: 0.5rem;
+    padding-top: calc(52px + env(safe-area-inset-top)); /* clears slim header */
+    padding-bottom: calc(0.5rem + 60px + env(safe-area-inset-bottom));
   }
 
+  /* Fixed header bar — single slim row */
   .offers-header {
-    top: calc(1rem + env(safe-area-inset-top));
-    left: calc(1rem + env(safe-area-inset-left));
-    right: calc(1rem + env(safe-area-inset-right));
-    padding: 1.25rem 1.5rem;
-    border-radius: 16px;
+    top:   calc(0.4rem + env(safe-area-inset-top));
+    left:  calc(0.4rem + env(safe-area-inset-left));
+    right: calc(0.4rem + env(safe-area-inset-right));
+    padding: 0.3rem 0.4rem;
+    border-radius: 9px;
+    gap: 0.35rem;
+    min-height: 44px;
   }
 
+  /* Back / cart buttons — compact circles */
   .offers-header .back-button,
   .offers-header .next-button {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    width: 48px !important;
-    height: 48px !important;
-    max-width: 48px !important;
-    max-height: 48px !important;
-    font-size: 1.5rem !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    font-size: 1rem !important;
   }
 
   .offers-header .next-button.has-items {
-    min-height: 48px;
-    padding: 0.6rem 1.25rem;
-    font-size: 1rem;
+    height: 32px !important;
+    max-height: 32px !important;
+    padding: 0 0.65rem !important;
+    font-size: 0.73rem !important;
+    border-radius: 16px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  /* Store name area */
+  .store-info {
+    max-width: 140px;
   }
 
   .store-info h2 {
-    font-size: 1.35rem;
+    font-size: 0.78rem;
   }
 
+  .store-info p {
+    font-size: 0.65rem;
+  }
+
+  /* Scrollable pill row */
+  .offers-navigation {
+    gap: 0.24rem;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .offers-navigation .nav-button {
+    font-size: 0.65rem;
+    padding: 0.26rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+
+  /* Offer cards */
   .offer-card,
   .offer-row {
-    padding: 1rem 1.25rem;
+    padding: 0.65rem 0.8rem;
   }
 
+  /* Section heading */
+  .offers-title-section h1 {
+    font-size: 1.15rem;
+  }
+
+  /* Qty controls */
   .qty-btn {
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 1.25rem;
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 1rem;
   }
 
   .offer-quantity-controls .qty-display {
-    min-width: 44px;
-    min-height: 44px;
-    font-size: 1.2rem;
+    min-width: 36px;
+    min-height: 36px;
+    font-size: 0.95rem;
     display: inline-flex;
     align-items: center;
     justify-content: center;
   }
 }
 
-/* Order summary */
-@media (min-width: 768px) and (max-width: 1280px) {
+
+/* ═══════════════════════════════════════════════════════════
+   6. ORDER SUMMARY
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
   .order-summary-container {
-    padding: 1.5rem;
-    padding-bottom: calc(1.5rem + 80px + env(safe-area-inset-bottom));
+    padding: 0.7rem;
+    padding-bottom: calc(0.7rem + 66px + env(safe-area-inset-bottom));
   }
 
+  /* Fixed header */
   .order-header {
-    top: calc(1rem + env(safe-area-inset-top));
-    left: calc(1rem + env(safe-area-inset-left));
-    right: calc(1rem + env(safe-area-inset-right));
-    padding: 1.25rem 1.5rem;
+    top:   calc(0.5rem + env(safe-area-inset-top));
+    left:  calc(0.5rem + env(safe-area-inset-left));
+    right: calc(0.5rem + env(safe-area-inset-right));
+    padding: 0.45rem 0.65rem;
+    margin-bottom: 0;
   }
 
   .order-header .back-button {
-    min-width: 48px !important;
-    min-height: 48px !important;
-    width: 48px !important;
-    height: 48px !important;
-    max-width: 48px !important;
-    max-height: 48px !important;
+    min-width: 36px !important;
+    min-height: 36px !important;
+    width: 36px !important;
+    height: 36px !important;
+    max-width: 36px !important;
+    max-height: 36px !important;
+    font-size: 1.2rem !important;
   }
 
+  .order-header .store-info h2 { font-size: 0.98rem; }
+  .order-header .store-info p  { font-size: 0.76rem; }
+
+  /* Content card */
   .order-content {
-    padding-top: 100px;
+    max-width: 680px;
+    margin-top: 3.75rem;
+    padding: 0.95rem 1.1rem;
+  }
+
+  .order-content h1 {
+    font-size: 1.2rem;
+    margin: 0 0 0.8rem 0;
+  }
+
+  .order-items-section {
+    margin-bottom: 0.9rem;
   }
 
   .order-items-section h2 {
-    font-size: 1.4rem;
+    font-size: 0.98rem;
+    margin: 0 0 0.6rem 0;
+    padding-bottom: 0.4rem;
   }
 
   .order-item {
-    padding: 1.25rem;
+    padding: 0.6rem 0.8rem;
+    margin-bottom: 0.5rem;
+    border-radius: 8px;
   }
+
+  .item-description { font-size: 0.9rem; margin-bottom: 0.28rem; }
+  .item-tier        { font-size: 0.76rem; }
+  .item-cost        { font-size: 0.8rem; }
+  .item-total       { font-size: 0.88rem; min-width: 80px; }
+
+  .qty-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 5px;
+    font-size: 0.95rem;
+  }
+
+  .qty-display {
+    min-width: 34px;
+    font-size: 0.95rem;
+  }
+
+  .order-total-section {
+    padding: 0.8rem 0.95rem;
+    margin-bottom: 0.9rem;
+    border-radius: 8px;
+  }
+
+  .order-summary-container .total-label { font-size: 0.98rem; }
+  .order-summary-container .total-value { font-size: 1.3rem; }
 
   .submit-order-btn {
-    min-height: 56px;
-    font-size: 1.25rem;
-    padding: 16px 28px;
-    border-radius: 14px;
+    min-height: 44px;
+    font-size: 0.92rem;
+    padding: 10px 20px;
+    border-radius: 10px;
   }
+
+  .order-form { padding-top: 0.95rem; }
+
+  .order-summary-container .form-section       { margin-bottom: 0.8rem; }
+  .order-summary-container .form-section label { font-size: 0.88rem; }
+  .order-summary-container .form-select        { padding: 0.42rem 0.58rem; font-size: 0.9rem; }
+  .order-summary-container .form-actions       { margin-top: 0.95rem; }
 
   .order-form input {
-    min-height: 48px;
-    font-size: 1.15rem;
-    padding: 14px 18px;
+    min-height: 44px;
+    font-size: 0.92rem;
+    padding: 9px 12px;
+  }
+
+  .drop-month-label,
+  .order-summary-container .radio-option { font-size: 0.8rem; }
+
+  .order-summary-container .empty-cart-message {
+    padding: 1.5rem 1.15rem;
+    max-width: 460px;
+    margin: 1.25rem auto 0;
+  }
+  .order-summary-container .empty-cart-message h2 {
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
   }
 }
 
-/* Thank you / UserForm thank you screen */
-@media (min-width: 768px) and (max-width: 1280px) {
-  .thank-you-title {
-    font-size: 2.25rem;
+
+/* ═══════════════════════════════════════════════════════════
+   7. OFFER DETAIL
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
+  .offer-detail-container {
+    padding: 0.8rem;
+    padding-top: calc(0.8rem + env(safe-area-inset-top));
   }
 
-  .thank-you-subtitle {
-    font-size: 1.35rem;
+  .offer-detail-container > .offer-header {
+    padding: 0.55rem 0.75rem;
+    margin-bottom: 0.8rem;
+    border-radius: 10px;
   }
 
-  .thank-you-message {
-    font-size: 1.15rem;
+  .offer-header .back-button {
+    min-width: 44px;
+    min-height: 44px;
+    padding: 0.32rem 0.48rem;
+    font-size: 0.9rem;
+    border-radius: 8px;
   }
 
-  .thank-you-btn {
-    min-height: 56px;
-    padding: 18px 40px;
-    font-size: 1.25rem;
+  .offer-header .store-info h2 { font-size: 0.98rem; }
+  .offer-header .store-info p  { font-size: 0.76rem; }
+
+  .offer-detail-content {
+    max-width: 680px;
+    padding: 0 0.15rem;
+  }
+
+  .offer-title-section {
+    padding: 0.95rem 1.1rem;
+    margin-bottom: 0.8rem;
+    border-radius: 10px;
+  }
+
+  .offer-brand { font-size: 1rem; margin-bottom: 0.3rem; }
+
+  .offer-title-section h1 {
+    font-size: 1.2rem;
+    margin: 0 0 0.75rem 0;
+  }
+
+  .learn-more-btn {
+    padding: 0.42rem 1.1rem;
+    font-size: 0.88rem;
+  }
+
+  .offer-product-image {
+    max-width: 200px;
+    max-height: 165px;
+  }
+
+  .tiers-container {
+    gap: 0.8rem;
+    margin-bottom: 0.95rem;
+  }
+
+  .tier-card {
+    padding: 0.95rem 1.05rem;
+    border-radius: 10px;
+  }
+
+  .tier-header {
+    margin-bottom: 0.7rem;
+    padding-bottom: 0.6rem;
+  }
+
+  .tier-header h2 { font-size: 1rem; }
+  .benefit-label  { font-size: 0.76rem; }
+  .benefit-value  { font-size: 0.92rem; }
+  .tier-benefits  { gap: 0.85rem; }
+
+  .offer-detail-container .offer-card {
+    padding: 0.95rem 1.05rem;
+    border-radius: 10px;
+  }
+
+  .offer-actions { margin-top: 0.75rem; }
+
+  .add-to-cart-btn {
+    min-height: 44px;
+    padding: 10px 22px;
+    font-size: 0.92rem;
+    border-radius: 10px;
+  }
+
+  .offer-detail-container .qty-input {
+    width: 64px;
+    font-size: 0.92rem;
+    padding: 0.38rem;
+    border-radius: 6px;
+  }
+
+  .offer-detail-container .qty-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 5px;
+    font-size: 1.05rem;
+  }
+
+  .offer-detail-container .loading-message,
+  .offer-detail-container .error-message {
+    font-size: 1rem;
+    padding: 1.75rem 1.1rem;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   8. EMPTY CART + THANK YOU
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
+  .empty-cart-thankyou-container {
+    padding: 1rem;
+  }
+
+  .empty-cart-thankyou-content {
+    padding: 1.4rem 1.6rem;
+    max-width: 500px;
     border-radius: 14px;
   }
-}
 
-/* Empty cart thank you */
-@media (min-width: 768px) and (max-width: 1280px) {
+  .empty-cart-title         { font-size: 1.45rem; }
+  .empty-cart-message       { font-size: 0.95rem; }
+  .empty-cart-encouragement { font-size: 0.9rem; margin-bottom: 1.4rem; }
+
   .empty-cart-thankyou .thank-you-btn,
   .empty-cart-thankyou .back-btn {
-    min-height: 52px;
-    padding: 16px 28px;
-    font-size: 1.15rem;
+    min-height: 44px;
+    padding: 10px 22px;
+    font-size: 0.92rem;
+  }
+
+  /* Loading-step thank-you screen */
+  .thank-you-subtitle { font-size: 0.95rem; }
+  .thank-you-message  { font-size: 0.88rem; }
+
+  .thank-you-btn {
+    min-height: 44px;
+    padding: 10px 26px;
+    font-size: 0.92rem;
+    border-radius: 10px;
   }
 }
 
-/* Footer & start-over: touch-friendly and safe area */
-@media (min-width: 768px) and (max-width: 1280px) {
+
+/* ═══════════════════════════════════════════════════════════
+   9. FOOTER
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
   .footer {
-    padding: 18px 16px;
-    padding-left: calc(16px + env(safe-area-inset-left));
-    padding-right: calc(16px + env(safe-area-inset-right));
-    padding-bottom: calc(18px + env(safe-area-inset-bottom));
+    padding: 9px 14px;
+    padding-left:  calc(14px + env(safe-area-inset-left));
+    padding-right: calc(14px + env(safe-area-inset-right));
+    padding-bottom: calc(9px + env(safe-area-inset-bottom));
   }
 
-  .footer-content {
-    font-size: 1rem;
+  .footer .footer-content {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    gap: 6px;
+    padding-left:  8px;
+    padding-right: 8px;
+  }
+
+  .footer-settings-btn {
+    width: 30px;
+    height: 30px;
+    margin-left: 10px;
+    font-size: 13px;
   }
 
   .status-circle {
-    width: 20px;
-    height: 20px;
+    width: 10px;
+    height: 10px;
   }
 
   .start-over-button {
-    width: 56px !important;
-    height: 56px !important;
-    min-width: 56px !important;
-    min-height: 56px !important;
-    bottom: calc(24px + env(safe-area-inset-bottom)) !important;
-    left: calc(24px + env(safe-area-inset-left)) !important;
-    font-size: 28px !important;
+    width: 44px !important;
+    height: 44px !important;
+    min-width: 44px !important;
+    min-height: 44px !important;
+    bottom: calc(18px + env(safe-area-inset-bottom)) !important;
+    left: calc(18px + env(safe-area-inset-left)) !important;
+    font-size: 19px !important;
   }
 }
 
-/* Offer detail: back and add to cart */
-@media (min-width: 768px) and (max-width: 1280px) {
-  .offer-detail-header .back-button,
-  .offer-detail .back-button {
-    min-width: 48px;
-    min-height: 48px;
-    padding: 14px 24px;
-    font-size: 1.2rem;
+
+/* ═══════════════════════════════════════════════════════════
+   10. FLOATING DBLE NAV — preserved exactly
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+
+  .floating-nav {
+    top:  calc(10px + env(safe-area-inset-top));
+    left: calc(10px + env(safe-area-inset-left));
   }
 
-  .offer-detail .add-to-cart-btn {
-    min-height: 52px;
-    padding: 16px 28px;
-    font-size: 1.2rem;
+  .floating-nav-button {
+    width: 46px;
+    height: 46px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .floating-nav-logo-image {
+    width: 26px;
+    height: 26px;
+  }
+
+  .floating-nav-modal {
+    min-width: 200px;
+    padding: 0.58rem 0.7rem;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   11. PORTRAIT-SPECIFIC  (768px – 1023px)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 768px) and (max-width: 1023px) {
+
+  /* State grid: 3 columns in portrait */
+  .state-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  /* Two-column loading layout stacks in portrait */
+  .two-column-layout {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .left-column  { order: 2; }
+  .right-column { order: 1; }
+
+  .left-column img {
+    max-height: 200px;
+    width: auto;
+  }
+
+  /* Order content — account for fixed header */
+  .order-content {
+    margin-top: 3.5rem;
+  }
+
+  /* Store info container: stacked */
+  .store-info-container {
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+}
+
+
+/* ═══════════════════════════════════════════════════════════
+   12. LANDSCAPE-SPECIFIC  (1024px – 1366px)
+   ═══════════════════════════════════════════════════════════ */
+
+@media (min-width: 1024px) and (max-width: 1366px) {
+
+  /* Wizard card — constrain a bit more */
+  .form-card:not(:has(.home-screen)) {
+    max-width: min(80vw, 480px);
+  }
+
+  /* State grid: more columns */
+  .state-grid {
+    grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  }
+
+  /* Offers nav pills — slightly more space */
+  .offers-navigation .nav-button {
+    font-size: 0.63rem;
+    padding: 0.3rem 0.5rem;
+  }
+
+  /* Wider content areas */
+  .order-content        { max-width: 720px; }
+  .offer-detail-content { max-width: 720px; }
+
+  /* Two-column loading layout */
+  .two-column-layout {
+    flex-direction: row;
+    gap: 20px;
   }
 }

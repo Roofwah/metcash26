@@ -1,104 +1,117 @@
+'use strict';
+require('dotenv').config();
+
 const express = require('express');
-const cors = require('cors');
-const csv = require('csv-parser');
-const fs = require('fs');
-const path = require('path');
-const { db } = require('./db');
+const cors    = require('cors');
+const csv     = require('csv-parser');
+const fs      = require('fs');
+const path    = require('path');
+const { pool } = require('./db');
 
 const serverDir = path.resolve(__dirname);
 process.chdir(serverDir);
+console.log('Server dir:', serverDir);
 
-const app = express();
-const PORT = process.env.PORT || 5001;
+const app         = express();
+const PORT        = process.env.PORT || 5001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
 app.use(cors({ origin: CORS_ORIGIN }));
 app.use(express.json());
 
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS stores (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    Store TEXT NOT NULL UNIQUE,
-    Name TEXT NOT NULL,
-    Banner TEXT,
-    Overall TEXT,
-    Automotive TEXT,
-    "Energy Storage" TEXT,
-    Lighting TEXT,
-    "Special Order Hardware" TEXT
-  )`);
+// ---------------------------------------------------------------------------
+// Schema bootstrap – runs once on startup.
+// Column names preserve the original casing so raw row objects returned to
+// the frontend keep the same property names the TypeScript interfaces expect.
+// ---------------------------------------------------------------------------
+async function initDb() {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS stores (
+      id                    SERIAL PRIMARY KEY,
+      "Store"               TEXT NOT NULL UNIQUE,
+      "Name"                TEXT NOT NULL,
+      "Banner"              TEXT,
+      "Overall"             TEXT,
+      "Automotive"          TEXT,
+      "Energy Storage"      TEXT,
+      "Lighting"            TEXT,
+      "Special Order Hardware" TEXT
+    )
+  `);
 
-  db.run(`CREATE TABLE IF NOT EXISTS offers (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    OFFER TEXT,
-    "Offer Group" TEXT,
-    "Offer Tier" TEXT,
-    "Drop Months" TEXT,
-    "Order Deadline" TEXT,
-    "Min Order Value (ex GST)" TEXT,
-    Brand TEXT,
-    Range TEXT,
-    "Energizer Order Code" TEXT,
-    "HTH Code" TEXT,
-    Code TEXT,
-    Description TEXT,
-    "Reg Charge Back Cost" TEXT,
-    "Expo Charge Back Cost" TEXT,
-    Save TEXT,
-    "SRP / Promo RRP" TEXT,
-    "$ GM" TEXT,
-    "% GM" TEXT,
-    "Qty Type" TEXT,
-    Qty TEXT,
-    "Reg Total Cost" TEXT,
-    "Expo Total Cost" TEXT
-  )`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS offers (
+      id                        SERIAL PRIMARY KEY,
+      "OFFER"                   TEXT,
+      "Offer Group"             TEXT,
+      "Offer Tier"              TEXT,
+      "Drop Months"             TEXT,
+      "Order Deadline"          TEXT,
+      "Min Order Value (ex GST)" TEXT,
+      "Brand"                   TEXT,
+      "Range"                   TEXT,
+      "Energizer Order Code"    TEXT,
+      "HTH Code"                TEXT,
+      "Code"                    TEXT,
+      "Description"             TEXT,
+      "Reg Charge Back Cost"    TEXT,
+      "Expo Charge Back Cost"   TEXT,
+      "Save"                    TEXT,
+      "SRP / Promo RRP"         TEXT,
+      "$ GM"                    TEXT,
+      "% GM"                    TEXT,
+      "Qty Type"                TEXT,
+      "Qty"                     TEXT,
+      "Reg Total Cost"          TEXT,
+      "Expo Total Cost"         TEXT
+    )
+  `);
 
-  db.run(`CREATE TABLE IF NOT EXISTS orders (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    store_number TEXT NOT NULL,
-    store_name TEXT NOT NULL,
-    banner TEXT,
-    user_name TEXT NOT NULL,
-    position TEXT,
-    purchase_order TEXT,
-    total_value REAL NOT NULL,
-    created_at TEXT DEFAULT (datetime('now'))
-  )`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS orders (
+      id             SERIAL PRIMARY KEY,
+      store_number   TEXT NOT NULL,
+      store_name     TEXT NOT NULL,
+      banner         TEXT,
+      user_name      TEXT NOT NULL,
+      position       TEXT,
+      purchase_order TEXT,
+      total_value    NUMERIC NOT NULL,
+      created_at     TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
 
-  db.run(`CREATE TABLE IF NOT EXISTS order_items (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    order_id INTEGER NOT NULL,
-    offer_id TEXT,
-    offer_tier TEXT,
-    quantity INTEGER NOT NULL,
-    description TEXT,
-    cost REAL,
-    drop_month TEXT,
-    FOREIGN KEY (order_id) REFERENCES orders(id)
-  )`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_items (
+      id          SERIAL PRIMARY KEY,
+      order_id    INTEGER NOT NULL REFERENCES orders(id),
+      offer_id    TEXT,
+      offer_tier  TEXT,
+      quantity    INTEGER NOT NULL,
+      description TEXT,
+      cost        NUMERIC,
+      drop_month  TEXT
+    )
+  `);
 
-  db.run(`CREATE TABLE IF NOT EXISTS mcash_stores (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT NOT NULL,
-    address TEXT,
-    suburb TEXT NOT NULL,
-    state TEXT NOT NULL,
-    pcode TEXT,
-    banner TEXT NOT NULL
-  )`);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS mcash_stores (
+      id      SERIAL PRIMARY KEY,
+      name    TEXT NOT NULL,
+      address TEXT,
+      suburb  TEXT NOT NULL,
+      state   TEXT NOT NULL,
+      pcode   TEXT,
+      banner  TEXT NOT NULL
+    )
+  `);
 
-  app.listen(PORT, () => {
-    console.log(`Metcash API running on http://localhost:${PORT}`);
-  });
+  console.log('DB schema ready.');
+}
 
-  loadStoresCSV()
-    .then(() => loadMcashStoresCSV())
-    .then(() => loadOffersCSV())
-    .then(() => console.log('Stores and offers loaded'))
-    .catch(err => console.error('CSV load failed:', err));
-});
-
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 function padStoreNumber(storeNumber) {
   if (!storeNumber) return null;
   return storeNumber.toString().trim().padStart(6, '0');
@@ -106,8 +119,7 @@ function padStoreNumber(storeNumber) {
 
 function removeBOM(str) {
   if (!str) return str;
-  if (str.charCodeAt(0) === 0xFEFF) return str.substring(1);
-  return str;
+  return str.charCodeAt(0) === 0xFEFF ? str.substring(1) : str;
 }
 
 function cleanKeys(obj) {
@@ -118,353 +130,492 @@ function cleanKeys(obj) {
   return cleaned;
 }
 
-app.get('/api/store/:storeNumber', (req, res) => {
-  const paddedNumber = padStoreNumber(req.params.storeNumber);
-  if (!paddedNumber || paddedNumber.length !== 6) {
-    return res.status(400).json({ error: 'Invalid store number format' });
-  }
-  fetchStoreWithRetry(paddedNumber, (err, row) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch store data' });
-    if (!row) return res.status(404).json({ error: 'Store not found' });
-    res.json({
-      storeNo: row.Store,
-      storeName: row.Name,
-      banner: row.Banner || '-',
-      overall: row.Overall || '',
-      automotive: row.Automotive || '',
-      energyStorage: row['Energy Storage'] || '',
-      lighting: row.Lighting || '',
-      specialOrderHardware: row['Special Order Hardware'] || ''
-    });
-  });
-});
-
-app.get('/api/store-data/:storeNumber', (req, res) => {
-  const paddedNumber = padStoreNumber(req.params.storeNumber);
-  if (!paddedNumber || paddedNumber.length !== 6) {
-    return res.status(400).json({ error: 'Invalid store number format' });
-  }
-  fetchStoreWithRetry(paddedNumber, (err, row) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch store data' });
-    if (!row) {
-      return res.json({
-        storeNo: paddedNumber,
-        storeName: `Store ${paddedNumber}`,
-        banner: '-',
-        overall: '',
-        automotive: '',
-        energyStorage: '',
-        lighting: '',
-        specialOrderHardware: ''
-      });
-    }
-    res.json({
-      storeNo: row.Store,
-      storeName: row.Name,
-      banner: row.Banner || '-',
-      overall: row.Overall || '',
-      automotive: row.Automotive || '',
-      energyStorage: row['Energy Storage'] || '',
-      lighting: row.Lighting || '',
-      specialOrderHardware: row['Special Order Hardware'] || ''
-    });
-  });
-});
-
-function fetchStoreWithRetry(storeNumber, callback) {
-  db.get('SELECT * FROM stores WHERE Store = ?', [storeNumber], (err, row) => {
-    if (err) return callback(err);
-    if (row) return callback(null, row);
-    loadStoresCSV()
-      .then(() => {
-        db.get('SELECT * FROM stores WHERE Store = ?', [storeNumber], callback);
+/** Stream a CSV file and run each cleaned row through `transform`.
+ *  Rows where transform returns null/undefined are skipped. */
+function parseCSV(filePath, transform) {
+  return new Promise((resolve, reject) => {
+    const results = [];
+    fs.createReadStream(filePath, { encoding: 'utf8' })
+      .pipe(csv())
+      .on('data', (data) => {
+        const row = transform(cleanKeys(data));
+        if (row) results.push(row);
       })
-      .catch(callback);
+      .on('end', () => resolve(results))
+      .on('error', reject);
   });
 }
 
-// Mcash26 store lookup: state → suburb → banner (no store numbers)
-app.get('/api/states', (req, res) => {
-  db.all('SELECT DISTINCT state FROM mcash_stores WHERE state IS NOT NULL AND state != "" ORDER BY state', [], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch states' });
+// ---------------------------------------------------------------------------
+// CSV loaders
+// ---------------------------------------------------------------------------
+async function loadStoresCSV() {
+  const filePath = path.resolve(__dirname, 'ihg26stores.csv');
+  if (!fs.existsSync(filePath)) { console.warn('ihg26stores.csv not found – skipping.'); return; }
+
+  const results = await parseCSV(filePath, (clean) => {
+    const store = padStoreNumber(clean.Store || clean.store);
+    if (!store) return null;
+    return {
+      store,
+      name:           (clean.Name || '').trim(),
+      banner:         (clean.Banner || '-').trim(),
+      overall:        (clean.Overall || '').trim(),
+      automotive:     (clean.Automotive || '').trim(),
+      energyStorage:  (clean['Energy Storage'] || '').trim(),
+      lighting:       (clean.Lighting || '').trim(),
+      specialOrderHw: (clean['Special Order Hardware'] || '').trim(),
+    };
+  });
+
+  if (results.length === 0) return;
+
+  // Single-query bulk INSERT via UNNEST — one round trip regardless of row count
+  await pool.query('DELETE FROM stores');
+  await pool.query(
+    `INSERT INTO stores
+       ("Store","Name","Banner","Overall","Automotive","Energy Storage","Lighting","Special Order Hardware")
+     SELECT * FROM unnest(
+       $1::text[], $2::text[], $3::text[], $4::text[],
+       $5::text[], $6::text[], $7::text[], $8::text[]
+     )
+     ON CONFLICT ("Store") DO UPDATE SET
+       "Name"                   = EXCLUDED."Name",
+       "Banner"                 = EXCLUDED."Banner",
+       "Overall"                = EXCLUDED."Overall",
+       "Automotive"             = EXCLUDED."Automotive",
+       "Energy Storage"         = EXCLUDED."Energy Storage",
+       "Lighting"               = EXCLUDED."Lighting",
+       "Special Order Hardware" = EXCLUDED."Special Order Hardware"`,
+    [
+      results.map(r => r.store),
+      results.map(r => r.name),
+      results.map(r => r.banner),
+      results.map(r => r.overall),
+      results.map(r => r.automotive),
+      results.map(r => r.energyStorage),
+      results.map(r => r.lighting),
+      results.map(r => r.specialOrderHw),
+    ]
+  );
+  console.log(`Loaded ${results.length} stores.`);
+}
+
+async function loadMcashStoresCSV() {
+  const filePath = path.resolve(__dirname, 'mcash26.csv');
+  if (!fs.existsSync(filePath)) { console.warn('mcash26.csv not found – skipping.'); return; }
+
+  const results = await parseCSV(filePath, (clean) => {
+    const name   = (clean.Store  || clean.store  || '').trim();
+    const suburb = (clean.Suburb || clean.suburb || '').trim();
+    const state  = (clean.State  || clean.state  || '').trim();
+    if (!name || !suburb || !state) return null;
+    return {
+      name,
+      address: (clean.Address || clean.address || '').trim(),
+      suburb,
+      state,
+      pcode:   (clean.Pcode  || clean.pcode  || '').trim(),
+      banner:  ((clean.Banner || clean.banner || '-').trim()) || '-',
+    };
+  });
+
+  if (results.length === 0) return;
+
+  await pool.query('DELETE FROM mcash_stores');
+  await pool.query(
+    `INSERT INTO mcash_stores (name, address, suburb, state, pcode, banner)
+     SELECT * FROM unnest($1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[])`,
+    [
+      results.map(r => r.name),
+      results.map(r => r.address),
+      results.map(r => r.suburb),
+      results.map(r => r.state),
+      results.map(r => r.pcode),
+      results.map(r => r.banner),
+    ]
+  );
+  console.log(`Loaded ${results.length} mcash stores.`);
+}
+
+async function loadOffersCSV() {
+  const filePath = path.resolve(__dirname, 'offers.csv');
+  if (!fs.existsSync(filePath)) { console.warn('offers.csv not found – skipping.'); return; }
+
+  const results = await parseCSV(filePath, (clean) => ({
+    offer:              (clean.OFFER                          || '').trim(),
+    offerGroup:         (clean['Offer Group']                 || '').trim(),
+    offerTier:          (clean['Offer Tier']                  || '').trim(),
+    dropMonths:         (clean['Drop Months']                 || '').trim(),
+    orderDeadline:      (clean['Order Deadline']              || '').trim(),
+    minOrderValue:      (clean['Min Order Value (ex GST)']    || '').trim(),
+    brand:              (clean.Brand                          || '').trim(),
+    range:              (clean.Range                          || '').trim(),
+    energizerOrderCode: (clean['Energizer Order Code']        || '').trim(),
+    hthCode:            (clean['HTH Code']                    || '').trim(),
+    code:               (clean.Code                           || '').trim(),
+    description:        (clean.Description                    || '').trim(),
+    regChargeBackCost:  (clean['Reg Charge Back Cost']        || '').trim(),
+    expoChargeBackCost: (clean['Expo Charge Back Cost']       || '').trim(),
+    save:               (clean.Save                           || '').trim(),
+    srpPromoRrp:        (clean['SRP / Promo RRP']             || '').trim(),
+    gmDollar:           (clean['$ GM']                        || '').trim(),
+    gmPercent:          (clean['% GM']                        || '').trim(),
+    qtyType:            (clean['Qty Type']                    || '').trim(),
+    qty:                (clean.Qty                            || '').trim(),
+    regTotalCost:       (clean['Reg Total Cost']              || '').trim(),
+    expoTotalCost:      (clean['Expo Total Cost']             || '').trim(),
+  }));
+
+  if (results.length === 0) return;
+
+  await pool.query('DELETE FROM offers');
+  await pool.query(
+    `INSERT INTO offers
+       ("OFFER","Offer Group","Offer Tier","Drop Months","Order Deadline",
+        "Min Order Value (ex GST)","Brand","Range","Energizer Order Code",
+        "HTH Code","Code","Description","Reg Charge Back Cost",
+        "Expo Charge Back Cost","Save","SRP / Promo RRP","$ GM","% GM",
+        "Qty Type","Qty","Reg Total Cost","Expo Total Cost")
+     SELECT * FROM unnest(
+       $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[],
+       $7::text[], $8::text[], $9::text[], $10::text[], $11::text[], $12::text[],
+       $13::text[], $14::text[], $15::text[], $16::text[], $17::text[], $18::text[],
+       $19::text[], $20::text[], $21::text[], $22::text[]
+     )`,
+    [
+      results.map(r => r.offer),          results.map(r => r.offerGroup),
+      results.map(r => r.offerTier),      results.map(r => r.dropMonths),
+      results.map(r => r.orderDeadline),  results.map(r => r.minOrderValue),
+      results.map(r => r.brand),          results.map(r => r.range),
+      results.map(r => r.energizerOrderCode), results.map(r => r.hthCode),
+      results.map(r => r.code),           results.map(r => r.description),
+      results.map(r => r.regChargeBackCost),  results.map(r => r.expoChargeBackCost),
+      results.map(r => r.save),           results.map(r => r.srpPromoRrp),
+      results.map(r => r.gmDollar),       results.map(r => r.gmPercent),
+      results.map(r => r.qtyType),        results.map(r => r.qty),
+      results.map(r => r.regTotalCost),   results.map(r => r.expoTotalCost),
+    ]
+  );
+  console.log(`Loaded ${results.length} offer rows.`);
+}
+
+// ---------------------------------------------------------------------------
+// API – stores
+// ---------------------------------------------------------------------------
+app.get('/api/store/:storeNumber', async (req, res) => {
+  try {
+    const paddedNumber = padStoreNumber(req.params.storeNumber);
+    if (!paddedNumber || paddedNumber.length !== 6) {
+      return res.status(400).json({ error: 'Invalid store number format' });
+    }
+    const { rows } = await pool.query(
+      'SELECT * FROM stores WHERE "Store" = $1 LIMIT 1', [paddedNumber]
+    );
+    if (rows.length === 0) return res.status(404).json({ error: 'Store not found' });
+    const row = rows[0];
+    res.json({
+      storeNo:            row.Store,
+      storeName:          row.Name,
+      banner:             row.Banner              || '-',
+      overall:            row.Overall             || '',
+      automotive:         row.Automotive          || '',
+      energyStorage:      row['Energy Storage']   || '',
+      lighting:           row.Lighting            || '',
+      specialOrderHardware: row['Special Order Hardware'] || '',
+    });
+  } catch (err) {
+    console.error('GET /api/store error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch store data' });
+  }
+});
+
+// Legacy alias – same logic, falls back to a default object when not found
+app.get('/api/store-data/:storeNumber', async (req, res) => {
+  try {
+    const paddedNumber = padStoreNumber(req.params.storeNumber);
+    if (!paddedNumber || paddedNumber.length !== 6) {
+      return res.status(400).json({ error: 'Invalid store number format' });
+    }
+    const { rows } = await pool.query(
+      'SELECT * FROM stores WHERE "Store" = $1 LIMIT 1', [paddedNumber]
+    );
+    if (rows.length === 0) {
+      return res.json({
+        storeNo: paddedNumber, storeName: `Store ${paddedNumber}`, banner: '-',
+        overall: '', automotive: '', energyStorage: '', lighting: '', specialOrderHardware: '',
+      });
+    }
+    const row = rows[0];
+    res.json({
+      storeNo:            row.Store,
+      storeName:          row.Name,
+      banner:             row.Banner              || '-',
+      overall:            row.Overall             || '',
+      automotive:         row.Automotive          || '',
+      energyStorage:      row['Energy Storage']   || '',
+      lighting:           row.Lighting            || '',
+      specialOrderHardware: row['Special Order Hardware'] || '',
+    });
+  } catch (err) {
+    console.error('GET /api/store-data error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch store data' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// API – Metcash store lookup (state → suburb → stores)
+// ---------------------------------------------------------------------------
+app.get('/api/states', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT DISTINCT state FROM mcash_stores
+       WHERE state IS NOT NULL AND state <> '' ORDER BY state`
+    );
     res.json(rows.map(r => r.state));
-  });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch states' });
+  }
 });
 
-app.get('/api/suburbs', (req, res) => {
-  const state = (req.query.state || '').trim();
-  if (!state) return res.status(400).json({ error: 'state required' });
-  db.all('SELECT DISTINCT suburb FROM mcash_stores WHERE state = ? AND suburb IS NOT NULL AND suburb != "" ORDER BY suburb', [state], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch suburbs' });
+app.get('/api/suburbs', async (req, res) => {
+  try {
+    const state = (req.query.state || '').trim();
+    if (!state) return res.status(400).json({ error: 'state required' });
+    const { rows } = await pool.query(
+      `SELECT DISTINCT suburb FROM mcash_stores
+       WHERE state = $1 AND suburb IS NOT NULL AND suburb <> '' ORDER BY suburb`,
+      [state]
+    );
     res.json(rows.map(r => r.suburb));
-  });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch suburbs' });
+  }
 });
 
-app.get('/api/mcash-stores', (req, res) => {
-  const state = (req.query.state || '').trim();
-  const suburb = (req.query.suburb || '').trim();
-  if (!state || !suburb) return res.status(400).json({ error: 'state and suburb required' });
-  db.all('SELECT id, name, address, suburb, state, pcode, banner FROM mcash_stores WHERE state = ? AND suburb = ? ORDER BY name', [state, suburb], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch stores' });
+app.get('/api/mcash-stores', async (req, res) => {
+  try {
+    const state  = (req.query.state  || '').trim();
+    const suburb = (req.query.suburb || '').trim();
+    if (!state || !suburb) return res.status(400).json({ error: 'state and suburb required' });
+    const { rows } = await pool.query(
+      `SELECT id, name, address, suburb, state, pcode, banner
+       FROM mcash_stores WHERE state = $1 AND suburb = $2 ORDER BY name`,
+      [state, suburb]
+    );
     res.json(rows.map(r => ({
-      id: r.id,
-      name: r.name,
+      id:      r.id,
+      name:    r.name,
       address: r.address || '',
-      suburb: r.suburb,
-      state: r.state,
-      pcode: r.pcode || '',
-      banner: r.banner || '-',
+      suburb:  r.suburb,
+      state:   r.state,
+      pcode:   r.pcode  || '',
+      banner:  r.banner || '-',
     })));
-  });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to fetch stores' });
+  }
 });
 
-app.get('/api/offers', (req, res) => {
-  const query = `
-    SELECT "Offer Group", OFFER, Brand, Range, "Min Order Value (ex GST)", Save, "Expo Total Cost", "Offer Tier", Description, Qty, "Expo Charge Back Cost"
-    FROM offers ORDER BY OFFER, "Offer Tier"
-  `;
-  db.all(query, [], (err, rows) => {
-    if (err) return res.status(500).json({ error: 'Failed to fetch offers' });
-    const groupedOffers = {};
+// ---------------------------------------------------------------------------
+// API – offers
+// ---------------------------------------------------------------------------
+app.get('/api/offers', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT "Offer Group","OFFER","Brand","Range","Min Order Value (ex GST)",
+             "Save","Expo Total Cost","Offer Tier","Description","Qty","Expo Charge Back Cost"
+      FROM offers
+      ORDER BY "OFFER","Offer Tier"
+    `);
+
+    const grouped = {};
     rows.forEach(row => {
-      const offerKey = row.OFFER || row['Offer Group'];
-      if (!groupedOffers[offerKey]) {
-        groupedOffers[offerKey] = {
-          offerId: offerKey,
-          offerGroup: row['Offer Group'],
-          brand: row.Brand,
-          range: row.Range,
-          minOrderValue: row['Min Order Value (ex GST)'],
-          save: row.Save || '',
-          totalCost: row['Expo Total Cost'] || '',
-          offerTier: row['Offer Tier'] || '',
-          descriptions: [],
-          expoChargeBackCost: 0
+      const key = row.OFFER || row['Offer Group'];
+      if (!grouped[key]) {
+        grouped[key] = {
+          offerId:           key,
+          offerGroup:        row['Offer Group'],
+          brand:             row.Brand,
+          range:             row.Range,
+          minOrderValue:     row['Min Order Value (ex GST)'],
+          save:              row.Save || '',
+          totalCost:         row['Expo Total Cost'] || '',
+          offerTier:         row['Offer Tier']      || '',
+          descriptions:      [],
+          expoChargeBackCost: 0,
         };
       }
-      if (row.Save && row.Save.trim() !== '' && row.Save !== '-') {
-        if (!groupedOffers[offerKey].save || groupedOffers[offerKey].save.trim() === '' || groupedOffers[offerKey].save === '-') {
-          groupedOffers[offerKey].save = row.Save;
+      // Prioritise the first non-empty Save value
+      if (row.Save && row.Save.trim() && row.Save !== '-') {
+        if (!grouped[key].save || !grouped[key].save.trim() || grouped[key].save === '-') {
+          grouped[key].save = row.Save;
         }
       }
-      if (offerKey === 'Energizer 7' && row.Save && row.Save.includes('50%')) {
-        groupedOffers[offerKey].save = '50%';
+      // Keep Energizer 7 at 50%
+      if (key === 'Energizer 7' && row.Save && row.Save.includes('50%')) {
+        grouped[key].save = '50%';
       }
       if (row.Description) {
-        groupedOffers[offerKey].descriptions.push({ description: row.Description, qty: row.Qty || '' });
+        grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
       }
-      const cost = parseFloat(row['Expo Charge Back Cost']) || 0;
-      const qty = parseFloat(row.Qty) || 0;
-      groupedOffers[offerKey].expoChargeBackCost += cost * qty;
+      grouped[key].expoChargeBackCost +=
+        (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
     });
-    Object.keys(groupedOffers).forEach(key => {
-      groupedOffers[key].expoChargeBackCost = groupedOffers[key].expoChargeBackCost.toFixed(2);
-      if (key === 'Energizer 7') groupedOffers[key].save = '50%';
+
+    Object.keys(grouped).forEach(key => {
+      grouped[key].expoChargeBackCost = grouped[key].expoChargeBackCost.toFixed(2);
+      if (key === 'Energizer 7') grouped[key].save = '50%';
     });
-    res.json(Object.values(groupedOffers));
-  });
+
+    res.json(Object.values(grouped));
+  } catch (err) {
+    console.error('GET /api/offers error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch offers' });
+  }
 });
 
-app.get('/api/offers/:offerId', (req, res) => {
-  const { offerId } = req.params;
-  db.all(
-    'SELECT * FROM offers WHERE OFFER = ? OR "Offer Group" = ? ORDER BY "Offer Tier", Description',
-    [offerId, offerId],
-    (err, rows) => {
-      if (err) return res.status(500).json({ error: 'Failed to fetch offer details' });
-      if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
-      const firstRow = rows[0];
-      const hasTiers = firstRow['Offer Tier'] && !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(firstRow['Offer Tier']);
-      if (hasTiers) {
-        const tiers = {};
-        rows.forEach(row => {
-          const t = row['Offer Tier'];
-          if (!tiers[t]) tiers[t] = [];
-          tiers[t].push(row);
-        });
-        return res.json({ offerId, offerGroup: firstRow['Offer Group'], brand: firstRow.Brand, range: firstRow.Range, hasTiers: true, tiers, allItems: rows });
-      }
-      res.json({ offerId, offerGroup: firstRow['Offer Group'], brand: firstRow.Brand, range: firstRow.Range, hasTiers: false, items: rows });
-    }
-  );
-});
-
-app.post('/api/save-order', (req, res) => {
-  const orderData = req.body;
-  const storeNumber = orderData.storeNumber || '';
-  const storeName = orderData.storeName || '';
-  const banner = orderData.banner || '';
-  const userName = orderData.userName || '';
-  const position = orderData.position || '';
-  const purchaseOrder = orderData.purchaseOrder || '';
-  const totalValue = parseFloat(orderData.totalValue) || 0;
-  const items = orderData.items || [];
-
-  db.run(
-    `INSERT INTO orders (store_number, store_name, banner, user_name, position, purchase_order, total_value)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [storeNumber, storeName, banner, userName, position, purchaseOrder, totalValue],
-    function (err) {
-      if (err) {
-        console.error('Order insert error:', err);
-        return res.status(500).json({ error: 'Failed to save order' });
-      }
-      const orderId = this.lastID;
-      if (items.length === 0) {
-        return res.json({ success: true, orderId, message: 'Order saved successfully' });
-      }
-      const stmt = db.prepare(
-        'INSERT INTO order_items (order_id, offer_id, offer_tier, quantity, description, cost, drop_month) VALUES (?, ?, ?, ?, ?, ?, ?)'
-      );
-      items.forEach(item => {
-        const dropMonths = item.dropMonths && Array.isArray(item.dropMonths) ? item.dropMonths : (item.dropMonth ? Array(item.quantity || 1).fill(item.dropMonth) : Array(item.quantity || 1).fill('March'));
-        for (let i = 0; i < (item.quantity || 1); i++) {
-          stmt.run(orderId, item.offerId || '', item.offerTier || '', 1, item.description || '', parseFloat(item.cost) || 0, dropMonths[i] || 'March');
-        }
-      });
-      stmt.finalize(err2 => {
-        if (err2) {
-          console.error('Order items insert error:', err2);
-          return res.status(500).json({ error: 'Failed to save order items' });
-        }
-        res.json({ success: true, orderId, message: 'Order saved successfully' });
-      });
-    }
-  );
-});
-
-app.get('/api/orders-stats', (req, res) => {
-  db.get('SELECT COUNT(*) as count, COALESCE(SUM(total_value), 0) as totalValue FROM orders', [], (err, row) => {
-    if (err) return res.status(500).json({ count: 0, totalValue: '0.00' });
-    res.json({ count: row.count || 0, totalValue: (row.totalValue || 0).toFixed(2) });
-  });
-});
-
-// Serve React app (client/build) when running as single service (e.g. Render)
-const possibleBuildPaths = [
-  path.join(__dirname, '..', 'frontend', 'build'),
-  path.join(process.cwd(), 'frontend', 'build'),
-  path.join(__dirname, '..', 'client', 'build'),
-  path.join(process.cwd(), 'client', 'build'),
-];
-const clientBuildPath = possibleBuildPaths.find(p => fs.existsSync(p));
-if (clientBuildPath) {
-  console.log('Serving React build from:', clientBuildPath);
-  app.use(express.static(clientBuildPath));
-  // Express 5 / path-to-regexp no longer accepts bare "*" routes.
-  app.use((req, res) => {
-    res.sendFile(path.join(clientBuildPath, 'index.html'));
-  });
-} else {
-  console.error('Client build not found. Tried:', possibleBuildPaths);
-  app.get('/', (req, res) => {
-    res.status(500).send(
-      '<h1>Client build missing</h1><p>Set <b>Root Directory</b> to empty, <b>Build</b> to: <code>cd client && npm install && npm run build && cd ../server && npm install</code>, <b>Start</b> to: <code>node server/server.js</code>. Then redeploy.</p>'
+app.get('/api/offers/:offerId', async (req, res) => {
+  try {
+    const { offerId } = req.params;
+    const { rows } = await pool.query(
+      `SELECT * FROM offers
+       WHERE "OFFER" = $1 OR "Offer Group" = $1
+       ORDER BY "Offer Tier","Description"`,
+      [offerId]
     );
-  });
+    if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
+
+    const first = rows[0];
+    const hasTiers = first['Offer Tier'] &&
+      !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(first['Offer Tier']);
+
+    if (hasTiers) {
+      const tiers = {};
+      rows.forEach(row => {
+        const t = row['Offer Tier'];
+        if (!tiers[t]) tiers[t] = [];
+        tiers[t].push(row);
+      });
+      return res.json({
+        offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
+        hasTiers: true, tiers, allItems: rows,
+      });
+    }
+    res.json({
+      offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
+      hasTiers: false, items: rows,
+    });
+  } catch (err) {
+    console.error('GET /api/offers/:id error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch offer details' });
+  }
+});
+
+app.post('/api/reload-offers', async (req, res) => {
+  try {
+    await loadOffersCSV();
+    res.json({ success: true, message: 'Offers reloaded.' });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// API – orders
+// ---------------------------------------------------------------------------
+app.post('/api/save-order', async (req, res) => {
+  const client = await pool.connect();
+  try {
+    const { storeNumber='', storeName='', banner='', userName='',
+            position='', purchaseOrder='', items=[], totalValue=0 } = req.body;
+
+    await client.query('BEGIN');
+
+    const { rows: [{ id: orderId }] } = await client.query(
+      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,total_value)
+       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
+      [storeNumber, storeName, banner, userName, position, purchaseOrder, parseFloat(totalValue) || 0]
+    );
+
+    for (const item of items) {
+      const qty = item.quantity || 1;
+      const dropMonths = Array.isArray(item.dropMonths)
+        ? item.dropMonths
+        : Array(qty).fill(item.dropMonth || 'March');
+
+      for (let i = 0; i < qty; i++) {
+        await client.query(
+          `INSERT INTO order_items (order_id,offer_id,offer_tier,quantity,description,cost,drop_month)
+           VALUES ($1,$2,$3,$4,$5,$6,$7)`,
+          [orderId, item.offerId||'', item.offerTier||'', 1,
+           item.description||'', parseFloat(item.cost)||0, dropMonths[i]||'March']
+        );
+      }
+    }
+
+    await client.query('COMMIT');
+    res.json({ success: true, orderId, message: 'Order saved.' });
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('POST /api/save-order error:', err.message);
+    res.status(500).json({ error: 'Failed to save order' });
+  } finally {
+    client.release();
+  }
+});
+
+app.get('/api/orders-stats', async (req, res) => {
+  try {
+    const { rows: [row] } = await pool.query(
+      'SELECT COUNT(*) AS count, COALESCE(SUM(total_value),0) AS total FROM orders'
+    );
+    res.json({
+      count:      parseInt(row.count,   10),
+      totalValue: parseFloat(row.total).toFixed(2),
+    });
+  } catch (err) {
+    res.status(500).json({ count: 0, totalValue: '0.00' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Serve React build (single-service deployment)
+// ---------------------------------------------------------------------------
+const possibleBuilds = [
+  path.join(__dirname, '..', 'frontend', 'build'),
+  path.join(__dirname, '..', 'client',   'build'),
+];
+const buildPath = possibleBuilds.find(p => fs.existsSync(p));
+if (buildPath) {
+  console.log('Serving React build from:', buildPath);
+  app.use(express.static(buildPath));
+  app.use((req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+} else {
+  app.get('/', (req, res) => res.status(200).send('<h1>metcash26-api running</h1><p>React build not found — run <code>npm run build</code> inside /frontend.</p>'));
 }
 
-function loadStoresCSV() {
-  const filePath = path.resolve(__dirname, 'ihg26stores.csv');
-  if (!fs.existsSync(filePath)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const results = [];
-    fs.createReadStream(filePath, { encoding: 'utf8' })
-      .pipe(csv())
-      .on('data', (data) => {
-        const cleanData = cleanKeys(data);
-        const storeNumber = padStoreNumber(cleanData.Store || cleanData['Store']);
-        if (!storeNumber) return;
-        results.push({
-          Store: storeNumber,
-          Name: (cleanData.Name || '').trim(),
-          Banner: (cleanData.Banner || '-').trim(),
-          Overall: (cleanData.Overall || '').trim(),
-          Automotive: (cleanData.Automotive || '').trim(),
-          'Energy Storage': (cleanData['Energy Storage'] || '').trim(),
-          Lighting: (cleanData.Lighting || '').trim(),
-          'Special Order Hardware': (cleanData['Special Order Hardware'] || '').trim()
-        });
-      })
-      .on('end', () => {
-        if (results.length === 0) return resolve();
-        db.run('DELETE FROM stores', err => {
-          if (err) return reject(err);
-          const stmt = db.prepare(`INSERT OR REPLACE INTO stores (Store, Name, Banner, Overall, Automotive, "Energy Storage", Lighting, "Special Order Hardware") VALUES (?, ?, ?, ?, ?, ?, ?, ?)`);
-          results.forEach(row => stmt.run([row.Store, row.Name, row.Banner, row.Overall, row.Automotive, row['Energy Storage'], row.Lighting, row['Special Order Hardware']]));
-          stmt.finalize();
-          console.log(`Loaded ${results.length} stores`);
-          resolve();
-        });
-      })
-      .on('error', reject);
-  });
-}
+// ---------------------------------------------------------------------------
+// Boot
+// ---------------------------------------------------------------------------
+(async () => {
+  try {
+    await initDb();
+    app.listen(PORT, () => console.log(`Metcash API → http://localhost:${PORT}`));
+    // Load reference data in the background — server is already accepting requests
+    loadStoresCSV()
+      .then(() => loadMcashStoresCSV())
+      .then(() => loadOffersCSV())
+      .then(() => console.log('All CSV data loaded.'))
+      .catch(err => console.error('CSV load failed:', err.message));
+  } catch (err) {
+    console.error('Fatal startup error:', err.message || err);
+    process.exit(1);
+  }
+})();
 
-function loadMcashStoresCSV() {
-  const filePath = path.resolve(__dirname, 'mcash26.csv');
-  if (!fs.existsSync(filePath)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const results = [];
-    fs.createReadStream(filePath, { encoding: 'utf8' })
-      .pipe(csv())
-      .on('data', (data) => {
-        const clean = cleanKeys(data);
-        const name = (clean.Store || clean.store || '').trim();
-        const suburb = (clean.Suburb || clean.suburb || '').trim();
-        const state = (clean.State || clean.state || '').trim();
-        const banner = (clean.Banner || clean.banner || '-').trim() || '-';
-        if (!name || !suburb || !state) return;
-        results.push({
-          name,
-          address: (clean.Address || clean.address || '').trim(),
-          suburb,
-          state,
-          pcode: (clean.Pcode || clean.pcode || '').trim(),
-          banner,
-        });
-      })
-      .on('end', () => {
-        if (results.length === 0) return resolve();
-        db.run('DELETE FROM mcash_stores', err => {
-          if (err) return reject(err);
-          const stmt = db.prepare('INSERT INTO mcash_stores (name, address, suburb, state, pcode, banner) VALUES (?, ?, ?, ?, ?, ?)');
-          results.forEach(row => stmt.run([row.name, row.address, row.suburb, row.state, row.pcode, row.banner]));
-          stmt.finalize();
-          console.log(`Loaded ${results.length} mcash stores`);
-          resolve();
-        });
-      })
-      .on('error', reject);
-  });
-}
-
-function loadOffersCSV() {
-  const filePath = path.resolve(__dirname, 'offers.csv');
-  if (!fs.existsSync(filePath)) return Promise.resolve();
-  return new Promise((resolve, reject) => {
-    const results = [];
-    fs.createReadStream(filePath, { encoding: 'utf8' })
-      .pipe(csv())
-      .on('data', (data) => results.push(cleanKeys(data)))
-      .on('end', () => {
-        if (results.length === 0) return resolve();
-        db.run('DELETE FROM offers', err => {
-          if (err) return reject(err);
-          const columns = Object.keys(results[0]);
-          const placeholders = columns.map(() => '?').join(',');
-          const quotedColumns = columns.map(col => `"${col}"`).join(',');
-          const stmt = db.prepare(`INSERT INTO offers (${quotedColumns}) VALUES (${placeholders})`);
-          results.forEach(row => stmt.run(columns.map(col => (row[col] || '').trim())));
-          stmt.finalize();
-          console.log(`Loaded ${results.length} offers`);
-          resolve();
-        });
-      })
-      .on('error', reject);
-  });
-}
-
-process.on('SIGINT', () => {
-  db.close(() => process.exit(0));
+process.on('SIGINT', async () => {
+  await pool.end();
+  console.log('Pool closed.');
+  process.exit(0);
 });
