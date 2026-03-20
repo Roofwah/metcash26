@@ -2,6 +2,8 @@
   "name": "metcash26-app",
   "private": true,
   "scripts": {
+    "build": "npm run render-build",
+    "start": "npm run render-start",
     "render-build": "npm --prefix backend install && npm --prefix frontend install && npm --prefix frontend run build",
     "render-start": "npm --prefix backend start"
   }
