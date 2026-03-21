@@ -39,56 +39,61 @@
   }
 }
 
+/* Header: matches offers page dark glass design (left inset clears DBLE floating button) */
 .order-header {
-  background: white;
-  border-radius: 12px;
-  padding: 1.5rem 2rem;
-  margin-bottom: 2rem;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  --offers-dble-inset: calc(env(safe-area-inset-left, 0px) + 82px);
+  background: rgba(12, 12, 14, 0.88);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.5rem;
+  padding-left: var(--offers-dble-inset);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   display: flex;
   align-items: center;
-  justify-content: flex-start;
-  gap: 0.5rem;
+  gap: 0.4rem;
   position: fixed;
-  top: 1rem;
-  left: 1rem;
-  right: 1rem;
+  top: 0.5rem;
+  left: 0.5rem;
+  right: 0.5rem;
   z-index: 100;
-  max-width: calc(1400px + 4rem);
-  margin: 0 auto 2rem auto;
-  border-radius: 12px;
+  min-height: 52px;
 }
 
-.order-header .back-button {
-  background: linear-gradient(135deg, #2d2d2d 0%, #4a4a4a 100%) !important;
-  color: white !important;
-  border: none !important;
-  border-radius: 50% !important;
-  width: 40px !important;
-  height: 40px !important;
-  min-width: 40px !important;
-  min-height: 40px !important;
-  max-width: 40px !important;
-  max-height: 40px !important;
-  padding: 0 !important;
-  font-size: 2rem;
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  transition: all 0.2s;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+.order-header .store-info-container {
   display: flex;
+  flex-direction: row;
   align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  order: -1;
-  box-sizing: border-box;
+  gap: 0.5rem;
+  flex: 1;
+  min-width: 0;
+  overflow-x: hidden;
+  overflow-y: visible;
 }
 
-.order-header .back-button:hover {
-  background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%) !important;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
-  transform: translateY(-1px);
+.order-header .store-info {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1 1 0%;
+  min-width: 0;
+  text-align: left;
+}
+
+.order-header .store-info h2 {
+  margin: 0;
+  font-size: clamp(1.05rem, 2.5vw, 1.35rem);
+  font-weight: 700;
+  color: #ffffff !important;
+  line-height: 1.2;
+}
+
+.order-header .store-info p {
+  margin: 0;
+  color: #f4f4f5 !important;
+  font-size: clamp(0.92rem, 2.1vw, 1.1rem);
+  line-height: 1.25;
 }
 
 .store-info {
@@ -119,11 +124,91 @@
   margin-top: 7rem;
 }
 
-.order-content h1 {
-  font-size: 2rem;
+/* Formal order block — party (left), date/time (right) */
+.order-document-header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid #d9d9d9;
+}
+
+.order-document-party {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  text-align: left;
+}
+
+.order-party-line {
+  font-size: 0.98rem;
+  color: #1a1a1a;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
+.order-party-name {
+  font-weight: 600;
+}
+
+.order-party-store-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem;
+}
+
+.order-party-store-banner-sep {
+  color: #8a8a8a;
+  font-weight: 400;
+  user-select: none;
+}
+
+.order-party-address {
+  white-space: pre-line;
+}
+
+.order-document-datetime {
+  flex-shrink: 0;
+  max-width: 46%;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.order-datetime-value {
+  font-size: 0.92rem;
   color: #333;
-  margin: 0 0 2rem 0;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 520px) {
+  .order-document-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .order-document-datetime {
+    max-width: none;
+    align-items: flex-end;
+    text-align: right;
+  }
+}
+
+.order-content h1.order-document-title {
+  font-size: 1.65rem;
+  color: #222;
+  margin: 0 0 1.5rem 0;
   text-align: center;
+  font-weight: 700;
+  letter-spacing: -0.02em;
 }
 
 .order-items-section {
@@ -367,6 +452,10 @@
   cursor: pointer;
 }
 
+.purchase-order-input {
+  margin-top: 0.65rem;
+}
+
 .form-actions {
   margin-top: 2rem;
   text-align: center;
@@ -385,9 +474,16 @@
   transition: transform 0.2s, box-shadow 0.2s;
 }
 
-.submit-order-btn:hover {
+.submit-order-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: 0 6px 16px rgba(40, 167, 69, 0.5);
+}
+
+.submit-order-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
 }
 
 .empty-cart-message {
@@ -401,241 +497,6 @@
 .empty-cart-message h2 {
   color: #333;
   margin-bottom: 2rem;
-}
-
-.input-hint {
-  font-size: 0.85rem;
-  color: #666;
-  margin-top: 0.25rem;
-  font-style: italic;
-}
-
-/* Onscreen Keyboard */
-.keyboard-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.3);
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  z-index: 1100;
-  padding: 0 0 0 0;
-  box-sizing: border-box;
-  pointer-events: none;
-}
-
-.keyboard-overlay * {
-  pointer-events: auto;
-}
-
-.keyboard-container {
-  background: rgba(32, 32, 32, 0.95);
-  border-radius: 20px 20px 0 0;
-  box-shadow: 
-    0 -8px 32px rgba(0, 0, 0, 0.4),
-    0 0 0 1px rgba(255, 255, 255, 0.15);
-  width: 100%;
-  max-width: none;
-  overflow: hidden;
-  animation: keyboardSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-bottom: none;
-  margin-bottom: 0;
-}
-
-@keyframes keyboardSlideUp {
-  from {
-    opacity: 0;
-    transform: translateY(100px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.keyboard-header {
-  background: rgba(255, 255, 255, 0.1);
-  color: white;
-  padding: 12px 20px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 1.4rem;
-  font-weight: 500;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.keyboard-close {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  color: white;
-  font-size: 1.4rem;
-  cursor: pointer;
-  padding: 6px 10px;
-  border-radius: 8px;
-  transition: all 0.2s ease;
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.keyboard-close:hover {
-  background: rgba(255, 255, 255, 0.2);
-  transform: scale(1.05);
-}
-
-.keyboard-input-display {
-  display: none;
-}
-
-.keyboard-wrapper {
-  padding: 16px 20px;
-  background: transparent;
-  position: relative;
-}
-
-/* React Simple Keyboard Styles - Windows 11 Style */
-.keyboard-wrapper .hg-theme-default {
-  background: transparent;
-  border: none;
-  box-shadow: none;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  border-radius: 12px;
-  font-size: 1.4rem;
-  font-weight: 500;
-  color: white;
-  box-shadow: 
-    0 2px 8px rgba(0, 0, 0, 0.2),
-    0 0 0 1px rgba(255, 255, 255, 0.05);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-transform: uppercase;
-  margin: 2px;
-  position: relative;
-  overflow: hidden;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, transparent 100%);
-  opacity: 0;
-  transition: opacity 0.2s ease;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button:hover {
-  background: rgba(255, 255, 255, 0.2);
-  border-color: rgba(255, 255, 255, 0.3);
-  transform: translateY(-1px);
-  box-shadow: 
-    0 4px 12px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button:hover::before {
-  opacity: 1;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button:active {
-  transform: translateY(0);
-  background: rgba(255, 255, 255, 0.15);
-  box-shadow: 
-    0 2px 6px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(255, 255, 255, 0.1);
-}
-
-/* Special key styling - Windows 11 style */
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{bksp}"] {
-  background: rgba(255, 107, 107, 0.2);
-  border-color: rgba(255, 107, 107, 0.3);
-  min-width: 80px;
-  color: #ff6b6b;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{bksp}"]:hover {
-  background: rgba(255, 107, 107, 0.3);
-  border-color: rgba(255, 107, 107, 0.5);
-  color: #ff8a8a;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{space}"] {
-  background: rgba(100, 126, 234, 0.2);
-  border-color: rgba(100, 126, 234, 0.3);
-  width: 70% !important;
-  flex: 0 0 70%;
-  color: #667eea;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{space}"]:hover {
-  background: rgba(100, 126, 234, 0.3);
-  border-color: rgba(100, 126, 234, 0.5);
-  color: #8b9eff;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{clear}"] {
-  background: rgba(255, 152, 0, 0.2);
-  border-color: rgba(255, 152, 0, 0.3);
-  min-width: 100px;
-  color: #ff9800;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{clear}"]:hover {
-  background: rgba(255, 152, 0, 0.3);
-  border-color: rgba(255, 152, 0, 0.5);
-  color: #ffb74d;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{done}"] {
-  background: rgba(76, 175, 80, 0.2);
-  border-color: rgba(76, 175, 80, 0.3);
-  min-width: 120px;
-  color: #4CAF50;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-button[data-skbtn="{done}"]:hover {
-  background: rgba(76, 175, 80, 0.3);
-  border-color: rgba(76, 175, 80, 0.5);
-  color: #66bb6a;
-}
-
-/* Keyboard row styling */
-.keyboard-wrapper .hg-theme-default .hg-row {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 6px;
-}
-
-.keyboard-wrapper .hg-theme-default .hg-row:last-child {
-  margin-bottom: 0;
-  justify-content: space-between;
-}
-
-/* Portrait orientation - add bottom margin so input field can scroll above keyboard */
-@media (orientation: portrait) {
-  .order-content {
-    padding-bottom: 450px !important;
-  }
 }
 
 @media (max-width: 768px) {

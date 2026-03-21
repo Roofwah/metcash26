@@ -28,6 +28,10 @@ const LoadingStep: React.FC<LoadingStepProps> = ({ userData, onComplete }) => {
           energyStorage: d.energyStorage || '',
           lighting: d.lighting || '',
           specialOrderHardware: d.specialOrderHardware || '',
+          address: d.address || '',
+          suburb: d.suburb || '',
+          state: d.state || '',
+          pcode: d.pcode || '',
         });
         setStoreInfo({
           storeName: d.storeName || `Store ${userData.storeNo}`,

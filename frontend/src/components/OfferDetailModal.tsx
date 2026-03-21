@@ -25,6 +25,13 @@ interface OfferDetailData {
   hasTiers: boolean;
   tiers?: { [key: string]: OfferItem[] };
   items?: OfferItem[];
+  logoUrl?: string;
+  productImageUrl?: string;
+  heroUrl?: string;
+  category?: string;
+  message?: string;
+  other?: string;
+  offerType?: string;
 }
 
 interface OfferDetailModalProps {
@@ -77,6 +84,9 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
     );
   }
 
+  const csvMedia =
+    !!(offerData.heroUrl?.trim() || offerData.logoUrl?.trim() || offerData.productImageUrl?.trim());
+
   return (
     <>
       <div className="offer-detail-modal-overlay" onClick={onClose}>
@@ -87,8 +97,28 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
           </div>
           
           <div className="modal-body">
+            {csvMedia && (
+              <div className="modal-csv-media">
+                {offerData.logoUrl?.trim() && (
+                  <img src={offerData.logoUrl} alt="" className="modal-csv-logo" />
+                )}
+                {offerData.heroUrl?.trim() && (
+                  <img src={offerData.heroUrl} alt="" className="modal-csv-hero" />
+                )}
+                {!offerData.heroUrl?.trim() && offerData.productImageUrl?.trim() && (
+                  <img src={offerData.productImageUrl} alt="" className="modal-csv-product" />
+                )}
+                {offerData.message?.trim() && (
+                  <p className="modal-csv-message">{offerData.message}</p>
+                )}
+                {offerData.other?.trim() && (
+                  <p className="modal-csv-other">{offerData.other}</p>
+                )}
+              </div>
+            )}
+
             {/* Eveready Brand Card */}
-            {(offerId.toLowerCase().includes('eveready 1') || offerId.toLowerCase().includes('eveready 2') || offerId.toLowerCase().includes('eveready 3')) && (
+            {!csvMedia && (offerId.toLowerCase().includes('eveready 1') || offerId.toLowerCase().includes('eveready 2') || offerId.toLowerCase().includes('eveready 3')) && (
               <div className="eveready-brand-card">
                 <div className="eveready-brand-content">
                   <img src="/products/eready.png" alt="Eveready Logo" className="eveready-logo" />
@@ -104,7 +134,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
             )}
 
             {/* Energizer Brand Card */}
-            {(offerId.toLowerCase().includes('energizer 1') || offerId.toLowerCase().includes('energizer 2') || offerId.toLowerCase().includes('energizer 3') || offerId.toLowerCase().includes('energizer 4') || offerId.toLowerCase().includes('energizer 5') || offerId.toLowerCase().includes('energizer 6')) && (
+            {!csvMedia && (offerId.toLowerCase().includes('energizer 1') || offerId.toLowerCase().includes('energizer 2') || offerId.toLowerCase().includes('energizer 3') || offerId.toLowerCase().includes('energizer 4') || offerId.toLowerCase().includes('energizer 5') || offerId.toLowerCase().includes('energizer 6')) && (
               <div className="energizer-brand-card">
                 <div className="energizer-brand-content">
                   <img src="/products/energizer.png" alt="Energizer Logo" className="energizer-logo" />
@@ -128,7 +158,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
             )}
 
             {/* ArmorAll Brand Card */}
-            {(offerId.toLowerCase().includes('armorall 1') || offerId.toLowerCase().includes('armorall 2') || offerId.toLowerCase().includes('armorall 3')) && (
+            {!csvMedia && (offerId.toLowerCase().includes('armorall 1') || offerId.toLowerCase().includes('armorall 2') || offerId.toLowerCase().includes('armorall 3')) && (
               <div className="armorall-brand-card">
                 <div className="armorall-brand-content">
                   <img src="/products/aall.png" alt="ArmorAll Logo" className="armorall-logo" />
@@ -149,31 +179,32 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
             )}
 
             {/* Product Images for offers without brand cards */}
-            {(() => {
-              const offerKey = offerId.toLowerCase();
-              let productImage: string | null = null;
-              
-              if (offerKey === 'energizer 7') {
-                productImage = '/products/maxmod.png';
-              } else if (offerKey === 'energizer 8') {
-                productImage = '/products/hl.png';
-              } else if (offerKey === 'energizer 9') {
-                productImage = '/products/torch.png';
-              } else if (offerKey === 'armorall 4') {
-                productImage = '/products/slr.png';
-              } else if (offerKey === 'armorall 5') {
-                productImage = '/products/fragrances.png';
-              }
-              
-              if (productImage) {
-                return (
-                  <div className="modal-product-image-section">
-                    <img src={productImage} alt="Product" className="modal-product-image" />
-                  </div>
-                );
-              }
-              return null;
-            })()}
+            {!csvMedia &&
+              (() => {
+                const offerKey = offerId.toLowerCase();
+                let productImage: string | null = null;
+
+                if (offerKey === 'energizer 7') {
+                  productImage = '/products/maxmod.png';
+                } else if (offerKey === 'energizer 8') {
+                  productImage = '/products/hl.png';
+                } else if (offerKey === 'energizer 9') {
+                  productImage = '/products/torch.png';
+                } else if (offerKey === 'armorall 4') {
+                  productImage = '/products/slr.png';
+                } else if (offerKey === 'armorall 5') {
+                  productImage = '/products/fragrances.png';
+                }
+
+                if (productImage) {
+                  return (
+                    <div className="modal-product-image-section">
+                      <img src={productImage} alt="Product" className="modal-product-image" />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
             <div className="offer-info">
               <p><strong>Brand:</strong> {offerData.brand}</p>

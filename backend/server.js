@@ -72,6 +72,16 @@ async function initDb() {
   `);
 
   await pool.query(`
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Logo" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Product Image" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Hero" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Category" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Message" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Other" TEXT;
+    ALTER TABLE offers ADD COLUMN IF NOT EXISTS "Type" TEXT;
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS orders (
       id             SERIAL PRIMARY KEY,
       store_number   TEXT NOT NULL,
@@ -80,10 +90,12 @@ async function initDb() {
       user_name      TEXT NOT NULL,
       position       TEXT,
       purchase_order TEXT,
+      email          TEXT,
       total_value    NUMERIC NOT NULL,
       created_at     TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -155,6 +167,349 @@ let fallbackMcashStoresPromise = null;
 let fallbackOffersRows = null;
 let fallbackOffersPromise = null;
 
+function invalidateOffersFallbackCache() {
+  fallbackOffersRows = null;
+  fallbackOffersPromise = null;
+}
+
+/** Read offers.csv into raw row objects (trimmed keys). */
+function readOffersCsvRaw(filePath) {
+  return new Promise((resolve, reject) => {
+    const results = [];
+    fs.createReadStream(filePath, { encoding: 'utf8' })
+      .pipe(csv())
+      .on('data', (data) => results.push(cleanKeys(data)))
+      .on('end', () => resolve(results))
+      .on('error', reject);
+  });
+}
+
+/** Map new spreadsheet (Name / Item / cost …) → same row shape as legacy `loadOffersCSV` transform. */
+function mapNewRetailOffersCsv(rawRows) {
+  let carryName = '';
+  let carryBrand = '';
+  let carryType = '';
+  const out = [];
+  for (const clean of rawRows) {
+    const name = (clean.Name || '').trim();
+    if (name) carryName = name;
+    const b = (clean.Brand || '').trim();
+    if (b) carryBrand = b;
+    const t = (clean.Type || '').trim();
+    if (t) carryType = t;
+    const item = (clean.Item || '').trim();
+    if (!item || !carryName) continue;
+
+    const qtyNum = parseFloat(String(clean.qty || '').replace(/,/g, '')) || 0;
+    const lineReg = parseFloat(String(clean['reg cost'] || '').replace(/,/g, '')) || 0;
+    const lineExpo = parseFloat(String(clean.cost || '').replace(/,/g, '')) || 0;
+    const perReg = qtyNum > 0 ? lineReg / qtyNum : lineReg;
+    const perExpo = qtyNum > 0 ? lineExpo / qtyNum : lineExpo;
+
+    out.push({
+      offer: carryName,
+      offerGroup: carryType,
+      offerTier: (clean.range || '').trim(),
+      dropMonths: (clean.months || '').trim(),
+      orderDeadline: (clean.deadline || '').trim(),
+      minOrderValue: String(clean['min order'] ?? '').trim(),
+      brand: carryBrand || carryName.split(/\s+/)[0] || carryName,
+      range: (clean.range || '').trim(),
+      energizerOrderCode: '',
+      hthCode: '',
+      code: (clean.Code || '').trim(),
+      description: item,
+      regChargeBackCost: perReg > 0 ? String(perReg) : '',
+      expoChargeBackCost: perExpo > 0 ? String(perExpo) : '',
+      save: '',
+      srpPromoRrp: String(clean.rrp ?? '').trim(),
+      gmDollar: '',
+      gmPercent: '',
+      qtyType: '',
+      qty: String(clean.qty ?? '').trim(),
+      regTotalCost: String(clean['reg cost'] ?? '').trim(),
+      expoTotalCost: String(clean.cost ?? '').trim(),
+      logo: '',
+      productImage: '',
+      hero: '',
+      category: '',
+      message: '',
+      other: '',
+      offerType: '',
+    });
+  }
+  return out;
+}
+
+/** Blank or "-" → empty string (never null; safe for DB text columns). */
+function normalizeCsvCell(v) {
+  const t = String(v ?? '').trim();
+  if (!t || t === '-') return '';
+  return t;
+}
+
+/** Paths like `images/x.png` or `/images/x.png` — served from `frontend/public`. */
+function normalizePublicImagePath(p) {
+  const s = normalizeCsvCell(p);
+  if (!s) return '';
+  if (/^https?:\/\//i.test(s)) return s;
+  return s.startsWith('/') ? s : `/${s.replace(/^\/+/, '')}`;
+}
+
+/** First non-empty text across rows (DB or fallback row keys). */
+function pickFirstNonEmptyText(rows, ...keys) {
+  for (const row of rows) {
+    for (const k of keys) {
+      const t = normalizeCsvCell(row[k]);
+      if (t) return t;
+    }
+  }
+  return '';
+}
+
+/** First usable public image URL across rows. */
+function firstImageUrl(rows, ...keys) {
+  for (const row of rows) {
+    for (const k of keys) {
+      const u = normalizePublicImagePath(row[k]);
+      if (u) return u;
+    }
+  }
+  return '';
+}
+
+function buildOfferMetaFromRows(rows) {
+  return {
+    logoUrl: firstImageUrl(rows, 'Logo', 'logo'),
+    productImageUrl: firstImageUrl(rows, 'Product Image', 'ProductImage', 'productImage'),
+    heroUrl: firstImageUrl(rows, 'Hero', 'hero'),
+    category: pickFirstNonEmptyText(rows, 'Category', 'category'),
+    message: pickFirstNonEmptyText(rows, 'Message', 'message'),
+    other: pickFirstNonEmptyText(rows, 'Other', 'other'),
+    offerType: pickFirstNonEmptyText(rows, 'Type', 'type'),
+  };
+}
+
+/**
+ * Group raw DB/fallback rows into list payload (one object per offer id).
+ */
+function groupOffersRows(rows) {
+  const grouped = {};
+  rows.forEach((row) => {
+    const key = row.OFFER || row['Offer Group'];
+    if (!key) return;
+    if (!grouped[key]) {
+      const meta = buildOfferMetaFromRows([row]);
+      grouped[key] = {
+        offerId: key,
+        offerGroup: row['Offer Group'],
+        brand: row.Brand,
+        range: row.Range,
+        minOrderValue: row['Min Order Value (ex GST)'],
+        save: row.Save || '',
+        totalCost: row['Expo Total Cost'] || '',
+        offerTier: row['Offer Tier'] || '',
+        descriptions: [],
+        expoChargeBackCost: 0,
+        logoUrl: meta.logoUrl,
+        productImageUrl: meta.productImageUrl,
+        heroUrl: meta.heroUrl,
+        category: meta.category,
+        message: meta.message,
+        other: meta.other,
+        offerType: meta.offerType,
+      };
+    } else {
+      const g = grouped[key];
+      const merge = buildOfferMetaFromRows([row]);
+      if (!g.logoUrl && merge.logoUrl) g.logoUrl = merge.logoUrl;
+      if (!g.productImageUrl && merge.productImageUrl) g.productImageUrl = merge.productImageUrl;
+      if (!g.heroUrl && merge.heroUrl) g.heroUrl = merge.heroUrl;
+      if (!g.category && merge.category) g.category = merge.category;
+      if (!g.message && merge.message) g.message = merge.message;
+      if (!g.other && merge.other) g.other = merge.other;
+      if (!g.offerType && merge.offerType) g.offerType = merge.offerType;
+    }
+    if (row.Save && row.Save.trim() && row.Save !== '-') {
+      if (!grouped[key].save || !grouped[key].save.trim() || grouped[key].save === '-') {
+        grouped[key].save = row.Save;
+      }
+    }
+    if (key === 'Energizer 7' && row.Save && row.Save.includes('50%')) {
+      grouped[key].save = '50%';
+    }
+    if (row.Description) {
+      grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
+    }
+    grouped[key].expoChargeBackCost +=
+      (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
+  });
+
+  Object.keys(grouped).forEach((k) => {
+    grouped[k].expoChargeBackCost = grouped[k].expoChargeBackCost.toFixed(2);
+    if (k === 'Energizer 7') grouped[k].save = '50%';
+  });
+
+  return grouped;
+}
+
+function mapLegacyOffersCsvRow(clean) {
+  return {
+    offer:              normalizeCsvCell(clean.OFFER),
+    offerGroup:         normalizeCsvCell(clean['Offer Group']),
+    offerTier:          normalizeCsvCell(clean['Offer Tier']),
+    dropMonths:         normalizeCsvCell(clean['Drop Months']),
+    orderDeadline:      normalizeCsvCell(clean['Order Deadline']),
+    minOrderValue:      normalizeCsvCell(clean['Min Order Value (ex GST)']),
+    brand:              normalizeCsvCell(clean.Brand),
+    range:              normalizeCsvCell(clean.Range),
+    energizerOrderCode: normalizeCsvCell(clean['Energizer Order Code']),
+    hthCode:            normalizeCsvCell(clean['HTH Code']),
+    code:               normalizeCsvCell(clean.Code),
+    description:        normalizeCsvCell(clean.Description),
+    regChargeBackCost:  normalizeCsvCell(clean['Reg Charge Back Cost']),
+    expoChargeBackCost: normalizeCsvCell(clean['Expo Charge Back Cost']),
+    save:               normalizeCsvCell(clean.Save),
+    srpPromoRrp:        normalizeCsvCell(clean['SRP / Promo RRP']),
+    gmDollar:           normalizeCsvCell(clean['$ GM']),
+    gmPercent:          normalizeCsvCell(clean['% GM']),
+    qtyType:            normalizeCsvCell(clean['Qty Type']),
+    qty:                normalizeCsvCell(clean.Qty),
+    regTotalCost:       normalizeCsvCell(clean['Reg Total Cost']),
+    expoTotalCost:      normalizeCsvCell(clean['Expo Total Cost']),
+    logo:               normalizeCsvCell(clean.Logo),
+    productImage:       normalizeCsvCell(clean['Product Image'] || clean.ProductImage),
+    hero:               normalizeCsvCell(clean.Hero),
+    category:           normalizeCsvCell(clean.Category),
+    message:            normalizeCsvCell(clean.Message),
+    other:              normalizeCsvCell(clean.Other),
+    offerType:          normalizeCsvCell(clean.Type),
+  };
+}
+
+/**
+ * Unified CSV: OFFER + image columns + business fields in one place.
+ * Forward-fills Logo, Hero, Product Image, Offer Group, Brand when blank on continuation rows.
+ */
+function mapUnifiedOffersCsv(rawRows) {
+  let carryLogo = '';
+  let carryHero = '';
+  let carryProduct = '';
+  let carryGroup = '';
+  let carryBrand = '';
+  const out = [];
+  for (const c of rawRows) {
+    const off = normalizeCsvCell(c.OFFER);
+    if (!off) continue;
+
+    const lg = normalizeCsvCell(c.Logo);
+    const hr = normalizeCsvCell(c.Hero);
+    const pi = normalizeCsvCell(c['Product Image'] || c.ProductImage);
+    const og = normalizeCsvCell(c['Offer Group']);
+    const br = normalizeCsvCell(c.Brand);
+    if (lg) carryLogo = lg;
+    if (hr) carryHero = hr;
+    if (pi) carryProduct = pi;
+    if (og) carryGroup = og;
+    if (br) carryBrand = br;
+
+    const itemLine = normalizeCsvCell(c.Item);
+    const desc = normalizeCsvCell(c.Description);
+    const lineDescription = itemLine || desc;
+
+    const reg = normalizeCsvCell(c['Reg Charge Back Cost']) || normalizeCsvCell(c['Reg Charge']);
+    const expo = normalizeCsvCell(c['Expo Charge Back Cost']) || normalizeCsvCell(c['Expo Charge']);
+    const discount = normalizeCsvCell(c.Discount) || normalizeCsvCell(c.Save);
+    const minVal = normalizeCsvCell(c.Value) || normalizeCsvCell(c['Min Order Value (ex GST)']);
+
+    const marketing = normalizeCsvCell(c.Message) || (itemLine && desc ? desc : '');
+
+    out.push({
+      offer: off,
+      offerGroup: carryGroup,
+      offerTier: normalizeCsvCell(c.Tier) || normalizeCsvCell(c['Offer Tier']),
+      dropMonths: normalizeCsvCell(c['Drop Months']),
+      orderDeadline: normalizeCsvCell(c['Order Deadline']),
+      minOrderValue: minVal,
+      brand: carryBrand,
+      range: normalizeCsvCell(c.Range),
+      energizerOrderCode: normalizeCsvCell(c['Energizer Order Code']),
+      hthCode: normalizeCsvCell(c['HTH Code']),
+      code: normalizeCsvCell(c.Code),
+      description: lineDescription,
+      regChargeBackCost: reg,
+      expoChargeBackCost: expo,
+      save: discount,
+      srpPromoRrp: normalizeCsvCell(c['SRP / Promo RRP']),
+      gmDollar: normalizeCsvCell(c['$ GM']),
+      gmPercent: normalizeCsvCell(c['% GM']),
+      qtyType: normalizeCsvCell(c['Qty Type']),
+      qty: normalizeCsvCell(c.Qty),
+      regTotalCost: normalizeCsvCell(c['Reg Total Cost']),
+      expoTotalCost: normalizeCsvCell(c['Expo Total Cost']),
+      logo: carryLogo,
+      productImage: carryProduct,
+      hero: carryHero,
+      category: normalizeCsvCell(c.Category),
+      message: marketing,
+      other: normalizeCsvCell(c.Other),
+      offerType: normalizeCsvCell(c.Type),
+    });
+  }
+  return out;
+}
+
+/** Internal insert rows for `offers` table (legacy or new CSV). */
+async function loadOffersCsvInternalRows(filePath) {
+  const raw = await readOffersCsvRaw(filePath);
+  if (raw.length === 0) return [];
+  const headers = Object.keys(raw[0]);
+  const isRetailNameItem = headers.includes('Item') && !headers.includes('OFFER');
+  if (isRetailNameItem) return mapNewRetailOffersCsv(raw);
+  const isUnified =
+    headers.includes('OFFER') &&
+    (headers.includes('Logo') || headers.includes('Hero') ||
+      headers.includes('Product Image') || headers.includes('ProductImage'));
+  if (isUnified) return mapUnifiedOffersCsv(raw);
+  return raw
+    .map((clean) => mapLegacyOffersCsvRow(clean))
+    .filter((r) => r.offer || r.offerGroup || r.description);
+}
+
+function internalOfferRowToApiRow(r) {
+  return {
+    OFFER: r.offer,
+    'Offer Group': r.offerGroup,
+    'Offer Tier': r.offerTier,
+    'Drop Months': r.dropMonths,
+    'Order Deadline': r.orderDeadline,
+    'Min Order Value (ex GST)': r.minOrderValue,
+    Brand: r.brand,
+    Range: r.range,
+    'Energizer Order Code': r.energizerOrderCode,
+    'HTH Code': r.hthCode,
+    Code: r.code,
+    Description: r.description,
+    'Reg Charge Back Cost': r.regChargeBackCost,
+    'Expo Charge Back Cost': r.expoChargeBackCost,
+    Save: r.save,
+    'SRP / Promo RRP': r.srpPromoRrp,
+    '$ GM': r.gmDollar,
+    '% GM': r.gmPercent,
+    'Qty Type': r.qtyType,
+    Qty: r.qty,
+    'Reg Total Cost': r.regTotalCost,
+    'Expo Total Cost': r.expoTotalCost,
+    Logo: r.logo || '',
+    'Product Image': r.productImage || '',
+    Hero: r.hero || '',
+    Category: r.category || '',
+    Message: r.message || '',
+    Other: r.other || '',
+    Type: r.offerType || '',
+  };
+}
+
 function loadFallbackMcashStores() {
   if (fallbackMcashStores) return Promise.resolve(fallbackMcashStores);
   if (fallbackMcashStoresPromise) return fallbackMcashStoresPromise;
@@ -205,20 +560,9 @@ function loadFallbackOffersRows() {
     return Promise.resolve(fallbackOffersRows);
   }
 
-  fallbackOffersPromise = parseCSV(filePath, (clean) => ({
-    OFFER: (clean.OFFER || '').trim(),
-    'Offer Group': (clean['Offer Group'] || '').trim(),
-    'Offer Tier': (clean['Offer Tier'] || '').trim(),
-    Brand: (clean.Brand || '').trim(),
-    Range: (clean.Range || '').trim(),
-    'Min Order Value (ex GST)': (clean['Min Order Value (ex GST)'] || '').trim(),
-    Save: (clean.Save || '').trim(),
-    'Expo Total Cost': (clean['Expo Total Cost'] || '').trim(),
-    Description: (clean.Description || '').trim(),
-    Qty: (clean.Qty || '').trim(),
-    'Expo Charge Back Cost': (clean['Expo Charge Back Cost'] || '').trim(),
-  }))
-    .then((rows) => {
+  fallbackOffersPromise = loadOffersCsvInternalRows(filePath)
+    .then((insertRows) => {
+      const rows = insertRows.map(internalOfferRowToApiRow);
       fallbackOffersRows = rows;
       fallbackOffersPromise = null;
       console.log(`Loaded ${rows.length} fallback offer rows.`);
@@ -329,31 +673,8 @@ async function loadOffersCSV() {
   const filePath = path.resolve(__dirname, 'offers.csv');
   if (!fs.existsSync(filePath)) { console.warn('offers.csv not found – skipping.'); return; }
 
-  const results = await parseCSV(filePath, (clean) => ({
-    offer:              (clean.OFFER                          || '').trim(),
-    offerGroup:         (clean['Offer Group']                 || '').trim(),
-    offerTier:          (clean['Offer Tier']                  || '').trim(),
-    dropMonths:         (clean['Drop Months']                 || '').trim(),
-    orderDeadline:      (clean['Order Deadline']              || '').trim(),
-    minOrderValue:      (clean['Min Order Value (ex GST)']    || '').trim(),
-    brand:              (clean.Brand                          || '').trim(),
-    range:              (clean.Range                          || '').trim(),
-    energizerOrderCode: (clean['Energizer Order Code']        || '').trim(),
-    hthCode:            (clean['HTH Code']                    || '').trim(),
-    code:               (clean.Code                           || '').trim(),
-    description:        (clean.Description                    || '').trim(),
-    regChargeBackCost:  (clean['Reg Charge Back Cost']        || '').trim(),
-    expoChargeBackCost: (clean['Expo Charge Back Cost']       || '').trim(),
-    save:               (clean.Save                           || '').trim(),
-    srpPromoRrp:        (clean['SRP / Promo RRP']             || '').trim(),
-    gmDollar:           (clean['$ GM']                        || '').trim(),
-    gmPercent:          (clean['% GM']                        || '').trim(),
-    qtyType:            (clean['Qty Type']                    || '').trim(),
-    qty:                (clean.Qty                            || '').trim(),
-    regTotalCost:       (clean['Reg Total Cost']              || '').trim(),
-    expoTotalCost:      (clean['Expo Total Cost']             || '').trim(),
-  }));
-
+  invalidateOffersFallbackCache();
+  const results = await loadOffersCsvInternalRows(filePath);
   if (results.length === 0) return;
 
   await pool.query('DELETE FROM offers');
@@ -363,25 +684,31 @@ async function loadOffersCSV() {
         "Min Order Value (ex GST)","Brand","Range","Energizer Order Code",
         "HTH Code","Code","Description","Reg Charge Back Cost",
         "Expo Charge Back Cost","Save","SRP / Promo RRP","$ GM","% GM",
-        "Qty Type","Qty","Reg Total Cost","Expo Total Cost")
+        "Qty Type","Qty","Reg Total Cost","Expo Total Cost",
+        "Logo","Product Image","Hero","Category","Message","Other","Type")
      SELECT * FROM unnest(
        $1::text[], $2::text[], $3::text[], $4::text[], $5::text[], $6::text[],
        $7::text[], $8::text[], $9::text[], $10::text[], $11::text[], $12::text[],
        $13::text[], $14::text[], $15::text[], $16::text[], $17::text[], $18::text[],
-       $19::text[], $20::text[], $21::text[], $22::text[]
+       $19::text[], $20::text[], $21::text[], $22::text[], $23::text[], $24::text[],
+       $25::text[], $26::text[], $27::text[], $28::text[], $29::text[]
      )`,
     [
-      results.map(r => r.offer),          results.map(r => r.offerGroup),
-      results.map(r => r.offerTier),      results.map(r => r.dropMonths),
-      results.map(r => r.orderDeadline),  results.map(r => r.minOrderValue),
-      results.map(r => r.brand),          results.map(r => r.range),
-      results.map(r => r.energizerOrderCode), results.map(r => r.hthCode),
-      results.map(r => r.code),           results.map(r => r.description),
-      results.map(r => r.regChargeBackCost),  results.map(r => r.expoChargeBackCost),
-      results.map(r => r.save),           results.map(r => r.srpPromoRrp),
-      results.map(r => r.gmDollar),       results.map(r => r.gmPercent),
-      results.map(r => r.qtyType),        results.map(r => r.qty),
-      results.map(r => r.regTotalCost),   results.map(r => r.expoTotalCost),
+      results.map((r) => r.offer),          results.map((r) => r.offerGroup),
+      results.map((r) => r.offerTier),      results.map((r) => r.dropMonths),
+      results.map((r) => r.orderDeadline),  results.map((r) => r.minOrderValue),
+      results.map((r) => r.brand),          results.map((r) => r.range),
+      results.map((r) => r.energizerOrderCode), results.map((r) => r.hthCode),
+      results.map((r) => r.code),           results.map((r) => r.description),
+      results.map((r) => r.regChargeBackCost),  results.map((r) => r.expoChargeBackCost),
+      results.map((r) => r.save),           results.map((r) => r.srpPromoRrp),
+      results.map((r) => r.gmDollar),       results.map((r) => r.gmPercent),
+      results.map((r) => r.qtyType),        results.map((r) => r.qty),
+      results.map((r) => r.regTotalCost),   results.map((r) => r.expoTotalCost),
+      results.map((r) => r.logo || ''),    results.map((r) => r.productImage || ''),
+      results.map((r) => r.hero || ''),    results.map((r) => r.category || ''),
+      results.map((r) => r.message || ''), results.map((r) => r.other || ''),
+      results.map((r) => r.offerType || ''),
     ]
   );
   console.log(`Loaded ${results.length} offer rows.`);
@@ -401,6 +728,23 @@ app.get('/api/store/:storeNumber', async (req, res) => {
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Store not found' });
     const row = rows[0];
+    let address = '';
+    let suburb = '';
+    let state = '';
+    let pcode = '';
+    try {
+      const { rows: mrows } = await pool.query(
+        `SELECT address, suburb, state, pcode FROM mcash_stores
+         WHERE LOWER(TRIM(name)) = LOWER(TRIM($1)) LIMIT 1`,
+        [row.Name]
+      );
+      if (mrows.length > 0) {
+        address = mrows[0].address || '';
+        suburb = mrows[0].suburb || '';
+        state = mrows[0].state || '';
+        pcode = mrows[0].pcode || '';
+      }
+    } catch (_) { /* optional enrichment */ }
     res.json({
       storeNo:            row.Store,
       storeName:          row.Name,
@@ -410,6 +754,10 @@ app.get('/api/store/:storeNumber', async (req, res) => {
       energyStorage:      row['Energy Storage']   || '',
       lighting:           row.Lighting            || '',
       specialOrderHardware: row['Special Order Hardware'] || '',
+      address,
+      suburb,
+      state,
+      pcode,
     });
   } catch (err) {
     console.error('GET /api/store error:', err.message);
@@ -563,7 +911,8 @@ app.get('/api/offers', async (req, res) => {
     try {
       const dbResult = await pool.query(`
       SELECT "Offer Group","OFFER","Brand","Range","Min Order Value (ex GST)",
-             "Save","Expo Total Cost","Offer Tier","Description","Qty","Expo Charge Back Cost"
+             "Save","Expo Total Cost","Offer Tier","Description","Qty","Expo Charge Back Cost",
+             "Logo","Product Image","Hero","Category","Message","Other","Type"
       FROM offers
       ORDER BY "OFFER","Offer Tier"
     `);
@@ -573,75 +922,12 @@ app.get('/api/offers', async (req, res) => {
     }
     if (rows.length === 0) rows = await loadFallbackOffersRows();
 
-    const grouped = {};
-    rows.forEach(row => {
-      const key = row.OFFER || row['Offer Group'];
-      if (!grouped[key]) {
-        grouped[key] = {
-          offerId:           key,
-          offerGroup:        row['Offer Group'],
-          brand:             row.Brand,
-          range:             row.Range,
-          minOrderValue:     row['Min Order Value (ex GST)'],
-          save:              row.Save || '',
-          totalCost:         row['Expo Total Cost'] || '',
-          offerTier:         row['Offer Tier']      || '',
-          descriptions:      [],
-          expoChargeBackCost: 0,
-        };
-      }
-      // Prioritise the first non-empty Save value
-      if (row.Save && row.Save.trim() && row.Save !== '-') {
-        if (!grouped[key].save || !grouped[key].save.trim() || grouped[key].save === '-') {
-          grouped[key].save = row.Save;
-        }
-      }
-      // Keep Energizer 7 at 50%
-      if (key === 'Energizer 7' && row.Save && row.Save.includes('50%')) {
-        grouped[key].save = '50%';
-      }
-      if (row.Description) {
-        grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
-      }
-      grouped[key].expoChargeBackCost +=
-        (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
-    });
-
-    Object.keys(grouped).forEach(key => {
-      grouped[key].expoChargeBackCost = grouped[key].expoChargeBackCost.toFixed(2);
-      if (key === 'Energizer 7') grouped[key].save = '50%';
-    });
-
+    const grouped = groupOffersRows(rows);
     res.json(Object.values(grouped));
   } catch (err) {
     console.error('GET /api/offers error:', err.message);
     const rows = await loadFallbackOffersRows();
-    const grouped = {};
-    rows.forEach(row => {
-      const key = row.OFFER || row['Offer Group'];
-      if (!key) return;
-      if (!grouped[key]) {
-        grouped[key] = {
-          offerId: key,
-          offerGroup: row['Offer Group'],
-          brand: row.Brand,
-          range: row.Range,
-          minOrderValue: row['Min Order Value (ex GST)'],
-          save: row.Save || '',
-          totalCost: row['Expo Total Cost'] || '',
-          offerTier: row['Offer Tier'] || '',
-          descriptions: [],
-          expoChargeBackCost: 0,
-        };
-      }
-      if (row.Description) grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
-      grouped[key].expoChargeBackCost +=
-        (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
-    });
-    Object.keys(grouped).forEach((key) => {
-      grouped[key].expoChargeBackCost = grouped[key].expoChargeBackCost.toFixed(2);
-      if (key === 'Energizer 7') grouped[key].save = '50%';
-    });
+    const grouped = groupOffersRows(rows);
     res.json(Object.values(grouped));
   }
 });
@@ -669,6 +955,7 @@ app.get('/api/offers/:offerId', async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
 
     const first = rows[0];
+    const meta = buildOfferMetaFromRows(rows);
     const hasTiers = first['Offer Tier'] &&
       !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(first['Offer Tier']);
 
@@ -682,11 +969,13 @@ app.get('/api/offers/:offerId', async (req, res) => {
       return res.json({
         offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
         hasTiers: true, tiers, allItems: rows,
+        ...meta,
       });
     }
     res.json({
       offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
       hasTiers: false, items: rows,
+      ...meta,
     });
   } catch (err) {
     console.error('GET /api/offers/:id error:', err.message);
@@ -695,6 +984,7 @@ app.get('/api/offers/:offerId', async (req, res) => {
     const rows = fallbackRows.filter((row) => row.OFFER === offerId || row['Offer Group'] === offerId);
     if (rows.length === 0) return res.status(404).json({ error: 'Offer not found' });
     const first = rows[0];
+    const meta = buildOfferMetaFromRows(rows);
     const hasTiers = first['Offer Tier'] &&
       !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(first['Offer Tier']);
     if (hasTiers) {
@@ -707,11 +997,13 @@ app.get('/api/offers/:offerId', async (req, res) => {
       return res.json({
         offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
         hasTiers: true, tiers, allItems: rows,
+        ...meta,
       });
     }
     res.json({
       offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
       hasTiers: false, items: rows,
+      ...meta,
     });
   }
 });
@@ -732,14 +1024,14 @@ app.post('/api/save-order', async (req, res) => {
   const client = await pool.connect();
   try {
     const { storeNumber='', storeName='', banner='', userName='',
-            position='', purchaseOrder='', items=[], totalValue=0 } = req.body;
+            position='', purchaseOrder='', email='', items=[], totalValue=0 } = req.body;
 
     await client.query('BEGIN');
 
     const { rows: [{ id: orderId }] } = await client.query(
-      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,total_value)
-       VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
-      [storeNumber, storeName, banner, userName, position, purchaseOrder, parseFloat(totalValue) || 0]
+      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,total_value)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
+      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, parseFloat(totalValue) || 0]
     );
 
     for (const item of items) {

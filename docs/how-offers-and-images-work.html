@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>How offers.csv connects to the app</title>
+  <style>
+    :root {
+      --text: #1a1a1a;
+      --muted: #555;
+      --border: #ddd;
+      --bg: #fafafa;
+      --accent: #0f3460;
+    }
+    * { box-sizing: border-box; }
+    body {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1.65;
+      color: var(--text);
+      max-width: 42rem;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 4rem;
+      background: #fff;
+    }
+    h1 {
+      font-size: 1.85rem;
+      font-weight: 700;
+      line-height: 1.25;
+      margin: 0 0 0.5rem;
+      color: var(--accent);
+    }
+    .lede {
+      font-size: 1.05rem;
+      color: var(--muted);
+      margin: 0 0 2rem;
+      padding-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+    h2 {
+      font-size: 1.25rem;
+      margin: 2.25rem 0 0.75rem;
+      font-weight: 700;
+    }
+    h3 {
+      font-size: 1.05rem;
+      margin: 1.5rem 0 0.5rem;
+      font-weight: 700;
+    }
+    p { margin: 0 0 1rem; }
+    ul, ol { margin: 0 0 1rem; padding-left: 1.35rem; }
+    li { margin-bottom: 0.4rem; }
+    strong { font-weight: 700; }
+    code, .path {
+      font-family: ui-monospace, Menlo, monospace;
+      font-size: 0.9em;
+      background: var(--bg);
+      padding: 0.12em 0.35em;
+      border-radius: 4px;
+      border: 1px solid #eee;
+    }
+    .path { display: inline-block; margin: 0.15rem 0; }
+    .callout {
+      background: var(--bg);
+      border-left: 4px solid var(--accent);
+      padding: 1rem 1.25rem;
+      margin: 1.25rem 0;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+      margin: 1rem 0;
+    }
+    th, td {
+      border: 1px solid var(--border);
+      padding: 0.5rem 0.65rem;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--bg); font-weight: 700; }
+    footer {
+      margin-top: 3rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+  <h1>How your offers file connects to pictures and the screen</h1>
+  <p class="lede">Plain-English guide. The spreadsheet feeds <strong>words and numbers</strong> into the server. You can either drive <strong>card and modal images from the CSV</strong> (unified format) or rely on <strong>hard-coded maps</strong> in the front-end for legacy files.</p>
+
+  <h2>Two different worlds</h2>
+  <p><strong>The CSV file</strong> (<span class="path">backend/offers.csv</span>) is your commercial data: which offer it is, brand, pallet size, SKUs, prices, quantities, and so on.</p>
+  <p><strong>Legacy format</strong> (no image columns): the <strong>pictures</strong> under <span class="path">frontend/public/products/</span> are chosen by <strong>offer id</strong> in <span class="path">frontend/src/config/offersDisplay.ts</span> — “if the offer code is <em>this</em>, show <em>that</em> image.”</p>
+  <p><strong>Unified format</strong> (see <span class="path">backend/offers.unified.template.csv</span> and <span class="path">backend/OFFERS_CSV.md</span>): add columns <strong>Logo</strong>, <strong>Product Image</strong>, and <strong>Hero</strong> with paths like <code>images/myhero.png</code> (files live under <span class="path">frontend/public/</span>). The API exposes <code>logoUrl</code>, <code>productImageUrl</code>, and <code>heroUrl</code>; the app uses those when present, and falls back to the old maps otherwise.</p>
+
+  <h2>What the server sends to the browser</h2>
+  <p>After the CSV is loaded into the database, the API sends each offer as a bundle of fields. The ones that matter for pictures and placement include:</p>
+  <table>
+    <thead>
+      <tr><th>Field in the app</th><th>Where it usually comes from in the legacy CSV</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><strong>Offer id</strong></td><td>The <strong>OFFER</strong> column (e.g. <code>Energizer 7</code>, <code>Eveready 1</code>)</td></tr>
+      <tr><td><strong>Brand</strong></td><td>The <strong>Brand</strong> column (used for small brand logos)</td></tr>
+      <tr><td><strong>Offer group</strong></td><td><strong>Offer Group</strong> (longer title / range name)</td></tr>
+      <tr><td>Costs, lines, tiers</td><td>Rest of the columns (descriptions, qty, charge-back, etc.)</td></tr>
+    </tbody>
+  </table>
+  <p>If <strong>OFFER</strong> is blank or the header row is wrong, the app may treat the file as empty and show an error. That is a <strong>data</strong> problem, not an image problem.</p>
+
+  <h2>Where the card picture is chosen</h2>
+  <p>There is a single lookup table in code: <span class="path">frontend/src/config/offersDisplay.ts</span>.</p>
+  <p>It maps a <strong>lower-case copy</strong> of the offer id to a file path, for example:</p>
+  <ul>
+    <li><code>energizer 7</code> → big photo on the pre-pack card</li>
+    <li><code>energizer 1</code> → pallet card image</li>
+    <li><code>armorall 4</code> → car-care style image</li>
+  </ul>
+  <p>If your new offer id is not in that list, the card can still appear, but <strong>without</strong> that hero image—until someone adds a new line to the map and drops the image file into <span class="path">public/products/</span>.</p>
+
+  <h2>Where the small brand logo comes from</h2>
+  <p>Still in <span class="path">offersDisplay.ts</span>: the <strong>Brand</strong> text is scanned for words like “Energizer”, “Eveready”, or “Armor”. If it finds a match, it picks a fixed logo file. So the brand name does not have to be exact, but it needs to <strong>contain</strong> one of those words for the logo to show.</p>
+
+  <h2>Why the whole page can look “broken” when you only changed the spreadsheet</h2>
+  <p>Apart from images, another part of the code decides <strong>which section</strong> of the offers page an offer belongs to: pre-pack strip, lighting, car care, fragrances, or the pallet blocks at the bottom.</p>
+  <p>That logic is written for <strong>specific offer ids and patterns</strong> (for example “Energizer 7”, “Energizer 1” through “6”, “Eveready 1” through “3”, and so on). If you rename offers to something completely different, the API might still return them, but they may <strong>not appear in any section</strong>, so it looks like nothing loaded—even though the server is fine.</p>
+  <div class="callout">
+    <strong>In short:</strong> the CSV controls <em>what</em> you sell and the numbers. The TypeScript files control <em>which picture</em> and <em>which part of the page</em> each offer id gets. Changing ids without updating those files is the usual reason things feel broken.
+  </div>
+
+  <h2>Detail screens and pop-ups</h2>
+  <p>The full-page offer view and the modal use <strong>more hard-coded checks</strong> on the same offer ids and group names (<span class="path">OfferDetail.tsx</span>, <span class="path">OfferDetailModal.tsx</span>). So even if the list shows a card, tapping through might show the wrong image or no extra image until those files are aligned with your new naming.</p>
+
+  <h2>What to do when you introduce new offers</h2>
+  <ol>
+    <li>Keep the <strong>header row</strong> of <span class="path">offers.csv</span> identical to the working template unless you deliberately change the import code.</li>
+    <li>Always fill <strong>OFFER</strong> with a stable code you are happy to use everywhere.</li>
+    <li>After editing the CSV, <strong>restart the API</strong> or call the reload endpoint so the database refreshes.</li>
+    <li>If you use <strong>new</strong> offer codes: add them to the image map in <span class="path">offersDisplay.ts</span>, add image files under <span class="path">public/products/</span>, and update section rules (and detail/modal code) if the offer should appear in a specific strip or pallet group.</li>
+  </ol>
+
+  <h2>Related files (for your developer or future you)</h2>
+  <ul>
+    <li><span class="path">backend/offers.csv</span> — data you edit</li>
+    <li><span class="path">backend/OFFERS_CSV.md</span> — how to reload and column notes</li>
+    <li><span class="path">frontend/src/config/offersDisplay.ts</span> — images + pallet / strip rules</li>
+    <li><span class="path">frontend/src/components/OffersListing.tsx</span> — where offers are split into page sections</li>
+    <li><span class="path">frontend/src/components/OfferDetail.tsx</span> and <span class="path">OfferDetailModal.tsx</span> — detail images</li>
+  </ul>
+
+  <footer>
+    Open this file in your browser: double-click <strong>how-offers-and-images-work.html</strong> or drag it into Chrome / Safari / Edge. Path: <span class="path">docs/how-offers-and-images-work.html</span>
+  </footer>
+
+</body>
+</html>

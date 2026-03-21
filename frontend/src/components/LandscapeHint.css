@@ -1,0 +1,71 @@
+.landscape-hint {
+  position: fixed;
+  left: 0;
+  right: 0;
+  /* bottom: set via inline style (default clears 52px footer) */
+  z-index: 120;
+  display: flex;
+  justify-content: center;
+  padding: 8px 12px 0;
+  box-sizing: border-box;
+  pointer-events: none;
+}
+
+.landscape-hint-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 0 auto;
+  max-width: min(100%, 520px);
+  padding: 10px 16px;
+  border-radius: 14px;
+  background: rgba(17, 26, 58, 0.92);
+  color: #f1f5f9;
+  box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  pointer-events: auto;
+}
+
+.landscape-hint-icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #93c5fd;
+}
+
+.landscape-hint-icon {
+  display: block;
+  transform-origin: center center;
+  animation: landscape-hint-tilt 2.4s ease-in-out infinite;
+}
+
+@keyframes landscape-hint-tilt {
+  0%,
+  100% {
+    transform: rotate(0deg);
+  }
+  35%,
+  45% {
+    transform: rotate(-90deg);
+  }
+  55%,
+  65% {
+    transform: rotate(-90deg);
+  }
+}
+
+.landscape-hint-text {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
+  text-align: left;
+}
+
+@media (min-width: 768px) {
+  .landscape-hint-text {
+    font-size: 1.05rem;
+  }
+}

@@ -224,6 +224,19 @@
     margin-bottom: 12px;
   }
 
+  /* Full name (only .form-group in UserForm): cap width on tablet — any orientation */
+  .user-form-container .form-group {
+    display: flex;
+    justify-content: center;
+  }
+
+  .user-form-container .form-group .form-input,
+  .user-form-container .form-group .form-select {
+    width: 100% !important;
+    max-width: 520px !important;
+    box-sizing: border-box !important;
+  }
+
   .form-input,
   .form-select {
     padding: 10px 14px;
@@ -441,16 +454,28 @@
   }
 
   .store-confirm-card {
-    max-width: 400px;
-    padding: 1.4rem;
+    max-width: min(94vw, 640px);
+    padding: 1.75rem 1.5rem;
     border-radius: 14px;
+    min-height: min(76vh, 640px);
   }
 
-  .store-confirm-title   { font-size: 1.3rem; }
-  .store-confirm-name    { font-size: 1.05rem; }
+  .store-confirm-title {
+    font-size: clamp(1.85rem, 2.8vw, 2.5rem);
+  }
+
+  .store-confirm-name {
+    font-size: clamp(1.55rem, 2.4vw, 2.05rem);
+  }
+
   .store-confirm-meta,
-  .store-confirm-banner  { font-size: 0.88rem; }
-  .store-confirm-intro   { font-size: 0.92rem; }
+  .store-confirm-banner {
+    font-size: clamp(1rem, 1.8vw, 1.25rem);
+  }
+
+  .store-confirm-intro {
+    font-size: clamp(1.12rem, 2vw, 1.4rem);
+  }
 
   .store-confirm-back,
   .store-confirm-continue {
@@ -648,15 +673,16 @@
     padding-bottom: calc(0.5rem + 60px + env(safe-area-inset-bottom));
   }
 
-  /* Fixed header bar — single slim row */
+  /* Fixed header bar — single slim row (left inset clears DBLE floating button) */
   .offers-header {
     top:   calc(0.4rem + env(safe-area-inset-top));
     left:  calc(0.4rem + env(safe-area-inset-left));
     right: calc(0.4rem + env(safe-area-inset-right));
-    padding: 0.3rem 0.4rem;
+    padding: 0.4rem 0.45rem;
+    padding-left: var(--offers-dble-inset, calc(env(safe-area-inset-left, 0px) + 82px));
     border-radius: 9px;
-    gap: 0.35rem;
-    min-height: 44px;
+    gap: 0.4rem;
+    min-height: 52px;
   }
 
   /* Back / cart buttons — compact circles */
@@ -681,24 +707,30 @@
     max-width: none !important;
   }
 
-  /* Store name area */
+  /* Store name area — share row with pills (no 140px cap) */
   .store-info {
-    max-width: 140px;
+    flex: 1 1 0%;
+    min-width: 0;
+    max-width: none;
   }
 
-  .store-info h2 {
-    font-size: 0.78rem;
+  /* Don’t override font-size here — same as OffersListing.css base */
+  .offers-header .store-info h2 {
+    color: #ffffff !important;
   }
 
-  .store-info p {
-    font-size: 0.65rem;
+  .offers-header .store-info p {
+    color: #f4f4f5 !important;
   }
 
-  /* Scrollable pill row */
+  /* Scrollable pill row — right side */
   .offers-navigation {
     gap: 0.24rem;
     flex-wrap: nowrap;
     overflow-x: auto;
+    flex: 0 0 auto;
+    max-width: min(52%, 22rem);
+    justify-content: flex-end;
   }
 
   .offers-navigation .nav-button {
@@ -748,12 +780,13 @@
     padding-bottom: calc(0.7rem + 66px + env(safe-area-inset-bottom));
   }
 
-  /* Fixed header */
+  /* Fixed header — same left inset as offers (clears DBLE floating button) */
   .order-header {
     top:   calc(0.5rem + env(safe-area-inset-top));
     left:  calc(0.5rem + env(safe-area-inset-left));
     right: calc(0.5rem + env(safe-area-inset-right));
     padding: 0.45rem 0.65rem;
+    padding-left: var(--offers-dble-inset, calc(env(safe-area-inset-left, 0px) + 82px));
     margin-bottom: 0;
   }
 
@@ -777,7 +810,25 @@
     padding: 0.95rem 1.1rem;
   }
 
-  .order-content h1 {
+  .order-document-header {
+    gap: 0.85rem;
+    padding-bottom: 0.85rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .order-party-line {
+    font-size: 0.88rem;
+  }
+
+  .order-datetime-value {
+    font-size: 0.82rem;
+  }
+
+  .order-document-datetime {
+    max-width: 48%;
+  }
+
+  .order-content h1.order-document-title {
     font-size: 1.2rem;
     margin: 0 0 0.8rem 0;
   }
@@ -1144,34 +1195,6 @@
     margin-left: auto !important;
     margin-right: auto !important;
     overflow: auto !important;
-  }
-
-  .user-form-container .form-group {
-    display: flex;
-    justify-content: center;
-  }
-
-  /* !important beats UserForm.css @media (max-width: 1079px) { .form-input { max-width: 100% } } which loads later */
-  .user-form-container .form-group .form-input,
-  .user-form-container .form-group .form-select {
-    width: 100% !important;
-    max-width: 520px !important;
-    box-sizing: border-box !important;
-  }
-}
-
-/* Same name-field cap when orientation: portrait is unreliable (split view, some Safari builds) */
-@media (min-width: 768px) and (max-width: 1366px) and (max-aspect-ratio: 1/1) {
-  .user-form-container .form-group {
-    display: flex;
-    justify-content: center;
-  }
-
-  .user-form-container .form-group .form-input,
-  .user-form-container .form-group .form-select {
-    width: 100% !important;
-    max-width: 520px !important;
-    box-sizing: border-box !important;
   }
 }
 

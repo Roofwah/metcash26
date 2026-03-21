@@ -1,0 +1,3 @@
+OFFER,Offer Group,Offer Tier,Drop Months,Order Deadline,Min Order Value (ex GST),Brand,Range,Energizer Order Code,HTH Code,Code,Description,Reg Charge Back Cost,Expo Charge Back Cost,Save,SRP / Promo RRP,$ GM,% GM,Qty Type,Qty,Reg Total Cost,Expo Total Cost
+REPLACE_OFFER_ID,REPLACE_GROUP_NAME,Full Pallet,MARCH; MAY; JULY,End of July 2026,250,BrandName,RangeName,E301000000,0000000,-,REPLACE SKU DESCRIPTION LINE,14.05,7.03,50%,20,7.03,39%,Pallet QTY,96,1348.8,674.88
+REPLACE_OFFER_ID,REPLACE_GROUP_NAME,Full Pallet,MARCH; MAY; JULY,End of July 2026,250,BrandName,RangeName,E301000001,0000001,-,REPLACE SECOND SKU LINE,13.40,6.70,50%,20,6.70,37%,Pallet QTY,96,1286.4,643.20

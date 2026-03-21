@@ -9,6 +9,7 @@ import OrderSummary from './components/OrderSummary';
 import EmptyCartThankYou from './components/EmptyCartThankYou';
 import TopNav from './components/TopNav';
 import Footer from './components/Footer';
+import LandscapeHint from './components/LandscapeHint';
 import PresentationPlayer from './features/presentations/components/PresentationPlayer';
 import { metcashExpoSampleDeck } from './features/presentations/data/metcashExpoSampleDeck';
 import axios from 'axios';
@@ -38,7 +39,6 @@ type AppStep =
   | 'order-summary'
   | 'thankyou'
   | 'empty-cart-thankyou';
-
 
 function App() {
   const [userData, setUserData] = useState<UserData | null>(null);
@@ -168,7 +168,7 @@ function App() {
     });
   };
 
-  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string }) => {
+  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string; email: string }) => {
     if (!userData || !storeData) return;
     const orderData = {
       userName: userData.fullName,
@@ -177,6 +177,7 @@ function App() {
       banner: storeData.banner,
       position: data.position,
       purchaseOrder: data.purchaseOrder || '',
+      email: data.email,
       items: cartItems,
       totalValue: cartItems.reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0).toFixed(2),
     };
@@ -319,6 +320,8 @@ function App() {
       )}
 
       <Footer onBack={getBackHandler()} />
+
+      {currentStep !== 'offers-listing' && <LandscapeHint />}
 
       {/* ── Presentation Player overlay ─────────────────────────── */}
       {showPresentation && (

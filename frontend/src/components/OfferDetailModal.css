@@ -341,3 +341,35 @@
   object-fit: contain;
 }
 
+/* CSV-driven Logo / Hero / Product (offers.csv) */
+.modal-csv-media {
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.modal-csv-logo {
+  max-height: 56px;
+  width: auto;
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+.modal-csv-hero,
+.modal-csv-product {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 8px;
+}
+
+.modal-csv-message,
+.modal-csv-other {
+  margin: 0;
+  color: #333;
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+

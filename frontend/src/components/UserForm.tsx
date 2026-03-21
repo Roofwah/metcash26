@@ -103,6 +103,10 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
       energyStorage: '',
       lighting: '',
       specialOrderHardware: '',
+      address: store.address || '',
+      suburb: store.suburb || '',
+      state: store.state || '',
+      pcode: store.pcode || '',
     };
     onSubmit(
       { fullName: formatName(fullName.trim()), storeNo: store.name, position: '' },

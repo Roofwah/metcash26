@@ -34,4 +34,9 @@ export interface StoreData {
   energyStorage: string;
   lighting: string;
   specialOrderHardware: string;
+  /** When known (mcash picker or store API + mcash match) */
+  address?: string;
+  suburb?: string;
+  state?: string;
+  pcode?: string;
 }

@@ -1,8 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import axios from 'axios';
 import './OffersListing.css';
 import OfferDetailModal from './OfferDetailModal';
 import { apiUrl } from '../api';
+import {
+  brandLogoPathForBrand,
+  isArmorAllPalletOffer,
+  isBatteryRetailStripOffer,
+  isEnergizerPalletOffer,
+  isEvereadyPalletOffer,
+  isNonPalletDisplayOffer,
+  NON_PALLET_DISPLAY_ORDER,
+  offerCardImageForOfferId,
+  PALLET_GROUP_BRANDS,
+} from '../config/offersDisplay';
 
 interface DescriptionItem {
   description: string;
@@ -20,6 +31,14 @@ interface Offer {
   offerTier: string;
   descriptions: DescriptionItem[];
   expoChargeBackCost: string;
+  /** From offers.csv — paths like `/images/...` when set */
+  logoUrl?: string;
+  productImageUrl?: string;
+  heroUrl?: string;
+  category?: string;
+  message?: string;
+  other?: string;
+  offerType?: string;
 }
 
 const normalizeOffers = (data: any): Offer[] => {
@@ -37,6 +56,13 @@ const normalizeOffers = (data: any): Offer[] => {
       offerTier: String(item.offerTier || ''),
       descriptions: Array.isArray(item.descriptions) ? item.descriptions : [],
       expoChargeBackCost: String(item.expoChargeBackCost || ''),
+      logoUrl: typeof item.logoUrl === 'string' ? item.logoUrl : '',
+      productImageUrl: typeof item.productImageUrl === 'string' ? item.productImageUrl : '',
+      heroUrl: typeof item.heroUrl === 'string' ? item.heroUrl : '',
+      category: typeof item.category === 'string' ? item.category : '',
+      message: typeof item.message === 'string' ? item.message : '',
+      other: typeof item.other === 'string' ? item.other : '',
+      offerType: typeof item.offerType === 'string' ? item.offerType : '',
     }))
     .filter((offer: Offer) => offer.offerId.length > 0);
 };
@@ -54,6 +80,135 @@ interface CartItem {
   description: string;
   cost: string;
   dropMonth?: string;
+}
+
+type OfferStripItem =
+  | { kind: 'category'; key: string; anchorId?: string; label: string }
+  | { kind: 'offer'; key: string; offer: Offer; logoBrandOverride?: string };
+
+function buildOfferStrip(
+  batteryDisplayOffers: Offer[],
+  lightingOffers: Offer[],
+  carCareOffers: Offer[],
+  fragrancesOffers: Offer[],
+  brandGroups: BrandGroup[],
+): OfferStripItem[] {
+  const out: OfferStripItem[] = [];
+
+  if (batteryDisplayOffers.length > 0) {
+    out.push({ kind: 'category', key: 'cat-battery-display', anchorId: 'section-battery-display', label: 'Pre Pack' });
+    for (const offer of batteryDisplayOffers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
+    }
+  }
+  if (lightingOffers.length > 0) {
+    out.push({ kind: 'category', key: 'cat-lighting', anchorId: 'section-lighting', label: 'Lighting' });
+    for (const offer of lightingOffers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
+    }
+  }
+  if (carCareOffers.length > 0) {
+    out.push({ kind: 'category', key: 'cat-car-care', anchorId: 'section-car-care', label: 'Car care' });
+    for (const offer of carCareOffers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
+    }
+  }
+  if (fragrancesOffers.length > 0) {
+    out.push({ kind: 'category', key: 'cat-fragrances', anchorId: 'section-fragrances', label: 'Fragrances' });
+    for (const offer of fragrancesOffers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
+    }
+  }
+  brandGroups.forEach((g, i) => {
+    const anchorId = i === 0 ? 'section-energizer' : undefined;
+    const slug = g.brand.toLowerCase().replace(/\s+/g, '-');
+    out.push({
+      kind: 'category',
+      key: `cat-pallet-${slug}`,
+      anchorId,
+      label: `Pallet · ${g.brand}`,
+    });
+    for (const offer of g.offers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer, logoBrandOverride: g.brand });
+    }
+  });
+
+  return out;
+}
+
+function sortNonPalletOffers(offers: Offer[]): Offer[] {
+  const order = [...NON_PALLET_DISPLAY_ORDER];
+  return [...offers].sort((a, b) => {
+    const idA = String(a.offerId || '');
+    const idB = String(b.offerId || '');
+    const ia = order.indexOf(idA as (typeof NON_PALLET_DISPLAY_ORDER)[number]);
+    const ib = order.indexOf(idB as (typeof NON_PALLET_DISPLAY_ORDER)[number]);
+    return (ia === -1 ? 999 : ia) - (ib === -1 ? 999 : ib);
+  });
+}
+
+function sortPalletOffersByIdNumber(offers: Offer[]): Offer[] {
+  return [...offers].sort((a, b) => {
+    const numA = parseInt(String(a.offerId || '').match(/\d+/)?.[0] || '0', 10);
+    const numB = parseInt(String(b.offerId || '').match(/\d+/)?.[0] || '0', 10);
+    return numA - numB;
+  });
+}
+
+const PALLET_MATCHER: Record<(typeof PALLET_GROUP_BRANDS)[number], (id: string) => boolean> = {
+  Energizer: isEnergizerPalletOffer,
+  Eveready: isEvereadyPalletOffer,
+  'Armor All': isArmorAllPalletOffer,
+};
+
+function buildPalletBrandGroups(allOffers: Offer[]): BrandGroup[] {
+  const groups: BrandGroup[] = [];
+  for (const brand of PALLET_GROUP_BRANDS) {
+    const offers = sortPalletOffersByIdNumber(
+      allOffers.filter((o) => PALLET_MATCHER[brand](o.offerId)),
+    );
+    if (offers.length > 0) {
+      groups.push({ brand, offers, isPallet: true });
+    }
+  }
+  return groups;
+}
+
+function isPalletRowOffer(o: Offer): boolean {
+  return (
+    isEnergizerPalletOffer(o.offerId) ||
+    isEvereadyPalletOffer(o.offerId) ||
+    isArmorAllPalletOffer(o.offerId)
+  );
+}
+
+function partitionOffersFromApi(allOffers: Offer[]): {
+  brandGroups: BrandGroup[];
+  batteryDisplayOffers: Offer[];
+  lightingOffers: Offer[];
+  carCareOffers: Offer[];
+  fragrancesOffers: Offer[];
+} {
+  const rows = Array.isArray(allOffers) ? allOffers : [];
+  const stripCandidates = rows.filter(
+    (o) =>
+      !isPalletRowOffer(o) &&
+      (isNonPalletDisplayOffer(o.offerId) || isBatteryRetailStripOffer(o)),
+  );
+  const sortedStrip = sortNonPalletOffers(stripCandidates);
+
+  return {
+    brandGroups: buildPalletBrandGroups(rows),
+    batteryDisplayOffers: sortedStrip.filter(
+      (o) =>
+        (o.offerId === 'Energizer 7' || isBatteryRetailStripOffer(o)) &&
+        o.offerId !== 'Energizer 8' &&
+        o.offerId !== 'Energizer 9',
+    ),
+    lightingOffers: sortedStrip.filter((o) => o.offerId === 'Energizer 8' || o.offerId === 'Energizer 9'),
+    carCareOffers: sortedStrip.filter((o) => o.offerId === 'ArmorAll 4'),
+    fragrancesOffers: sortedStrip.filter((o) => o.offerId === 'ArmorAll 5'),
+  };
 }
 
 interface OffersListingProps {
@@ -79,44 +234,12 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
   const [error, setError] = useState('');
   const [quantities, setQuantities] = useState<{ [offerId: string]: number }>({});
   const [selectedOfferForModal, setSelectedOfferForModal] = useState<string | null>(null);
+  const [focusedOfferKey, setFocusedOfferKey] = useState<string | null>(null);
+  const carouselRef = useRef<HTMLDivElement>(null);
 
-  const getBrandLogo = (brand: string): string => {
-    const brandLower = brand.toLowerCase();
-    if (brandLower.includes('eveready')) {
-      return '/products/eready.png';
-    } else if (brandLower.includes('energizer')) {
-      return '/products/energizer.png';
-    } else if (brandLower.includes('armor')) {
-      return '/products/aall.png';
-    }
-    return '';
-  };
+  const getBrandLogo = (brand: string): string => brandLogoPathForBrand(brand);
 
-  const getOfferCardImage = (offerId: string): string | null => {
-    const offerKey = offerId.toLowerCase();
-    // Map offer IDs to their card images
-    if (offerKey === 'energizer 7') {
-      return '/products/maxmod.png';
-    } else if (offerKey === 'energizer 8') {
-      return '/products/hl.png';
-    } else if (offerKey === 'energizer 9') {
-      return '/products/torch.png';
-    } else if (offerKey === 'armorall 1' || offerKey === 'armorall 2' || offerKey === 'armorall 3') {
-      return '/products/wash.png';
-    } else if (offerKey === 'armorall 4') {
-      return '/products/slr.png';
-    } else if (offerKey === 'armorall 5') {
-      return '/products/fragrances.png';
-    } else if (offerKey === 'energizer 1' || offerKey === 'energizer 2' || offerKey === 'energizer 3') {
-      return '/products/3024.png';
-    } else if (offerKey === 'energizer 4' || offerKey === 'energizer 5' || offerKey === 'energizer 6') {
-      return '/products/1614.png';
-    } else if (offerKey === 'eveready 1' || offerKey === 'eveready 2' || offerKey === 'eveready 3') {
-      return '/products/hd50.png';
-    }
-    // Add more mappings here as needed
-    return null;
-  };
+  const getOfferCardImage = (offerId: string): string | null => offerCardImageForOfferId(offerId);
 
   useEffect(() => {
     fetchOffers();
@@ -131,80 +254,17 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
         throw new Error('Offers payload empty or invalid');
       }
 
-      // Non-pallet offers (display first): Energizer 7, 8, 9, ArmorAll 4, 5
-      const nonPalletOffers = allOffers.filter(o => 
-        o.offerId === 'Energizer 7' || 
-        o.offerId === 'Energizer 8' || 
-        o.offerId === 'Energizer 9' ||
-        o.offerId === 'ArmorAll 4' ||
-        o.offerId === 'ArmorAll 5'
-      );
-
-      // Pallet offers: Energizer 1-6, Eveready 1-3, ArmorAll 1-3
-      const energizerPallet = allOffers.filter(o => /^(Energizer [1-6])$/.test(o.offerId));
-      const evereadyPallet = allOffers.filter(o => /^Eveready [123]$/.test(o.offerId));
-      const armorAllPallet = allOffers.filter(o => /^ArmorAll [123]$/.test(o.offerId));
-
-      // Sort non-pallet offers: Energizer 7, 8, 9, ArmorAll 4, 5
-      const sortedNonPallet = nonPalletOffers.sort((a, b) => {
-        const order = ['Energizer 7', 'Energizer 8', 'Energizer 9', 'ArmorAll 4', 'ArmorAll 5'];
-        return order.indexOf(a.offerId) - order.indexOf(b.offerId);
-      });
-
-      // Group non-pallet offers for display
-      const energizer7 = sortedNonPallet.filter(o => o.offerId === 'Energizer 7');
-      const energizer8 = sortedNonPallet.filter(o => o.offerId === 'Energizer 8');
-      const energizer9 = sortedNonPallet.filter(o => o.offerId === 'Energizer 9');
-      const armorAll4 = sortedNonPallet.filter(o => o.offerId === 'ArmorAll 4');
-      const armorAll5 = sortedNonPallet.filter(o => o.offerId === 'ArmorAll 5');
-
-      // Sort pallet offers: Energizer 1-5, Eveready 1-3, ArmorAll 1-3
-      const sortedEnergizerPallet = energizerPallet.sort((a, b) => {
-        const numA = parseInt(a.offerId.match(/\d+/)?.[0] || '0');
-        const numB = parseInt(b.offerId.match(/\d+/)?.[0] || '0');
-        return numA - numB;
-      });
-      const sortedEvereadyPallet = evereadyPallet.sort((a, b) => {
-        const numA = parseInt(a.offerId.match(/\d+/)?.[0] || '0');
-        const numB = parseInt(b.offerId.match(/\d+/)?.[0] || '0');
-        return numA - numB;
-      });
-      const sortedArmorAllPallet = armorAllPallet.sort((a, b) => {
-        const numA = parseInt(a.offerId.match(/\d+/)?.[0] || '0');
-        const numB = parseInt(b.offerId.match(/\d+/)?.[0] || '0');
-        return numA - numB;
-      });
-
-      const groups: BrandGroup[] = [];
-      
-      // Add pallet groups in order: Energizer, Eveready, ArmorAll
-      if (sortedEnergizerPallet.length > 0) {
-        groups.push({ 
-          brand: 'Energizer', 
-          offers: sortedEnergizerPallet, 
-          isPallet: true 
-        });
-      }
-      if (sortedEvereadyPallet.length > 0) {
-        groups.push({ 
-          brand: 'Eveready', 
-          offers: sortedEvereadyPallet, 
-          isPallet: true 
-        });
-      }
-      if (sortedArmorAllPallet.length > 0) {
-        groups.push({ 
-          brand: 'Armor All', 
-          offers: sortedArmorAllPallet, 
-          isPallet: true 
-        });
-      }
+      const {
+        brandGroups: groups,
+        batteryDisplayOffers: energizer7,
+        lightingOffers: lighting,
+        carCareOffers: armorAll4,
+        fragrancesOffers: armorAll5,
+      } = partitionOffersFromApi(allOffers);
 
       setBrandGroups(groups);
-      
-      // Set non-pallet offers for display
       setBatteryDisplayOffers(energizer7);
-      setLightingOffers([...energizer8, ...energizer9]);
+      setLightingOffers(lighting);
       setCarCareOffers(armorAll4);
       setFragrancesOffers(armorAll5);
       setError('');
@@ -218,35 +278,12 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
         const allOffers: Offer[] = normalizeOffers(response.data);
         if (allOffers.length === 0) throw new Error('Fallback offers payload empty');
 
-        const nonPalletOffers = allOffers.filter(o =>
-          o.offerId === 'Energizer 7' ||
-          o.offerId === 'Energizer 8' ||
-          o.offerId === 'Energizer 9' ||
-          o.offerId === 'ArmorAll 4' ||
-          o.offerId === 'ArmorAll 5'
-        );
-        const energizerPallet = allOffers.filter(o => /^(Energizer [1-6])$/.test(o.offerId));
-        const evereadyPallet = allOffers.filter(o => /^Eveready [123]$/.test(o.offerId));
-        const armorAllPallet = allOffers.filter(o => /^ArmorAll [123]$/.test(o.offerId));
-
-        const sortedNonPallet = nonPalletOffers.sort((a, b) => {
-          const order = ['Energizer 7', 'Energizer 8', 'Energizer 9', 'ArmorAll 4', 'ArmorAll 5'];
-          return order.indexOf(a.offerId) - order.indexOf(b.offerId);
-        });
-        const sortedEnergizerPallet = energizerPallet.sort((a, b) => parseInt(a.offerId.match(/\d+/)?.[0] || '0') - parseInt(b.offerId.match(/\d+/)?.[0] || '0'));
-        const sortedEvereadyPallet = evereadyPallet.sort((a, b) => parseInt(a.offerId.match(/\d+/)?.[0] || '0') - parseInt(b.offerId.match(/\d+/)?.[0] || '0'));
-        const sortedArmorAllPallet = armorAllPallet.sort((a, b) => parseInt(a.offerId.match(/\d+/)?.[0] || '0') - parseInt(b.offerId.match(/\d+/)?.[0] || '0'));
-
-        const groups: BrandGroup[] = [];
-        if (sortedEnergizerPallet.length > 0) groups.push({ brand: 'Energizer', offers: sortedEnergizerPallet, isPallet: true });
-        if (sortedEvereadyPallet.length > 0) groups.push({ brand: 'Eveready', offers: sortedEvereadyPallet, isPallet: true });
-        if (sortedArmorAllPallet.length > 0) groups.push({ brand: 'Armor All', offers: sortedArmorAllPallet, isPallet: true });
-
-        setBrandGroups(groups);
-        setBatteryDisplayOffers(sortedNonPallet.filter(o => o.offerId === 'Energizer 7'));
-        setLightingOffers(sortedNonPallet.filter(o => o.offerId === 'Energizer 8' || o.offerId === 'Energizer 9'));
-        setCarCareOffers(sortedNonPallet.filter(o => o.offerId === 'ArmorAll 4'));
-        setFragrancesOffers(sortedNonPallet.filter(o => o.offerId === 'ArmorAll 5'));
+        const p = partitionOffersFromApi(allOffers);
+        setBrandGroups(p.brandGroups);
+        setBatteryDisplayOffers(p.batteryDisplayOffers);
+        setLightingOffers(p.lightingOffers);
+        setCarCareOffers(p.carCareOffers);
+        setFragrancesOffers(p.fragrancesOffers);
         setError('');
       } catch (retryErr) {
         console.error('Error fetching offers:', err, retryErr);
@@ -316,27 +353,173 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
   };
 
   const scrollToSection = (sectionName: string) => {
-    let elementId = '';
+    const elementId =
+      sectionName === 'Pallet Offers'
+        ? 'section-energizer'
+        : `section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`;
 
-    if (sectionName === 'Pallet Offers') {
-      elementId = 'section-energizer';
-    } else {
-      elementId = `section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`;
-    }
+    document.getElementById(elementId)?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'start',
+    });
+  };
 
-    const element = document.getElementById(elementId);
-    if (!element) return;
+  const renderOfferCard = (offer: Offer, logoBrandOverride?: string) => {
+    const brandForLogo = logoBrandOverride ?? offer.brand;
+    const brandLogo = getBrandLogo(brandForLogo);
+    const cardLogoSrc = offer.logoUrl?.trim() || brandLogo;
+    const cardImage =
+      (offer.productImageUrl && offer.productImageUrl.trim()) ||
+      getOfferCardImage(offer.offerId);
+    const orderedQuantity = getOrderedQuantity(offer.offerId);
+    const isArmorBrand = typeof offer.brand === 'string' && offer.brand.toLowerCase().includes('armor');
 
-    element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return (
+      <div className="offer-card">
+        <div className="offer-card-top">
+          {cardLogoSrc && (
+            <img
+              src={cardLogoSrc}
+              alt={`${offer.brand} Logo`}
+              className={`offer-brand-logo ${isArmorBrand ? 'armor-logo' : ''}`}
+            />
+          )}
+          <div className="offer-group">{offer.offerGroup}</div>
+        </div>
+        {offer.offerId === 'Energizer 7' ? (
+          <div className="offer-tier-badge tier-display-component">Display Pre-Pack</div>
+        ) : (
+          offer.offerTier &&
+          offer.offerTier !== 'Range Offer' && (
+            <div
+              className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}
+            >
+              {offer.offerTier}
+            </div>
+          )
+        )}
+        {cardImage && (
+          <div className="offer-product-image-container">
+            <img
+              src={cardImage}
+              alt={`${offer.offerGroup} Product`}
+              className="offer-product-image"
+            />
+          </div>
+        )}
+        {offer.descriptions && offer.descriptions.length > 0 && (
+          <table className="offer-descriptions-table">
+            <tbody>
+              {offer.descriptions.map((item, idx) => (
+                <tr key={idx}>
+                  <td>{typeof item === 'string' ? item : item.description}</td>
+                  <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+        {offer.save && <div className="offer-save">Save: {offer.save}</div>}
+        <div className="offer-highlights">
+          {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
+            <div className="offer-cost">
+              <span className="highlight-label">Expo Charge Back:</span>
+              <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
+            </div>
+          )}
+        </div>
+        <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
+          {orderedQuantity > 0 && <span className="ordered-label">Ordered</span>}
+          <button
+            type="button"
+            className="qty-btn qty-minus"
+            onClick={e => {
+              e.stopPropagation();
+              handleQuantityChange(offer.offerId, -1, offer);
+            }}
+          >
+            -
+          </button>
+          <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
+          <button
+            type="button"
+            className="qty-btn qty-plus"
+            onClick={e => {
+              e.stopPropagation();
+              handleQuantityChange(offer.offerId, 1, offer);
+            }}
+          >
+            +
+          </button>
+        </div>
+        <button type="button" className="offer-action-small" onClick={e => handleViewDetails(offer.offerId, e)}>
+          View Offer
+        </button>
+      </div>
+    );
+  };
 
-    // After vertical scroll, align horizontal carousel to the first card (tablet swipe rows)
-    window.setTimeout(() => {
-      const row = element.querySelector<HTMLElement>('.offers-grid');
-      const firstCard = row?.firstElementChild as HTMLElement | undefined;
-      if (row && firstCard) {
-        firstCard.scrollIntoView({ behavior: 'smooth', inline: 'start', block: 'nearest' });
-      }
-    }, 380);
+  const stripItems = useMemo(
+    () =>
+      buildOfferStrip(
+        batteryDisplayOffers,
+        lightingOffers,
+        carCareOffers,
+        fragrancesOffers,
+        brandGroups,
+      ),
+    [batteryDisplayOffers, lightingOffers, carCareOffers, fragrancesOffers, brandGroups],
+  );
+
+  const offerKeys = useMemo(
+    () =>
+      stripItems
+        .filter((i): i is Extract<typeof i, { kind: 'offer' }> => i.kind === 'offer')
+        .map((i) => i.key),
+    [stripItems],
+  );
+
+  useEffect(() => {
+    const el = carouselRef.current;
+    if (!el || offerKeys.length === 0) return;
+
+    const updateFocused = () => {
+      const rect = el.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const offerSlides = el.querySelectorAll<HTMLElement>('.offers-carousel-slide--offer');
+      let nearestKey: string | null = null;
+      let nearestDist = Infinity;
+      offerSlides.forEach((slide) => {
+        const slideRect = slide.getBoundingClientRect();
+        const slideCenterX = slideRect.left + slideRect.width / 2;
+        const dist = Math.abs(centerX - slideCenterX);
+        if (dist < nearestDist) {
+          nearestDist = dist;
+          nearestKey = slide.dataset.offerKey ?? null;
+        }
+      });
+      setFocusedOfferKey(nearestKey);
+    };
+
+    updateFocused();
+    el.addEventListener('scroll', updateFocused, { passive: true });
+    window.addEventListener('resize', updateFocused);
+    return () => {
+      el.removeEventListener('scroll', updateFocused);
+      window.removeEventListener('resize', updateFocused);
+    };
+  }, [stripItems, offerKeys.length]);
+
+  const focusedIdx = focusedOfferKey ? offerKeys.indexOf(focusedOfferKey) : -1;
+  const leftKey = focusedIdx > 0 ? offerKeys[focusedIdx - 1] : null;
+  const rightKey = focusedIdx >= 0 && focusedIdx < offerKeys.length - 1 ? offerKeys[focusedIdx + 1] : null;
+
+  const getOfferSlideClass = (key: string) => {
+    if (key === focusedOfferKey) return 'is-focused';
+    if (key === leftKey) return 'is-adjacent-left';
+    if (key === rightKey) return 'is-adjacent-right';
+    return '';
   };
 
   if (loading) {
@@ -413,389 +596,39 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
           </div>
         )}
 
-        {/* Battery Display Offers (Energizer 7) */}
-        {batteryDisplayOffers.length > 0 && (
-          <div id="section-battery-display" className="individual-offers-section">
-            <h2 className="brand-group-title">Battery Display</h2>
-            <div className="offers-grid">
-              {batteryDisplayOffers.map((offer) => {
-                const brandLogo = getBrandLogo(offer.brand);
-                const quantity = quantities[offer.offerId] || 0;
-                const orderedQuantity = getOrderedQuantity(offer.offerId);
-                return (
+        {stripItems.length > 0 && (
+          <div className="offers-strip-host">
+            <div
+              ref={carouselRef}
+              className="offers-carousel offers-carousel--single"
+              id="offers-main-strip"
+              role="region"
+              aria-label="All offers in one row — swipe sideways"
+            >
+              {stripItems.map(item =>
+                item.kind === 'category' ? (
                   <div
-                    key={offer.offerId}
-                    className="offer-card"
+                    key={item.key}
+                    id={item.anchorId}
+                    className="offers-carousel-slide offers-carousel-slide--category"
+                    role="separator"
+                    aria-label={item.label}
                   >
-                    <div className="offer-card-top">
-                      {brandLogo && (
-                        <img src={brandLogo} alt={`${offer.brand} Logo`} className={`offer-brand-logo ${offer.brand.toLowerCase().includes('armor') ? 'armor-logo' : ''}`} />
-                      )}
-                      <div className="offer-group">{offer.offerGroup}</div>
-                    </div>
-                    {offer.offerId === 'Energizer 7' ? (
-                      <div className="offer-tier-badge tier-display-component">Display Pre-Pack</div>
-                    ) : (
-                      offer.offerTier && offer.offerTier !== 'Range Offer' && (
-                        <div className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}>{offer.offerTier}</div>
-                      )
-                    )}
-                    {getOfferCardImage(offer.offerId) && (
-                      <div className="offer-product-image-container">
-                        <img src={getOfferCardImage(offer.offerId)!} alt={`${offer.offerGroup} Product`} className="offer-product-image" />
-                      </div>
-                    )}
-                    {offer.descriptions && offer.descriptions.length > 0 && (
-                      <table className="offer-descriptions-table">
-                        <tbody>
-                          {offer.descriptions.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{typeof item === 'string' ? item : item.description}</td>
-                              <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {offer.save && (
-                      <div className="offer-save">Save: {offer.save}</div>
-                    )}
-                    <div className="offer-highlights">
-                      {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
-                        <div className="offer-cost">
-                          <span className="highlight-label">Expo Charge Back:</span>
-                          <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
-                      {orderedQuantity > 0 && (
-                        <span className="ordered-label">Ordered</span>
-                      )}
-                      <button 
-                        className="qty-btn qty-minus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, -1, offer); }}
-                      >-</button>
-                      <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
-                      <button 
-                        className="qty-btn qty-plus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, 1, offer); }}
-                      >+</button>
-                    </div>
-                    <button 
-                      className="offer-action-small"
-                      onClick={(e) => handleViewDetails(offer.offerId, e)}
-                    >View Offer</button>
+                    <span className="offers-carousel-category-label">{item.label}</span>
                   </div>
-                );
-              })}
+                ) : (
+                  <div
+                    key={item.key}
+                    className={`offers-carousel-slide offers-carousel-slide--offer ${getOfferSlideClass(item.key)}`}
+                    data-offer-key={item.key}
+                  >
+                    {renderOfferCard(item.offer, item.logoBrandOverride)}
+                  </div>
+                ),
+              )}
             </div>
           </div>
         )}
-
-        {/* Lighting Offers */}
-        {lightingOffers.length > 0 && (
-          <div id="section-lighting" className="individual-offers-section">
-            <h2 className="brand-group-title">Lighting</h2>
-            <div className="offers-grid">
-              {lightingOffers.map((offer) => {
-                const brandLogo = getBrandLogo(offer.brand);
-                const quantity = quantities[offer.offerId] || 0;
-                const orderedQuantity = getOrderedQuantity(offer.offerId);
-                return (
-                  <div
-                    key={offer.offerId}
-                    className="offer-card"
-                  >
-                    <div className="offer-card-top">
-                      {brandLogo && (
-                        <img src={brandLogo} alt={`${offer.brand} Logo`} className={`offer-brand-logo ${offer.brand.toLowerCase().includes('armor') ? 'armor-logo' : ''}`} />
-                      )}
-                      <div className="offer-group">{offer.offerGroup}</div>
-                    </div>
-                    {offer.offerTier && offer.offerTier !== 'Range Offer' && (
-                      <div className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}>{offer.offerTier}</div>
-                    )}
-                    {getOfferCardImage(offer.offerId) && (
-                      <div className="offer-product-image-container">
-                        <img src={getOfferCardImage(offer.offerId)!} alt={`${offer.offerGroup} Product`} className="offer-product-image" />
-                      </div>
-                    )}
-                    {offer.descriptions && offer.descriptions.length > 0 && (
-                      <table className="offer-descriptions-table">
-                        <tbody>
-                          {offer.descriptions.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{typeof item === 'string' ? item : item.description}</td>
-                              <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {offer.save && (
-                      <div className="offer-save">Save: {offer.save}</div>
-                    )}
-                    <div className="offer-highlights">
-                      {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
-                        <div className="offer-cost">
-                          <span className="highlight-label">Expo Charge Back:</span>
-                          <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
-                      {orderedQuantity > 0 && (
-                        <span className="ordered-label">Ordered</span>
-                      )}
-                      <button 
-                        className="qty-btn qty-minus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, -1, offer); }}
-                      >-</button>
-                      <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
-                      <button 
-                        className="qty-btn qty-plus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, 1, offer); }}
-                      >+</button>
-                    </div>
-                    <button 
-                      className="offer-action-small"
-                      onClick={(e) => handleViewDetails(offer.offerId, e)}
-                    >View Offer</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Car Care Offers (ArmorAll 4) */}
-        {carCareOffers.length > 0 && (
-          <div id="section-car-care" className="individual-offers-section">
-            <h2 className="brand-group-title">Car Care</h2>
-            <div className="offers-grid">
-              {carCareOffers.map((offer) => {
-                const brandLogo = getBrandLogo(offer.brand);
-                const quantity = quantities[offer.offerId] || 0;
-                const orderedQuantity = getOrderedQuantity(offer.offerId);
-                return (
-                  <div
-                    key={offer.offerId}
-                    className="offer-card"
-                  >
-                    <div className="offer-card-top">
-                      {brandLogo && (
-                        <img src={brandLogo} alt={`${offer.brand} Logo`} className={`offer-brand-logo ${offer.brand.toLowerCase().includes('armor') ? 'armor-logo' : ''}`} />
-                      )}
-                      <div className="offer-group">{offer.offerGroup}</div>
-                    </div>
-                    {offer.offerTier && offer.offerTier !== 'Range Offer' && (
-                      <div className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}>{offer.offerTier}</div>
-                    )}
-                    {getOfferCardImage(offer.offerId) && (
-                      <div className="offer-product-image-container">
-                        <img src={getOfferCardImage(offer.offerId)!} alt={`${offer.offerGroup} Product`} className="offer-product-image" />
-                      </div>
-                    )}
-                    {offer.descriptions && offer.descriptions.length > 0 && (
-                      <table className="offer-descriptions-table">
-                        <tbody>
-                          {offer.descriptions.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{typeof item === 'string' ? item : item.description}</td>
-                              <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {offer.save && (
-                      <div className="offer-save">Save: {offer.save}</div>
-                    )}
-                    <div className="offer-highlights">
-                      {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
-                        <div className="offer-cost">
-                          <span className="highlight-label">Expo Charge Back:</span>
-                          <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
-                      {orderedQuantity > 0 && (
-                        <span className="ordered-label">Ordered</span>
-                      )}
-                      <button 
-                        className="qty-btn qty-minus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, -1, offer); }}
-                      >-</button>
-                      <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
-                      <button 
-                        className="qty-btn qty-plus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, 1, offer); }}
-                      >+</button>
-                    </div>
-                    <button 
-                      className="offer-action-small"
-                      onClick={(e) => handleViewDetails(offer.offerId, e)}
-                    >View Offer</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Fragrances Offers (ArmorAll 5) */}
-        {fragrancesOffers.length > 0 && (
-          <div id="section-fragrances" className="individual-offers-section">
-            <h2 className="brand-group-title">Fragrances</h2>
-            <div className="offers-grid">
-              {fragrancesOffers.map((offer) => {
-                const brandLogo = getBrandLogo(offer.brand);
-                const quantity = quantities[offer.offerId] || 0;
-                const orderedQuantity = getOrderedQuantity(offer.offerId);
-                return (
-                  <div
-                    key={offer.offerId}
-                    className="offer-card"
-                  >
-                    <div className="offer-card-top">
-                      {brandLogo && (
-                        <img src={brandLogo} alt={`${offer.brand} Logo`} className={`offer-brand-logo ${offer.brand.toLowerCase().includes('armor') ? 'armor-logo' : ''}`} />
-                      )}
-                      <div className="offer-group">{offer.offerGroup}</div>
-                    </div>
-                    {offer.offerTier && offer.offerTier !== 'Range Offer' && (
-                      <div className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}>{offer.offerTier}</div>
-                    )}
-                    {getOfferCardImage(offer.offerId) && (
-                      <div className="offer-product-image-container">
-                        <img src={getOfferCardImage(offer.offerId)!} alt={`${offer.offerGroup} Product`} className="offer-product-image" />
-                      </div>
-                    )}
-                    {offer.descriptions && offer.descriptions.length > 0 && (
-                      <table className="offer-descriptions-table">
-                        <tbody>
-                          {offer.descriptions.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{typeof item === 'string' ? item : item.description}</td>
-                              <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {offer.save && (
-                      <div className="offer-save">Save: {offer.save}</div>
-                    )}
-                    <div className="offer-highlights">
-                      {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
-                        <div className="offer-cost">
-                          <span className="highlight-label">Expo Charge Back:</span>
-                          <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
-                      {orderedQuantity > 0 && (
-                        <span className="ordered-label">Ordered</span>
-                      )}
-                      <button 
-                        className="qty-btn qty-minus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, -1, offer); }}
-                      >-</button>
-                      <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
-                      <button 
-                        className="qty-btn qty-plus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, 1, offer); }}
-                      >+</button>
-                    </div>
-                    <button 
-                      className="offer-action-small"
-                      onClick={(e) => handleViewDetails(offer.offerId, e)}
-                    >View Offer</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Brand Groups (Pallet Offers) - At the bottom */}
-        {brandGroups.map((group, groupIndex) => (
-          <div key={group.brand} id={`section-${group.brand.toLowerCase().replace(/\s+/g, '-')}`} className="brand-group-section">
-            <h2 className="brand-group-title">Pallet Offers</h2>
-            <div className="offers-grid">
-              {group.offers.map((offer) => {
-                const brandLogo = getBrandLogo(group.brand);
-                const quantity = quantities[offer.offerId] || 0;
-                const orderedQuantity = getOrderedQuantity(offer.offerId);
-                return (
-                  <div
-                    key={offer.offerId}
-                    className="offer-card"
-                  >
-                    <div className="offer-card-top">
-                      {brandLogo && (
-                        <img src={brandLogo} alt={`${group.brand} Logo`} className={`offer-brand-logo ${group.brand.toLowerCase().includes('armor') ? 'armor-logo' : ''}`} />
-                      )}
-                      <div className="offer-group">{offer.offerGroup}</div>
-                    </div>
-                    {offer.offerTier && offer.offerTier !== 'Range Offer' && (
-                      <div className={`offer-tier-badge tier-${offer.offerTier.toLowerCase().replace(/\s+/g, '-').replace(/\//g, '-')}`}>{offer.offerTier}</div>
-                    )}
-                    {getOfferCardImage(offer.offerId) && (
-                      <div className="offer-product-image-container">
-                        <img src={getOfferCardImage(offer.offerId)!} alt={`${offer.offerGroup} Product`} className="offer-product-image" />
-                      </div>
-                    )}
-                    {offer.descriptions && offer.descriptions.length > 0 && (
-                      <table className="offer-descriptions-table">
-                        <tbody>
-                          {offer.descriptions.map((item, idx) => (
-                            <tr key={idx}>
-                              <td>{typeof item === 'string' ? item : item.description}</td>
-                              <td>Qty: {typeof item === 'string' ? '' : item.qty}</td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                    {offer.save && (
-                      <div className="offer-save">Save: {offer.save}</div>
-                    )}
-                    <div className="offer-highlights">
-                      {offer.expoChargeBackCost && offer.expoChargeBackCost !== '-' && (
-                        <div className="offer-cost">
-                          <span className="highlight-label">Expo Charge Back:</span>
-                          <span className="highlight-value">{formatTotalCost(offer.expoChargeBackCost)}</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className={`offer-quantity-controls ${orderedQuantity > 0 ? 'ordered' : ''}`}>
-                      {orderedQuantity > 0 && (
-                        <span className="ordered-label">Ordered</span>
-                      )}
-                      <button 
-                        className="qty-btn qty-minus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, -1, offer); }}
-                      >-</button>
-                      <span className={`qty-display ${orderedQuantity > 0 ? 'qty-locked' : ''}`}>{orderedQuantity}</span>
-                      <button 
-                        className="qty-btn qty-plus"
-                        onClick={(e) => { e.stopPropagation(); handleQuantityChange(offer.offerId, 1, offer); }}
-                      >+</button>
-                    </div>
-                    <button 
-                      className="offer-action-small"
-                      onClick={(e) => handleViewDetails(offer.offerId, e)}
-                    >View Offer</button>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        ))}
       </div>
       {selectedOfferForModal && (
         <OfferDetailModal
