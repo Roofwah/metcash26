@@ -475,6 +475,7 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
     const brandForLogo = logoBrandOverride ?? offer.brand;
     const brandLogo = getBrandLogo(brandForLogo);
     const cardLogoSrc = offer.logoUrl?.trim() || brandLogo;
+    const cardHeroSrc = offer.heroUrl?.trim() || null;
     const cardImage =
       (offer.productImageUrl && offer.productImageUrl.trim()) ||
       getOfferCardImage(offer.offerId);
@@ -493,6 +494,11 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
           )}
           <div className="offer-group">{offer.offerGroup}</div>
         </div>
+        {cardHeroSrc && (
+          <div className="offer-card-hero">
+            <img src={cardHeroSrc} alt={offer.offerGroup} className="offer-card-hero-img" />
+          </div>
+        )}
         {offer.offerId === 'Energizer 7' ? (
           <div className="offer-tier-badge tier-display-component">Display Pre-Pack</div>
         ) : (

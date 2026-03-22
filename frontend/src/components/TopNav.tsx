@@ -6,6 +6,7 @@ interface TopNavProps {
   userEmail?: string;
   connectedDatasets?: string[];
   onLogout?: () => void;
+  onDashboard?: () => void;
 }
 
 const TopNav: React.FC<TopNavProps> = ({
@@ -13,6 +14,7 @@ const TopNav: React.FC<TopNavProps> = ({
   userEmail,
   connectedDatasets = [],
   onLogout,
+  onDashboard,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
@@ -86,6 +88,25 @@ const TopNav: React.FC<TopNavProps> = ({
           ) : (
             <div className="floating-nav-datasets-empty">No datasets connected</div>
           )}
+
+          <button
+            type="button"
+            className="floating-nav-dashboard-row"
+            aria-label="Open dashboard"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onDashboard?.();
+              setIsOpen(false);
+            }}
+          >
+            <span className="floating-nav-logout-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z" />
+              </svg>
+            </span>
+            <span>Dashboard</span>
+          </button>
 
           <button
             type="button"

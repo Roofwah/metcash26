@@ -221,8 +221,9 @@
 
 .item-row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.75rem 0;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0;
   border-bottom: 1px solid #f0f0f0;
 }
 
@@ -230,15 +231,69 @@
   border-bottom: none;
 }
 
-.item-description {
-  flex: 1;
-  color: #333;
-  font-weight: 500;
+.item-row-main {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
 }
 
-.item-qty {
-  color: #666;
+.item-description {
+  flex: 1;
+  color: #1a1a2e;
   font-weight: 600;
+  font-size: 0.82rem;
+}
+
+.item-code {
+  font-size: 0.7rem;
+  color: #999;
+  white-space: nowrap;
+}
+
+.item-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.item-meta-pill {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+  background: #f4f4f6;
+  color: #555;
+  white-space: nowrap;
+}
+
+.item-meta-pill strong {
+  color: #1a1a2e;
+}
+
+.item-meta-pill.deal {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.item-meta-pill.deal strong {
+  color: #1b5e20;
+}
+
+.item-meta-pill.discount {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.item-meta-pill.discount strong {
+  color: #bf360c;
+}
+
+.item-meta-pill.margin {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.item-meta-pill.margin strong {
+  color: #0d47a1;
 }
 
 .tier-quantity,

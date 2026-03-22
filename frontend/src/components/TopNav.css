@@ -117,12 +117,33 @@
   text-align: left;
 }
 
-.floating-nav-logout-row {
+.floating-nav-dashboard-row {
   width: 100%;
   margin-top: 8px;
-  padding: 10px 2px 2px;
+  padding: 10px 2px 6px;
   border: none;
   border-top: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 0.86rem;
+  font-weight: 600;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+}
+
+.floating-nav-dashboard-row:hover {
+  color: #ffffff;
+}
+
+.floating-nav-logout-row {
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 2px 2px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
   background: transparent;
   color: rgba(255, 183, 183, 0.92);
   font-size: 0.86rem;

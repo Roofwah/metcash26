@@ -8,6 +8,7 @@ import OfferDetail from './components/OfferDetail';
 import OrderSummary from './components/OrderSummary';
 import EmptyCartThankYou from './components/EmptyCartThankYou';
 import TopNav from './components/TopNav';
+import Dashboard from './components/Dashboard';
 import Footer from './components/Footer';
 import LandscapeHint from './components/LandscapeHint';
 import LoginScreen from './components/LoginScreen';
@@ -51,7 +52,14 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
   const [showPresentation, setShowPresentation] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [formBackHandler, setFormBackHandler] = useState<(() => void) | null>(null);
+
+  // Extract rep name from energizer-style email: sarah.cussen@energizer.com → "Sarah Cussen"
+  const repName = sessionEmail
+    ? sessionEmail.split('@')[0].split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(' ')
+    : undefined;
+  const repEmail = sessionEmail || undefined;
 
   const connectedDatasets = [
     'Products API',
@@ -188,7 +196,7 @@ function App() {
     });
   };
 
-  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string; email: string }) => {
+  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string; email: string; storeCode: string }) => {
     if (!userData || !storeData) return;
     const orderData = {
       userName: userData.fullName,
@@ -198,6 +206,8 @@ function App() {
       position: data.position,
       purchaseOrder: data.purchaseOrder || '',
       email: data.email,
+      storeCode: data.storeCode,
+      repEmail: repEmail || '',
       items: cartItems,
       totalValue: cartItems.reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0).toFixed(2),
     };
@@ -264,24 +274,16 @@ function App() {
 
       {currentStep !== 'login' && (
         <TopNav
-          userName={
-            userData?.fullName ||
-            (sessionEmail
-              ? sessionEmail
-                  .split('@')[0]
-                  .split(/[._-]/)
-                  .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
-                  .join(' ')
-              : undefined)
-          }
-          userEmail={
-            userData
-              ? `${userData.fullName.toLowerCase().replace(/\s+/g, '.')}@metcash.local`
-              : sessionEmail || undefined
-          }
+          userName={repName}
+          userEmail={repEmail}
           connectedDatasets={connectedDatasets}
           onLogout={handleLogout}
+          onDashboard={() => setShowDashboard(true)}
         />
+      )}
+
+      {showDashboard && (
+        <Dashboard repEmail={repEmail} onClose={() => setShowDashboard(false)} />
       )}
 
       {currentStep === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}

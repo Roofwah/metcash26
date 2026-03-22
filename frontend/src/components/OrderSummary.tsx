@@ -21,7 +21,7 @@ interface OrderSummaryProps {
   onUpdateDropMonth: (index: number, unitIndex: number, dropMonth: string) => void;
   onRemoveItem: (index: number) => void;
   onBack: () => void;
-  onSubmit: (data: { position: string; purchaseOrder?: string; email: string }) => void;
+  onSubmit: (data: { position: string; purchaseOrder?: string; email: string; storeCode: string }) => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -37,6 +37,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   const [position, setPosition] = useState(userData.position || '');
   const [orderedAt] = useState(() => new Date());
   const [email, setEmail] = useState('');
+  const [storeCode, setStoreCode] = useState('');
   const [purchaseOrder, setPurchaseOrder] = useState('');
   const [includePO, setIncludePO] = useState(false);
 
@@ -45,7 +46,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   }, 0);
 
   const canSubmit =
-    position.trim().length > 0 && EMAIL_REGEX.test(email.trim());
+    position.trim().length > 0 &&
+    EMAIL_REGEX.test(email.trim()) &&
+    /^\d{8}$/.test(storeCode.trim());
 
   const orderDateTimeLabel = orderedAt.toLocaleString('en-AU', {
     weekday: 'long',
@@ -79,7 +82,8 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
     onSubmit({
       position: position.trim(),
       purchaseOrder: includePO ? purchaseOrder.trim() : undefined,
-      email: email.trim()
+      email: email.trim(),
+      storeCode: storeCode.trim()
     });
   };
 
@@ -281,6 +285,22 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               placeholder="Enter your email address"
               className="form-select"
               autoComplete="email"
+            />
+          </div>
+
+          <div className="form-section">
+            <label htmlFor="order-store-code">8-digit store code *</label>
+            <input
+              id="order-store-code"
+              type="text"
+              inputMode="numeric"
+              pattern="\d{8}"
+              maxLength={8}
+              value={storeCode}
+              onChange={(e) => setStoreCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
+              placeholder="Enter 8-digit store code"
+              className="form-select"
+              autoComplete="off"
             />
           </div>
 

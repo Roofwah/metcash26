@@ -15,6 +15,14 @@ interface OfferItem {
   Qty: string;
   'Expo Total Cost': string;
   Brand: string;
+  // enriched fields from groupOffersRows
+  metcashCode?: string;
+  qty?: string;
+  rrp?: string;
+  expoPrice?: string;
+  normalCost?: string;
+  discount?: string;
+  margin?: string;
 }
 
 interface OfferDetailData {
@@ -302,8 +310,17 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
               <div className="offer-items">
                 {offerData.items.map((item, idx) => (
                   <div key={idx} className="item-row">
-                    <span className="item-description">{item.Description}</span>
-                    {item.Qty && <span className="item-qty">Qty: {item.Qty}</span>}
+                    <div className="item-row-main">
+                      <span className="item-description">{item.Description}</span>
+                      {item.metcashCode && <span className="item-code">#{item.metcashCode}</span>}
+                    </div>
+                    <div className="item-row-meta">
+                      {item.qty      && <span className="item-meta-pill">Prepack: <strong>{item.qty}</strong></span>}
+                      {item.rrp      && <span className="item-meta-pill">RRP: <strong>${item.rrp}</strong></span>}
+                      {item.expoPrice && <span className="item-meta-pill deal">Expo: <strong>${item.expoPrice}</strong></span>}
+                      {item.discount && <span className="item-meta-pill discount">Save: <strong>{item.discount}</strong></span>}
+                      {item.margin   && <span className="item-meta-pill margin">Margin: <strong>{item.margin}</strong></span>}
+                    </div>
                   </div>
                 ))}
               </div>

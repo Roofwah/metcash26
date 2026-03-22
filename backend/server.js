@@ -12,6 +12,41 @@ const serverDir = path.resolve(__dirname);
 process.chdir(serverDir);
 console.log('Server dir:', serverDir);
 
+// ---------------------------------------------------------------------------
+// Offer content – logos, hero images, and marketing copy per offer group.
+// Loaded once at startup from offer-content.json.
+// ---------------------------------------------------------------------------
+const OFFER_CONTENT_PATH = path.join(serverDir, 'offer-content.json');
+let offerContentMap = {}; // normalised-name → content object
+
+function normaliseOfferName(s) {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+}
+
+try {
+  const raw = JSON.parse(fs.readFileSync(OFFER_CONTENT_PATH, 'utf8'));
+  raw.forEach(item => {
+    offerContentMap[normaliseOfferName(item.offer)] = item;
+  });
+  console.log(`Loaded ${raw.length} offer-content entries.`);
+} catch (e) {
+  console.warn('offer-content.json not found or invalid:', e.message);
+}
+
+function applyOfferContent(grouped) {
+  Object.keys(grouped).forEach(key => {
+    const match = offerContentMap[normaliseOfferName(key)];
+    if (!match) return;
+    const g = grouped[key];
+    if (match.logo)  g.logoUrl  = `/products/${match.logo}`;
+    if (match.hero)  g.heroUrl  = `/products/${match.hero}`;
+    if (match.h1)    g.h1       = match.h1;
+    if (match.h2)    g.h2       = match.h2;
+    if (match.body)  g.message  = match.body;
+  });
+  return grouped;
+}
+
 const app         = express();
 const PORT        = process.env.PORT || 5001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
@@ -96,6 +131,8 @@ async function initDb() {
     )
   `);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_code TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rep_email TEXT`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -353,15 +390,30 @@ function groupOffersRows(rows) {
       grouped[key].save = '50%';
     }
     if (row.Description) {
-      grouped[key].descriptions.push({ description: row.Description, qty: row.Qty || '' });
+      const expoPrice  = parseFloat(row['Expo Total Cost'])  || 0;
+      const normCost   = parseFloat(row['Reg Total Cost'])   || 0;
+      const rrp        = parseFloat(row['SRP / Promo RRP'])  || 0;
+      const units      = parseFloat(row.Qty)                 || 1;
+      const expoPerUnit = expoPrice / units;
+      const discount   = normCost > 0 ? ((normCost - expoPrice) / normCost * 100).toFixed(1) + '%' : (row.Save || '');
+      const margin     = rrp > 0 ? ((rrp - expoPerUnit) / rrp * 100).toFixed(1) + '%' : '';
+      grouped[key].descriptions.push({
+        description:  row.Description,
+        metcashCode:  row['HTH Code'] || row.Code || '',
+        qty:          row.Qty || '',
+        rrp:          row['SRP / Promo RRP'] || '',
+        expoPrice:    row['Expo Total Cost'] || '',
+        normalCost:   row['Reg Total Cost'] || '',
+        discount,
+        margin,
+      });
     }
-    grouped[key].expoChargeBackCost +=
-      (parseFloat(row['Expo Charge Back Cost']) || 0) * (parseFloat(row.Qty) || 0);
+    // expoChargeBackCost = sum of all Expo Total Cost values across all SKUs in this offer
+    grouped[key].expoChargeBackCost += parseFloat(row['Expo Total Cost']) || 0;
   });
 
   Object.keys(grouped).forEach((k) => {
     grouped[k].expoChargeBackCost = grouped[k].expoChargeBackCost.toFixed(2);
-    if (k === 'Energizer 7') grouped[k].save = '50%';
   });
 
   return grouped;
@@ -936,12 +988,12 @@ app.get('/api/offers', async (req, res) => {
     }
     if (rows.length === 0) rows = await loadFallbackOffersRows();
 
-    const grouped = groupOffersRows(rows);
+    const grouped = applyOfferContent(groupOffersRows(rows));
     res.json(Object.values(grouped));
   } catch (err) {
     console.error('GET /api/offers error:', err.message);
     const rows = await loadFallbackOffersRows();
-    const grouped = groupOffersRows(rows);
+    const grouped = applyOfferContent(groupOffersRows(rows));
     res.json(Object.values(grouped));
   }
 });
@@ -970,6 +1022,36 @@ app.get('/api/offers/:offerId', async (req, res) => {
 
     const first = rows[0];
     const meta = buildOfferMetaFromRows(rows);
+
+    // Apply offer-content.json (logo, hero, copy)
+    const contentKey = normaliseOfferName(offerId);
+    const content = offerContentMap[contentKey] || {};
+    if (content.logo)  meta.logoUrl  = `/products/${content.logo}`;
+    if (content.hero)  meta.heroUrl  = `/products/${content.hero}`;
+    if (content.h1)    meta.h1       = content.h1;
+    if (content.h2)    meta.h2       = content.h2;
+    if (content.body)  meta.message  = content.body;
+
+    // Enrich each row with computed deal fields
+    const enrichRow = (row) => {
+      const expoPrice = parseFloat(row['Expo Total Cost']) || 0;
+      const normCost  = parseFloat(row['Reg Total Cost'])  || 0;
+      const rrp       = parseFloat(row['SRP / Promo RRP']) || 0;
+      const units     = parseFloat(row.Qty) || 1;
+      return {
+        ...row,
+        metcashCode: row['HTH Code'] || row.Code || '',
+        qty:         row.Qty || '',
+        rrp:         row['SRP / Promo RRP'] || '',
+        expoPrice:   row['Expo Total Cost'] || '',
+        normalCost:  row['Reg Total Cost'] || '',
+        discount:    normCost > 0 ? ((normCost - expoPrice) / normCost * 100).toFixed(1) + '%' : (row.Save || ''),
+        margin:      rrp > 0 ? ((rrp - expoPrice / units) / rrp * 100).toFixed(1) + '%' : '',
+      };
+    };
+
+    const expoChargeBackCost = rows.reduce((s, r) => s + (parseFloat(r['Expo Total Cost']) || 0), 0).toFixed(2);
+
     const hasTiers = first['Offer Tier'] &&
       !['Range Offer', 'Display Pre-Pack', 'Display Component'].includes(first['Offer Tier']);
 
@@ -978,17 +1060,17 @@ app.get('/api/offers/:offerId', async (req, res) => {
       rows.forEach(row => {
         const t = row['Offer Tier'];
         if (!tiers[t]) tiers[t] = [];
-        tiers[t].push(row);
+        tiers[t].push(enrichRow(row));
       });
       return res.json({
         offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
-        hasTiers: true, tiers, allItems: rows,
+        hasTiers: true, tiers, allItems: rows.map(enrichRow), expoChargeBackCost,
         ...meta,
       });
     }
     res.json({
       offerId, offerGroup: first['Offer Group'], brand: first.Brand, range: first.Range,
-      hasTiers: false, items: rows,
+      hasTiers: false, items: rows.map(enrichRow), expoChargeBackCost,
       ...meta,
     });
   } catch (err) {
@@ -1038,14 +1120,14 @@ app.post('/api/save-order', async (req, res) => {
   const client = await pool.connect();
   try {
     const { storeNumber='', storeName='', banner='', userName='',
-            position='', purchaseOrder='', email='', items=[], totalValue=0 } = req.body;
+            position='', purchaseOrder='', email='', storeCode='', repEmail='', items=[], totalValue=0 } = req.body;
 
     await client.query('BEGIN');
 
     const { rows: [{ id: orderId }] } = await client.query(
-      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,total_value)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id`,
-      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, parseFloat(totalValue) || 0]
+      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,store_code,rep_email,total_value)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
+      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, storeCode, repEmail, parseFloat(totalValue) || 0]
     );
 
     for (const item of items) {
@@ -1086,6 +1168,160 @@ app.get('/api/orders-stats', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ count: 0, totalValue: '0.00' });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Dashboard
+// ---------------------------------------------------------------------------
+app.get('/api/dashboard', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        o.id,
+        o.created_at,
+        o.store_name,
+        o.banner,
+        o.user_name,
+        o.email       AS store_email,
+        o.rep_email,
+        o.total_value::numeric::float8 AS total_value
+      FROM orders o
+      ORDER BY o.total_value DESC, o.created_at DESC
+    `);
+    const grand = rows.reduce((s, r) => s + (r.total_value || 0), 0);
+    res.json({ orders: rows, grandTotal: parseFloat(grand.toFixed(2)) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dashboard/charts', async (req, res) => {
+  try {
+    const [offersRes, statesRes, repsRes] = await Promise.all([
+      pool.query(`
+        SELECT oi.offer_id AS label, SUM(oi.quantity)::int AS value
+        FROM order_items oi
+        GROUP BY oi.offer_id
+        ORDER BY value DESC
+        LIMIT 12
+      `),
+      pool.query(`
+        SELECT COALESCE(ms.state, 'Unknown') AS label,
+               SUM(o.total_value)::numeric::float8 AS value
+        FROM orders o
+        LEFT JOIN mcash_stores ms ON LOWER(ms.name) = LOWER(o.store_name)
+        GROUP BY ms.state
+        ORDER BY value DESC
+      `),
+      pool.query(`
+        SELECT COALESCE(NULLIF(o.rep_email,''), 'Unknown') AS label,
+               SUM(o.total_value)::numeric::float8 AS value
+        FROM orders o
+        GROUP BY o.rep_email
+        ORDER BY value DESC
+      `),
+    ]);
+    res.json({
+      offerQty:  offersRes.rows,
+      stateSales: statesRes.rows,
+      repSales:   repsRes.rows,
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/dashboard/csv', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT
+        o.id                                                              AS order_id,
+        'Confirmed'                                                       AS order_status,
+        ms.state                                                          AS state,
+        o.store_code                                                      AS customer_number,
+        o.store_name                                                      AS customer_name,
+        o.email                                                           AS customer_email,
+        o.email                                                           AS order_placed_by,
+        30152                                                             AS vendor_number,
+        'ENERGIZER AUSTRALIA'                                             AS vendor_name,
+        CASE
+          WHEN oi.drop_month IS NOT NULL AND oi.drop_month != ''
+          THEN '01/' || LPAD(EXTRACT(MONTH FROM TO_DATE(oi.drop_month, 'Month'))::TEXT, 2, '0') || '/2026'
+          ELSE ''
+        END                                                               AS drop_date_into_store,
+        of."HTH Code"                                                     AS item_number,
+        of."Description"                                                  AS item_desc,
+        of."Range"                                                        AS sub_range_number,
+        ''                                                                AS commodity_number,
+        of."Range"                                                        AS commodity_name,
+        'Claim'                                                           AS order_type,
+        'SingleDeal'                                                      AS deal_type,
+        of."Offer Group"                                                  AS parcel_name,
+        of."Qty"                                                          AS ctns_ordered,
+        of."Expo Total Cost"                                              AS deal_value_per_ctn,
+        of."SRP / Promo RRP"                                              AS gross_ctn_value,
+        CASE
+          WHEN of."SRP / Promo RRP" ~ '^[0-9.]+$' AND of."Expo Total Cost" ~ '^[0-9.]+$'
+          THEN (of."SRP / Promo RRP"::numeric - of."Expo Total Cost"::numeric)::TEXT
+          ELSE ''
+        END                                                               AS net_ctn_value,
+        CASE
+          WHEN of."Expo Total Cost" ~ '^[0-9.]+$' AND of."Qty" ~ '^[0-9.]+$'
+          THEN (of."Expo Total Cost"::numeric * of."Qty"::numeric)::TEXT
+          ELSE ''
+        END                                                               AS extended_deal_value,
+        CASE
+          WHEN of."SRP / Promo RRP" ~ '^[0-9.]+$' AND of."Qty" ~ '^[0-9.]+$'
+          THEN (of."SRP / Promo RRP"::numeric * of."Qty"::numeric)::TEXT
+          ELSE ''
+        END                                                               AS extended_gross_order_value,
+        CASE
+          WHEN of."SRP / Promo RRP" ~ '^[0-9.]+$' AND of."Expo Total Cost" ~ '^[0-9.]+$' AND of."Qty" ~ '^[0-9.]+$'
+          THEN ((of."SRP / Promo RRP"::numeric - of."Expo Total Cost"::numeric) * of."Qty"::numeric)::TEXT
+          ELSE ''
+        END                                                               AS extended_net_order_value
+      FROM orders o
+      LEFT JOIN order_items oi    ON oi.order_id = o.id
+      LEFT JOIN offers of         ON of."OFFER" = oi.offer_id
+      LEFT JOIN mcash_stores ms   ON LOWER(ms.name) = LOWER(o.store_name)
+      WHERE oi.offer_id IS NOT NULL
+      ORDER BY o.total_value DESC, o.id, oi.id, of."HTH Code"
+    `);
+
+    const headers = [
+      'Order Number','Order Status','State','Customer Number','Customer Name',
+      'Customer Email','Order Placed By','Vendor Number','Vendor Name',
+      'Drop Date Into Store','Item Number','Item Desc','Sub Range Number',
+      'Commodity Number','Commodity Name','Order Type','Deal Type','Parcel Name',
+      'Ctns Ordered (qty)','Deal Value Per Ctn $','Gross Ctn Value $',
+      'Net Ctn Value $','Extended Deal Value $','Extended Gross Order Value $',
+      'Extended Net Order Value $'
+    ];
+
+    const keys = [
+      'order_id','order_status','state','customer_number','customer_name',
+      'customer_email','order_placed_by','vendor_number','vendor_name',
+      'drop_date_into_store','item_number','item_desc','sub_range_number',
+      'commodity_number','commodity_name','order_type','deal_type','parcel_name',
+      'ctns_ordered','deal_value_per_ctn','gross_ctn_value',
+      'net_ctn_value','extended_deal_value','extended_gross_order_value',
+      'extended_net_order_value'
+    ];
+
+    if (!rows.length) return res.status(200).send(headers.join(','));
+
+    const escape = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+    const csv = [
+      headers.join(','),
+      ...rows.map(r => keys.map(k => escape(r[k])).join(','))
+    ].join('\r\n');
+
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="metcash-orders-${Date.now()}.csv"`);
+    res.send(csv);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
