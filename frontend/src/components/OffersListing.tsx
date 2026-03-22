@@ -86,14 +86,33 @@ type OfferStripItem =
   | { kind: 'category'; key: string; anchorId?: string; label: string }
   | { kind: 'offer'; key: string; offer: Offer; logoBrandOverride?: string };
 
+/**
+ * Pallet sections first so all ~12 pallet cards are not hidden past the first five strip offers.
+ * Then Pre Pack / Lighting / Car / Fragrances, then any offers that did not match hardcoded buckets.
+ */
 function buildOfferStrip(
+  brandGroups: BrandGroup[],
   batteryDisplayOffers: Offer[],
   lightingOffers: Offer[],
   carCareOffers: Offer[],
   fragrancesOffers: Offer[],
-  brandGroups: BrandGroup[],
+  orphanOffers: Offer[],
 ): OfferStripItem[] {
   const out: OfferStripItem[] = [];
+
+  brandGroups.forEach((g, i) => {
+    const anchorId = i === 0 ? 'section-energizer' : undefined;
+    const slug = g.brand.toLowerCase().replace(/\s+/g, '-');
+    out.push({
+      kind: 'category',
+      key: `cat-pallet-${slug}`,
+      anchorId,
+      label: `Pallet · ${g.brand}`,
+    });
+    for (const offer of g.offers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer, logoBrandOverride: g.brand });
+    }
+  });
 
   if (batteryDisplayOffers.length > 0) {
     out.push({ kind: 'category', key: 'cat-battery-display', anchorId: 'section-battery-display', label: 'Pre Pack' });
@@ -119,19 +138,17 @@ function buildOfferStrip(
       out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
     }
   }
-  brandGroups.forEach((g, i) => {
-    const anchorId = i === 0 ? 'section-energizer' : undefined;
-    const slug = g.brand.toLowerCase().replace(/\s+/g, '-');
+  if (orphanOffers.length > 0) {
     out.push({
       kind: 'category',
-      key: `cat-pallet-${slug}`,
-      anchorId,
-      label: `Pallet · ${g.brand}`,
+      key: 'cat-more-offers',
+      anchorId: 'section-more-offers',
+      label: 'More offers',
     });
-    for (const offer of g.offers) {
-      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer, logoBrandOverride: g.brand });
+    for (const offer of orphanOffers) {
+      out.push({ kind: 'offer', key: `offer-${offer.offerId}`, offer });
     }
-  });
+  }
 
   return out;
 }
@@ -188,6 +205,7 @@ function partitionOffersFromApi(allOffers: Offer[]): {
   lightingOffers: Offer[];
   carCareOffers: Offer[];
   fragrancesOffers: Offer[];
+  orphanOffers: Offer[];
 } {
   const rows = Array.isArray(allOffers) ? allOffers : [];
   const stripCandidates = rows.filter(
@@ -197,18 +215,96 @@ function partitionOffersFromApi(allOffers: Offer[]): {
   );
   const sortedStrip = sortNonPalletOffers(stripCandidates);
 
+  const brandGroups = buildPalletBrandGroups(rows);
+  const batteryDisplayOffers = sortedStrip.filter(
+    (o) =>
+      (o.offerId === 'Energizer 7' || isBatteryRetailStripOffer(o)) &&
+      o.offerId !== 'Energizer 8' &&
+      o.offerId !== 'Energizer 9',
+  );
+  const lightingOffers = sortedStrip.filter((o) => o.offerId === 'Energizer 8' || o.offerId === 'Energizer 9');
+  const carCareOffers = sortedStrip.filter((o) => o.offerId === 'ArmorAll 4');
+  const fragrancesOffers = sortedStrip.filter((o) => o.offerId === 'ArmorAll 5');
+
+  const placed = new Set<string>();
+  for (const o of batteryDisplayOffers) placed.add(o.offerId);
+  for (const o of lightingOffers) placed.add(o.offerId);
+  for (const o of carCareOffers) placed.add(o.offerId);
+  for (const o of fragrancesOffers) placed.add(o.offerId);
+  for (const g of brandGroups) {
+    for (const o of g.offers) placed.add(o.offerId);
+  }
+  const orphanOffers = rows
+    .filter((o) => !placed.has(o.offerId))
+    .sort((a, b) => a.offerId.localeCompare(b.offerId, undefined, { numeric: true }));
+
   return {
-    brandGroups: buildPalletBrandGroups(rows),
-    batteryDisplayOffers: sortedStrip.filter(
-      (o) =>
-        (o.offerId === 'Energizer 7' || isBatteryRetailStripOffer(o)) &&
-        o.offerId !== 'Energizer 8' &&
-        o.offerId !== 'Energizer 9',
-    ),
-    lightingOffers: sortedStrip.filter((o) => o.offerId === 'Energizer 8' || o.offerId === 'Energizer 9'),
-    carCareOffers: sortedStrip.filter((o) => o.offerId === 'ArmorAll 4'),
-    fragrancesOffers: sortedStrip.filter((o) => o.offerId === 'ArmorAll 5'),
+    brandGroups,
+    batteryDisplayOffers,
+    lightingOffers,
+    carCareOffers,
+    fragrancesOffers,
+    orphanOffers,
   };
+}
+
+/** First cards in the carousel, in this exact order (then everything else). */
+const LEAD_OFFER_ORDER = [
+  'Energizer 7',
+  'Eveready 1',
+  'Energizer 1',
+  'Energizer 2',
+  'Energizer 3',
+] as const;
+
+function excludeOfferIds(offers: Offer[], omit: Set<string>): Offer[] {
+  return offers.filter((o) => !omit.has(o.offerId));
+}
+
+function excludeFromBrandGroups(groups: BrandGroup[], omit: Set<string>): BrandGroup[] {
+  return groups
+    .map((g) => ({ ...g, offers: excludeOfferIds(g.offers, omit) }))
+    .filter((g) => g.offers.length > 0);
+}
+
+/** Lead row + remainder with no duplicate offer ids. */
+function buildStripWithLeadOrder(allOffers: Offer[]): OfferStripItem[] {
+  const omit = new Set<string>([...LEAD_OFFER_ORDER]);
+  const p = partitionOffersFromApi(allOffers);
+  const filtered = {
+    brandGroups: excludeFromBrandGroups(p.brandGroups, omit),
+    batteryDisplayOffers: excludeOfferIds(p.batteryDisplayOffers, omit),
+    lightingOffers: excludeOfferIds(p.lightingOffers, omit),
+    carCareOffers: excludeOfferIds(p.carCareOffers, omit),
+    fragrancesOffers: excludeOfferIds(p.fragrancesOffers, omit),
+    orphanOffers: excludeOfferIds(p.orphanOffers, omit),
+  };
+  const rest = buildOfferStrip(
+    filtered.brandGroups,
+    filtered.batteryDisplayOffers,
+    filtered.lightingOffers,
+    filtered.carCareOffers,
+    filtered.fragrancesOffers,
+    filtered.orphanOffers,
+  );
+  const lead: OfferStripItem[] = [];
+  for (const id of LEAD_OFFER_ORDER) {
+    const offer = allOffers.find((o) => o.offerId === id);
+    if (!offer) continue;
+    const logoBrandOverride =
+      id === 'Eveready 1'
+        ? 'Eveready'
+        : id === 'Energizer 1' || id === 'Energizer 2' || id === 'Energizer 3'
+          ? 'Energizer'
+          : undefined;
+    lead.push({
+      kind: 'offer',
+      key: `offer-lead-${id.replace(/\s+/g, '-')}`,
+      offer,
+      logoBrandOverride,
+    });
+  }
+  return [...lead, ...rest];
 }
 
 interface OffersListingProps {
@@ -230,6 +326,8 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
   const [lightingOffers, setLightingOffers] = useState<Offer[]>([]);
   const [carCareOffers, setCarCareOffers] = useState<Offer[]>([]);
   const [fragrancesOffers, setFragrancesOffers] = useState<Offer[]>([]);
+  const [orphanOffers, setOrphanOffers] = useState<Offer[]>([]);
+  const [allOffers, setAllOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [quantities, setQuantities] = useState<{ [offerId: string]: number }>({});
@@ -260,6 +358,7 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
         lightingOffers: lighting,
         carCareOffers: armorAll4,
         fragrancesOffers: armorAll5,
+        orphanOffers: orphans,
       } = partitionOffersFromApi(allOffers);
 
       setBrandGroups(groups);
@@ -267,6 +366,8 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
       setLightingOffers(lighting);
       setCarCareOffers(armorAll4);
       setFragrancesOffers(armorAll5);
+      setOrphanOffers(orphans);
+      setAllOffers(allOffers);
       setError('');
     } catch (err) {
       // Retry once against same-origin in case a stale build/env still points elsewhere.
@@ -284,10 +385,13 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
         setLightingOffers(p.lightingOffers);
         setCarCareOffers(p.carCareOffers);
         setFragrancesOffers(p.fragrancesOffers);
+        setOrphanOffers(p.orphanOffers);
+        setAllOffers(allOffers);
         setError('');
       } catch (retryErr) {
         console.error('Error fetching offers:', err, retryErr);
         setError('Failed to load offers. Please try again.');
+        setAllOffers([]);
       }
     } finally {
       setLoading(false);
@@ -356,7 +460,9 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
     const elementId =
       sectionName === 'Pallet Offers'
         ? 'section-energizer'
-        : `section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`;
+        : sectionName === 'More offers'
+          ? 'section-more-offers'
+          : `section-${sectionName.toLowerCase().replace(/\s+/g, '-')}`;
 
     document.getElementById(elementId)?.scrollIntoView({
       behavior: 'smooth',
@@ -461,15 +567,8 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
   };
 
   const stripItems = useMemo(
-    () =>
-      buildOfferStrip(
-        batteryDisplayOffers,
-        lightingOffers,
-        carCareOffers,
-        fragrancesOffers,
-        brandGroups,
-      ),
-    [batteryDisplayOffers, lightingOffers, carCareOffers, fragrancesOffers, brandGroups],
+    () => (allOffers.length === 0 ? [] : buildStripWithLeadOrder(allOffers)),
+    [allOffers],
   );
 
   const offerKeys = useMemo(
@@ -550,20 +649,23 @@ const OffersListing: React.FC<OffersListingProps> = ({ userData, storeData, onSe
             {storeData.banner !== '-' && <p>{storeData.banner}</p>}
           </div>
           <div className="offers-navigation">
+          {brandGroups.length > 0 && (
+            <button type="button" onClick={() => scrollToSection('Pallet Offers')} className="nav-button">Pallet offers</button>
+          )}
           {batteryDisplayOffers.length > 0 && (
-            <button onClick={() => scrollToSection('Battery Display')} className="nav-button">Pre Pack</button>
+            <button type="button" onClick={() => scrollToSection('Battery Display')} className="nav-button">Pre Pack</button>
           )}
           {lightingOffers.length > 0 && (
-            <button onClick={() => scrollToSection('Lighting')} className="nav-button">Lighting</button>
+            <button type="button" onClick={() => scrollToSection('Lighting')} className="nav-button">Lighting</button>
           )}
           {carCareOffers.length > 0 && (
-            <button onClick={() => scrollToSection('Car Care')} className="nav-button">Car Care</button>
+            <button type="button" onClick={() => scrollToSection('Car Care')} className="nav-button">Car Care</button>
           )}
           {fragrancesOffers.length > 0 && (
-            <button onClick={() => scrollToSection('Fragrances')} className="nav-button">Fragrances</button>
+            <button type="button" onClick={() => scrollToSection('Fragrances')} className="nav-button">Fragrances</button>
           )}
-          {brandGroups.length > 0 && (
-            <button onClick={() => scrollToSection('Pallet Offers')} className="nav-button">Pallet Offers</button>
+          {orphanOffers.length > 0 && (
+            <button type="button" onClick={() => scrollToSection('More offers')} className="nav-button">More offers</button>
           )}
           </div>
         </div>

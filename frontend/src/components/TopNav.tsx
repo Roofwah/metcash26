@@ -47,13 +47,6 @@ const TopNav: React.FC<TopNavProps> = ({
     };
   }, [isOpen]);
 
-  const handleNavAction = (action?: () => void) => {
-    if (action) {
-      action();
-    }
-    setIsOpen(false);
-  };
-
   const initials = (userName || 'U')
     .split(' ')
     .filter(Boolean)
@@ -98,7 +91,12 @@ const TopNav: React.FC<TopNavProps> = ({
             type="button"
             className="floating-nav-logout-row"
             aria-label="Log out"
-            onClick={() => handleNavAction(onLogout)}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onLogout?.();
+              setIsOpen(false);
+            }}
           >
             <span className="floating-nav-logout-icon" aria-hidden="true">
               <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">

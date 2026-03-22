@@ -1,0 +1,22 @@
+{
+  "short_name": "Metcash",
+  "name": "Metcash – Store lookup & sales",
+  "icons": [
+    {
+      "src": "dble.svg",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f3460",
+  "background_color": "#0f3460"
+}

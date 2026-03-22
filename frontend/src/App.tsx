@@ -10,6 +10,7 @@ import EmptyCartThankYou from './components/EmptyCartThankYou';
 import TopNav from './components/TopNav';
 import Footer from './components/Footer';
 import LandscapeHint from './components/LandscapeHint';
+import LoginScreen from './components/LoginScreen';
 import PresentationPlayer from './features/presentations/components/PresentationPlayer';
 import { metcashExpoSampleDeck } from './features/presentations/data/metcashExpoSampleDeck';
 import axios from 'axios';
@@ -31,6 +32,7 @@ interface CartItem {
 }
 
 type AppStep =
+  | 'login'
   | 'form'
   | 'loading'
   | 'store-confirm'
@@ -43,7 +45,8 @@ type AppStep =
 function App() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
-  const [currentStep, setCurrentStep] = useState<AppStep>('form');
+  const [currentStep, setCurrentStep] = useState<AppStep>('login');
+  const [sessionEmail, setSessionEmail] = useState<string | null>(null);
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
@@ -56,6 +59,23 @@ function App() {
     ...(storeData?.storeName ? [`Store: ${storeData.storeName}`] : []),
     ...(storeData?.banner ? [`Banner: ${storeData.banner}`] : []),
   ];
+
+  const handleLoginSuccess = (email: string) => {
+    setSessionEmail(email);
+    setCurrentStep('form');
+  };
+
+  const handleLogout = () => {
+    setShowPresentation(false);
+    setFormBackHandler(null);
+    setUserData(null);
+    setStoreData(null);
+    setCartItems([]);
+    setSelectedOfferId(null);
+    setPrintData(null);
+    setSessionEmail(null);
+    setCurrentStep('login');
+  };
 
   const handleFormSubmit = (data: UserData, storeDataFromForm?: StoreData) => {
     setUserData(data);
@@ -211,6 +231,7 @@ function App() {
   // Centralised back handler — drives the footer back button
   const getBackHandler = (): (() => void) | null => {
     switch (currentStep) {
+      case 'login':               return null;
       case 'form':                return formBackHandler;
       case 'store-confirm':       return handleStoreConfirmBack;
       case 'loading':             return () => setCurrentStep('form');
@@ -241,12 +262,29 @@ function App() {
   return (
     <div className="App with-nav">
 
-      <TopNav
-        userName={userData?.fullName}
-        userEmail={userData ? `${userData.fullName.toLowerCase().replace(/\s+/g, '.')}@metcash.local` : undefined}
-        connectedDatasets={connectedDatasets}
-        onLogout={handleThankYouComplete}
-      />
+      {currentStep !== 'login' && (
+        <TopNav
+          userName={
+            userData?.fullName ||
+            (sessionEmail
+              ? sessionEmail
+                  .split('@')[0]
+                  .split(/[._-]/)
+                  .map((s) => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase())
+                  .join(' ')
+              : undefined)
+          }
+          userEmail={
+            userData
+              ? `${userData.fullName.toLowerCase().replace(/\s+/g, '.')}@metcash.local`
+              : sessionEmail || undefined
+          }
+          connectedDatasets={connectedDatasets}
+          onLogout={handleLogout}
+        />
+      )}
+
+      {currentStep === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
 
       {currentStep === 'form' && <UserForm onSubmit={handleFormSubmit} onBackChange={h => setFormBackHandler(h ? () => h : null)} />}
 
@@ -319,9 +357,9 @@ function App() {
         />
       )}
 
-      <Footer onBack={getBackHandler()} />
+      <Footer onBack={getBackHandler()} hideStatusOrb={currentStep === 'login'} />
 
-      {currentStep !== 'offers-listing' && <LandscapeHint />}
+      {currentStep === 'store-confirm' && <LandscapeHint />}
 
       {/* ── Presentation Player overlay ─────────────────────────── */}
       {showPresentation && (

@@ -12,6 +12,8 @@ export interface LandscapeHintProps {
   bottomOffsetPx?: number;
   /** How much higher to place the hint above that line (px). Default 100. */
   liftPx?: number;
+  /** When set, overrides CSS z-index (e.g. above fullscreen presentation overlay). */
+  zIndex?: number;
 }
 
 /**
@@ -24,6 +26,7 @@ const LandscapeHint: React.FC<LandscapeHintProps> = ({
   className = '',
   bottomOffsetPx = 52,
   liftPx = 100,
+  zIndex,
 }) => {
   const [portrait, setPortrait] = useState(false);
 
@@ -44,6 +47,7 @@ const LandscapeHint: React.FC<LandscapeHintProps> = ({
       aria-live="polite"
       style={{
         bottom: `calc(${bottomOffsetPx}px + ${liftPx}px + env(safe-area-inset-bottom, 0px))`,
+        ...(typeof zIndex === 'number' ? { zIndex } : {}),
       }}
     >
       <div className="landscape-hint-inner">

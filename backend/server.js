@@ -172,12 +172,26 @@ function invalidateOffersFallbackCache() {
   fallbackOffersPromise = null;
 }
 
+/** Excel/Sheets often export `offers` as tab-separated; csv-parser defaults to comma. */
+function detectOffersCsvSeparator(filePath) {
+  try {
+    const head = fs.readFileSync(filePath, { encoding: 'utf8' });
+    const firstLine = (head.split(/\r?\n/, 1)[0] || '').trimStart();
+    const line = removeBOM(firstLine);
+    const tabs = (line.match(/\t/g) || []).length;
+    const commas = (line.match(/,/g) || []).length;
+    if (tabs > 0 && tabs >= commas) return '\t';
+  } catch (_) { /* keep comma */ }
+  return ',';
+}
+
 /** Read offers.csv into raw row objects (trimmed keys). */
 function readOffersCsvRaw(filePath) {
+  const separator = detectOffersCsvSeparator(filePath);
   return new Promise((resolve, reject) => {
     const results = [];
     fs.createReadStream(filePath, { encoding: 'utf8' })
-      .pipe(csv())
+      .pipe(csv({ separator }))
       .on('data', (data) => results.push(cleanKeys(data)))
       .on('end', () => resolve(results))
       .on('error', reject);

@@ -4,9 +4,11 @@ import { apiUrl } from '../api';
 
 interface FooterProps {
   onBack?: (() => void) | null;
+  /** Hide API status orb (e.g. login screen mock-up). */
+  hideStatusOrb?: boolean;
 }
 
-const Footer: React.FC<FooterProps> = ({ onBack }) => {
+const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
   const [backendConnected, setBackendConnected] = useState(false);
 
   useEffect(() => {
@@ -43,12 +45,14 @@ const Footer: React.FC<FooterProps> = ({ onBack }) => {
         {/* Centre: wordmark + status dot */}
         <div className="footer-centre">
           <span className="footer-wordmark">dble.co | Flow MKTG &copy; 2026</span>
-          <div className="status-circles">
-            <div
-              className={`status-circle ${backendConnected ? 'connected' : 'disconnected'}`}
-              title={backendConnected ? 'API connected' : 'API disconnected'}
-            />
-          </div>
+          {!hideStatusOrb && (
+            <div className="status-circles">
+              <div
+                className={`status-circle ${backendConnected ? 'connected' : 'disconnected'}`}
+                title={backendConnected ? 'API connected' : 'API disconnected'}
+              />
+            </div>
+          )}
         </div>
       </div>
     </footer>

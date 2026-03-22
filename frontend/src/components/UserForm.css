@@ -374,6 +374,17 @@
   max-width: 480px !important;
 }
 
+/* Home Energizer: base rule is wide for large layouts; phones need a hard cap (iPad uses ipad.css ≥768px). */
+@media (max-width: 767px) {
+  .home-screen .home-armorall-logo {
+    max-width: min(168px, 46vw) !important;
+    max-height: min(96px, 12vh);
+    width: auto;
+    height: auto;
+    object-fit: contain;
+  }
+}
+
 .home-title {
   color: #333;
   margin-bottom: 10px;

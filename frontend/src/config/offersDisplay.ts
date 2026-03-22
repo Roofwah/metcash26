@@ -14,7 +14,7 @@ export const OFFER_CARD_IMAGE_BY_OFFER_KEY: Record<string, string> = {
   'armorall 3': '/products/wash.png',
   'armorall 4': '/products/slr.png',
   'armorall 5': '/products/fragrances.png',
-  'energizer 1': '/products/3024.png',
+  'energizer 1': '/products/penta.png',
   'energizer 2': '/products/3024.png',
   'energizer 3': '/products/3024.png',
   'energizer 4': '/products/1614.png',
@@ -63,19 +63,27 @@ export function isBatteryRetailStripOffer(offer: { offerGroup?: string }): boole
   return g.includes('battery') || g.includes('prepack') || g.includes('loose');
 }
 
+/** Normalise spaces so "Armor All 1" and "ArmorAll 1" both work. */
+function compactOfferId(offerId: string): string {
+  return offerId.replace(/\s+/g, '');
+}
+
 export function isEnergizerPalletOffer(offerId: string): boolean {
   if (typeof offerId !== 'string') return false;
-  return /^(Energizer [1-6])$/.test(offerId);
+  const s = compactOfferId(offerId.trim());
+  return /^Energizer[1-6]$/i.test(s);
 }
 
 export function isEvereadyPalletOffer(offerId: string): boolean {
   if (typeof offerId !== 'string') return false;
-  return /^Eveready [123]$/.test(offerId);
+  const s = compactOfferId(offerId.trim());
+  return /^Eveready[123]$/i.test(s);
 }
 
 export function isArmorAllPalletOffer(offerId: string): boolean {
   if (typeof offerId !== 'string') return false;
-  return /^ArmorAll [123]$/.test(offerId);
+  const s = compactOfferId(offerId.trim());
+  return /^ArmorAll[123]$/i.test(s);
 }
 
 export const PALLET_GROUP_BRANDS = ['Energizer', 'Eveready', 'Armor All'] as const;

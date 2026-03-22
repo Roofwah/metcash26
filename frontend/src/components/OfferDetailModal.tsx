@@ -148,7 +148,9 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
                   </div>
                 </div>
                 <div className="energizer-brand-images">
-                  {offerId.toLowerCase().includes('energizer 1') || offerId.toLowerCase().includes('energizer 2') || offerId.toLowerCase().includes('energizer 3') ? (
+                  {offerId.toLowerCase().includes('energizer 1') ? (
+                    <img src="/products/penta.png" alt="Energizer Product" className="energizer-product-image" />
+                  ) : offerId.toLowerCase().includes('energizer 2') || offerId.toLowerCase().includes('energizer 3') ? (
                     <img src="/products/3024.png" alt="Energizer Product" className="energizer-product-image" />
                   ) : (
                     <img src="/products/1614.png" alt="Energizer Product" className="energizer-product-image" />

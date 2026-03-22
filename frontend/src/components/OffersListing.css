@@ -558,10 +558,10 @@
 }
 
 .offer-group {
-  font-size: 0.9rem;
+  font-size: 1.2rem;
   color: #333;
-  line-height: 1.2;
-  font-weight: 600;
+  line-height: 1.25;
+  font-weight: 700;
   margin: 0;
   flex: 1;
 }
@@ -642,23 +642,38 @@
 }
 
 .offer-action-small {
-  margin-top: 0.5rem;
-  color: #666;
-  font-weight: 700;
-  font-size: 0.75rem;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  transition: all 0.2s;
+  margin-top: 0.65rem;
+  color: #fff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  padding: 0.65rem 1rem;
+  border: 2px solid #b91c1c;
+  border-radius: 8px;
+  transition: background 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.15s;
   text-align: center;
-  background: white;
+  background: #dc2626;
+  box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45);
   cursor: pointer;
   width: 100%;
 }
 
 .offer-action-small:hover {
-  background: #f5f5f5;
-  border-color: #999;
+  background: #b91c1c;
+  border-color: #991b1b;
+  box-shadow: 0 4px 14px rgba(185, 28, 28, 0.55);
+  transform: translateY(-1px);
+}
+
+.offer-action-small:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(185, 28, 28, 0.5);
+}
+
+.offer-action-small:focus-visible {
+  outline: 3px solid #fca5a5;
+  outline-offset: 2px;
 }
 
 .offer-quantity-controls {
@@ -822,7 +837,7 @@
   }
 
   .offer-group {
-    font-size: 0.9rem;
+    font-size: 1.1rem;
   }
 
   .highlight-value {

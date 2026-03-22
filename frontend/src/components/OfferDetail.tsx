@@ -50,8 +50,11 @@ const getOfferImages = (offerId: string, offerGroup: string): string[] => {
     return ['/products/1614.png'];
   }
   
-  // Energizer 30/24 packs - use card image
-  if (offerKey.includes('energizer 1') || offerKey.includes('energizer 2') || offerKey.includes('energizer 3') || groupKey.includes('30/24 packs')) {
+  // Energizer 30/24 packs - use card image (Energizer 1 = penta)
+  if (offerKey.includes('energizer 1')) {
+    return ['/products/penta.png'];
+  }
+  if (offerKey.includes('energizer 2') || offerKey.includes('energizer 3') || groupKey.includes('30/24 packs')) {
     return ['/products/3024.png'];
   }
   

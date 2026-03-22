@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Deck } from '../types/presentation';
 import SceneRenderer from './SceneRenderer';
+import LandscapeHint from '../../../components/LandscapeHint';
 import '../styles/presentation.css';
 
 interface Props {
@@ -202,6 +203,12 @@ const PresentationPlayer: React.FC<Props> = ({ deck, onClose, onCTAAction }) => 
           </svg>
         </button>
       </div>
+
+      <LandscapeHint
+        zIndex={10050}
+        bottomOffsetPx={68}
+        liftPx={14}
+      />
     </div>
   );
 };
