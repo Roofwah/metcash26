@@ -368,6 +368,39 @@
   margin-bottom: 1.5rem;
 }
 
+.offer-mode-banner {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.offer-mode-banner h3 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  color: #1f2937;
+}
+
+.offer-mode-banner p {
+  margin: 0 0 0.65rem;
+  color: #4b5563;
+  font-size: 0.88rem;
+}
+
+.line-quantity-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.line-qty-label {
+  font-size: 0.78rem;
+  color: #374151;
+  font-weight: 700;
+  min-width: 54px;
+}
+
 .offer-actions {
   display: flex;
   justify-content: center;

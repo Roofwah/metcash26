@@ -32,6 +32,9 @@ const LoadingStep: React.FC<LoadingStepProps> = ({ userData, onComplete }) => {
           suburb: d.suburb || '',
           state: d.state || '',
           pcode: d.pcode || '',
+          storeId: (d.storeId != null && String(d.storeId).trim() !== '') ? String(d.storeId).trim() : undefined,
+          storeRank: d.storeRank ?? null,
+          ownerGroup: (d.ownerGroup || '').trim() || undefined,
         });
         setStoreInfo({
           storeName: d.storeName || `Store ${userData.storeNo}`,

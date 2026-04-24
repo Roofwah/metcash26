@@ -6,15 +6,27 @@ import { apiUrl, StoreData } from '../api';
 interface McashStore {
   id: number;
   name: string;
+  storeId?: string;
   address: string;
   suburb: string;
   state: string;
   pcode: string;
   banner: string;
+  storeRank?: number | null;
+  ownerGroup?: string;
 }
 
 interface UserFormProps {
-  onSubmit: (data: { fullName: string; storeNo: string; position: string }, storeData?: StoreData) => void;
+  onSubmit: (
+    data: { fullName: string; storeNo: string; position: string },
+    storeData?: StoreData
+  ) => void;
+  /** MSO path: after group + store selection, parent opens the offer matrix */
+  onMsoStoresSubmit?: (
+    data: { fullName: string; storeNo: string; position: string },
+    payload: { group: string; stores: StoreData[] }
+  ) => void;
+  initialFullName?: string;
   onThankYouComplete?: () => void;
   showThankYou?: boolean;
   userData?: { fullName: string; storeNo: string; position: string };
@@ -27,10 +39,20 @@ const STEP_NAME = 1;
 const STEP_STATE = 2;
 const STEP_SUBURB = 3;
 const STEP_BANNER = 4;
+const STEP_MSO_GROUPS = 5;
+const STEP_MSO_STORES = 6;
 
-const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showThankYou: externalShowThankYou, userData: externalUserData, onBackChange }) => {
+const UserForm: React.FC<UserFormProps> = ({
+  onSubmit,
+  onMsoStoresSubmit,
+  initialFullName = '',
+  onThankYouComplete,
+  showThankYou: externalShowThankYou,
+  userData: externalUserData,
+  onBackChange,
+}) => {
   const [currentStep, setCurrentStep] = useState(STEP_HOME);
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName] = useState(initialFullName);
   const [states, setStates] = useState<string[]>([]);
   const [suburbs, setSuburbs] = useState<string[]>([]);
   const [storesInSuburb, setStoresInSuburb] = useState<McashStore[]>([]);
@@ -39,6 +61,14 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [storeInfo, setStoreInfo] = useState<{ storeName: string } | null>(null);
+  const [msoGroups, setMsoGroups] = useState<string[]>([]);
+  const [selectedMsoGroup, setSelectedMsoGroup] = useState('');
+  const [storesInMsoGroup, setStoresInMsoGroup] = useState<McashStore[]>([]);
+  const [selectedMsoStoreIds, setSelectedMsoStoreIds] = useState<Set<number>>(new Set());
+
+  useEffect(() => {
+    if (initialFullName) setFullName(initialFullName);
+  }, [initialFullName]);
 
   useEffect(() => {
     if (externalShowThankYou && externalUserData?.storeNo) {
@@ -97,6 +127,9 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
     const storeData: StoreData = {
       storeNo: store.name,
       storeName: store.name,
+      storeId: (store.storeId || '').trim(),
+      storeRank: store.storeRank ?? null,
+      ownerGroup: (store.ownerGroup || '').trim(),
       banner: store.banner || '-',
       overall: '',
       automotive: '',
@@ -114,6 +147,51 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
     );
   };
 
+  const mcashStoreToStoreData = (store: McashStore, groupName: string): StoreData => ({
+    storeNo: store.name,
+    storeName: store.name,
+    storeId: (store.storeId || '').trim(),
+    storeRank: store.storeRank ?? null,
+    ownerGroup: (store.ownerGroup || '').trim() || groupName,
+    msoGroup: groupName,
+    banner: store.banner || '-',
+    overall: '',
+    automotive: '',
+    energyStorage: '',
+    lighting: '',
+    specialOrderHardware: '',
+    address: store.address || '',
+    suburb: store.suburb || '',
+    state: store.state || '',
+    pcode: store.pcode || '',
+  });
+
+  useEffect(() => {
+    if (currentStep !== STEP_MSO_GROUPS) return;
+    setLoading(true);
+    setMsoGroups([]);
+    axios
+      .get(apiUrl('/api/mcash-groups'))
+      .then((res) => setMsoGroups(Array.isArray(res.data) ? res.data : []))
+      .catch(() => setMsoGroups([]))
+      .finally(() => setLoading(false));
+  }, [currentStep]);
+
+  useEffect(() => {
+    if (currentStep !== STEP_MSO_STORES || !selectedMsoGroup) return;
+    setLoading(true);
+    setStoresInMsoGroup([]);
+    axios
+      .get(apiUrl('/api/mcash-stores-by-group'), { params: { group: selectedMsoGroup } })
+      .then((res) => {
+        const list = Array.isArray(res.data) ? res.data : [];
+        setStoresInMsoGroup(list);
+        setSelectedMsoStoreIds(new Set(list.map((s: McashStore) => s.id)));
+      })
+      .catch(() => setStoresInMsoGroup([]))
+      .finally(() => setLoading(false));
+  }, [currentStep, selectedMsoGroup]);
+
   const handleStart = () => {
     setCurrentStep(STEP_NAME);
     setError('');
@@ -124,6 +202,14 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
     else if (currentStep === STEP_STATE) setCurrentStep(STEP_NAME);
     else if (currentStep === STEP_SUBURB) setCurrentStep(STEP_STATE);
     else if (currentStep === STEP_BANNER) setCurrentStep(STEP_SUBURB);
+    else if (currentStep === STEP_MSO_STORES) {
+      setCurrentStep(STEP_MSO_GROUPS);
+      setStoresInMsoGroup([]);
+    } else if (currentStep === STEP_MSO_GROUPS) {
+      setCurrentStep(STEP_STATE);
+      setSelectedMsoGroup('');
+      setMsoGroups([]);
+    }
     setError('');
   };
 
@@ -141,6 +227,42 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
 
   const handleStoreSelect = (store: McashStore) => {
     submitWithStore(store);
+  };
+
+  const handleMsoEntry = () => {
+    setSelectedMsoGroup('');
+    setStoresInMsoGroup([]);
+    setSelectedMsoStoreIds(new Set());
+    setCurrentStep(STEP_MSO_GROUPS);
+  };
+
+  const handleMsoGroupSelect = (group: string) => {
+    setSelectedMsoGroup(group);
+    setCurrentStep(STEP_MSO_STORES);
+  };
+
+  const toggleMsoStore = (id: number) => {
+    setSelectedMsoStoreIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleMsoStoresContinue = () => {
+    if (!selectedMsoGroup || !onMsoStoresSubmit) return;
+    const selected = storesInMsoGroup.filter((s) => selectedMsoStoreIds.has(s.id));
+    if (selected.length === 0) {
+      setError('Select at least one store.');
+      return;
+    }
+    setError('');
+    const stores = selected.map((s) => mcashStoreToStoreData(s, selectedMsoGroup));
+    onMsoStoresSubmit(
+      { fullName: formatName(fullName.trim()), storeNo: stores[0].storeName, position: '' },
+      { group: selectedMsoGroup, stores }
+    );
   };
 
   const formatName = (name: string) => {
@@ -207,11 +329,79 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
             {loading ? (
               <div className="loading-message">Loading states...</div>
             ) : (
-              <div className="choice-buttons">
-                {states.map(s => (
-                  <button key={s} type="button" className="choice-btn" onClick={() => handleStateSelect(s)}>{s}</button>
+              <>
+                <div className="choice-buttons">
+                  {states.map(s => (
+                    <button key={s} type="button" className="choice-btn" onClick={() => handleStateSelect(s)}>{s}</button>
+                  ))}
+                  <button type="button" className="choice-btn" onClick={handleMsoEntry}>
+                    MSO
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+        );
+      case STEP_MSO_GROUPS:
+        return (
+          <div className="step-content">
+            <div className="logo-container">
+              <img src="/energizer.png" alt="Energizer Logo" className="logo" />
+            </div>
+            <p className="typing-text">MSO</p>
+            <h3>Select your group</h3>
+            {loading ? (
+              <div className="loading-message">Loading groups...</div>
+            ) : msoGroups.length === 0 ? (
+              <div className="error-message">No groups found. Use state / suburb instead.</div>
+            ) : (
+              <div className="choice-buttons suburbs-list mso-group-list">
+                {msoGroups.map((g) => (
+                  <button key={g} type="button" className="choice-btn" onClick={() => handleMsoGroupSelect(g)}>
+                    {g}
+                  </button>
                 ))}
               </div>
+            )}
+          </div>
+        );
+      case STEP_MSO_STORES:
+        return (
+          <div className="step-content">
+            <div className="logo-container">
+              <img src="/energizer.png" alt="Energizer Logo" className="logo" />
+            </div>
+            <p className="typing-text">MSO</p>
+            <h3>Select stores ({selectedMsoGroup})</h3>
+            {loading ? (
+              <div className="loading-message">Loading stores...</div>
+            ) : storesInMsoGroup.length > 0 ? (
+              <>
+                <div className="mso-store-checklist" role="group" aria-label="Stores in group">
+                  {storesInMsoGroup.map((store) => (
+                    <label key={store.id} className="mso-store-check-row">
+                      <input
+                        type="checkbox"
+                        checked={selectedMsoStoreIds.has(store.id)}
+                        onChange={() => toggleMsoStore(store.id)}
+                      />
+                      <span className="mso-store-check-name">{store.name}</span>
+                    </label>
+                  ))}
+                </div>
+                <div className="form-navigation step-1-nav">
+                  <button
+                    type="button"
+                    onClick={handleMsoStoresContinue}
+                    className="nav-btn next-btn"
+                    disabled={!onMsoStoresSubmit}
+                  >
+                    Continue
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="error-message">No stores for this group.</div>
             )}
           </div>
         );
@@ -250,6 +440,11 @@ const UserForm: React.FC<UserFormProps> = ({ onSubmit, onThankYouComplete, showT
                   <button key={store.id} type="button" className="choice-btn store-btn" onClick={() => handleStoreSelect(store)}>
                     <span className="store-btn-banner">{store.banner}</span>
                     <span className="store-btn-name">{store.name}</span>
+                    {(store.pcode || store.ownerGroup) ? (
+                      <span className="store-btn-meta">
+                        {[store.pcode, store.ownerGroup].filter(Boolean).join(' · ')}
+                      </span>
+                    ) : null}
                   </button>
                 ))}
               </div>

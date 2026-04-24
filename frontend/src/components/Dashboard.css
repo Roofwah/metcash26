@@ -14,11 +14,16 @@
   background: #ffffff;
   border-radius: 16px;
   width: min(96vw, 920px);
+  min-height: min(320px, 40dvh);
   max-height: 90dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.dashboard-modal--wide {
+  width: min(98vw, 1080px);
 }
 
 /* ── Header ── */
@@ -66,7 +71,8 @@
 .dashboard-summary {
   display: flex;
   align-items: center;
-  gap: 1.5rem;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.5rem;
   padding: 0.8rem 1.4rem;
   background: #f8f8fa;
   border-bottom: 1px solid #eee;
@@ -96,6 +102,7 @@
 /* Toggle */
 .dashboard-view-toggle {
   display: flex;
+  flex-wrap: wrap;
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
@@ -259,3 +266,90 @@
 }
 
 .dashboard-error { color: #dc2626; }
+
+/* ── FY25 vs orders compare ── */
+.dashboard-compare {
+  flex: 1 1 auto;
+  min-height: 12rem;
+  overflow-y: auto;
+  padding: 0.75rem 1.4rem 1.25rem;
+  color: #222;
+}
+
+.dashboard-compare-intro {
+  margin: 0 0 0.85rem;
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: #555;
+}
+
+.dashboard-compare-warn {
+  margin: 0 0 0.75rem;
+  font-size: 0.78rem;
+  color: #b45309;
+  font-weight: 600;
+}
+
+.dashboard-compare-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid #e8e8ec;
+}
+
+.dashboard-compare-table {
+  width: 100%;
+  min-width: 640px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.dashboard-compare-table thead th {
+  background: #f0f0f4;
+  padding: 0.5rem 0.65rem;
+  text-align: left;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+  border-bottom: 2px solid #ddd;
+  white-space: nowrap;
+}
+
+.dashboard-compare-table thead th.num,
+.dashboard-compare-table tbody td.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.dashboard-compare-table tbody td {
+  padding: 0.45rem 0.65rem;
+  border-bottom: 1px solid #f0f0f0;
+  color: #222;
+  vertical-align: top;
+}
+
+.dashboard-compare-cat {
+  font-weight: 600;
+  color: #1a1a2e;
+  word-break: break-word;
+  max-width: 14rem;
+}
+
+.dashboard-compare-unmapped td {
+  background: #fffbeb;
+  color: #92400e;
+  font-size: 0.76rem;
+}
+
+.dashboard-compare-table .dashboard-total-row td {
+  text-align: right;
+}
+
+.dashboard-compare-table .dashboard-total-row td:first-child {
+  text-align: left;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.55);
+}

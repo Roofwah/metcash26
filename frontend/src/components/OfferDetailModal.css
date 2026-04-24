@@ -1,290 +1,565 @@
+/* Offer detail modal — iPad-friendly: split media, card-based line items, 16px+ body */
+
 .offer-detail-modal-overlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(0, 0, 0, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
-  padding: 1rem;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Landscape tablets / iPad: modal sits too high — nudge down 50px (no max-width: iPad Pro exceeds 1366) */
+@media (orientation: landscape) and (min-width: 600px) {
+  .offer-detail-modal-content {
+    transform: translateY(50px);
+    -webkit-transform: translateY(50px);
+  }
 }
 
 .offer-detail-modal-content {
-  background: white;
-  border-radius: 12px;
-  max-width: 800px;
+  background: #fafbfc;
+  border-radius: 16px;
+  max-width: min(100vw - 1.5rem, 960px);
   width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-  position: relative;
+  max-height: min(92dvh, 920px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+.offer-detail-modal-content--split {
+  max-width: min(100vw - 1.5rem, 1100px);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e8e8e8;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid #e5e7eb;
   position: sticky;
   top: 0;
-  background: white;
+  background: linear-gradient(180deg, #ffffff 0%, #f9fafb 100%);
   z-index: 10;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
   margin: 0;
-  font-size: 1.5rem;
-  color: #2d2d2d;
+  font-size: clamp(1.15rem, 2.8vw, 1.45rem);
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  padding-right: 0.5rem;
 }
 
 .close-button {
-  background: none;
+  background: #f3f4f6;
   border: none;
-  font-size: 2rem;
+  font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
-  color: #666;
+  color: #374151;
   padding: 0;
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s;
+  border-radius: 12px;
+  flex-shrink: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+  touch-action: manipulation;
 }
 
 .close-button:hover {
-  background: #f0f0f0;
-  color: #2d2d2d;
+  background: #e5e7eb;
+  color: #111827;
 }
 
 .modal-body {
-  padding: 1.5rem;
+  padding: 1rem 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: #1f2937;
 }
 
-.offer-info {
-  margin-bottom: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #e8e8e8;
+/* iPad+: media left, copy + SKUs right */
+.modal-body--split {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.25rem;
+  align-items: start;
 }
 
-.offer-info p {
-  margin: 0.5rem 0;
-  color: #333;
+@media (min-width: 768px) {
+  .modal-body--split {
+    grid-template-columns: minmax(260px, 38%) minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 1.25rem 1.5rem 1.75rem;
+  }
 }
 
-.offer-items-table {
+.modal-csv-column {
+  min-width: 0;
+}
+
+.modal-main-column {
+  min-width: 0;
+}
+
+/* Prose when there is no split column (no CSV media URLs) — same copy as left column when split */
+.modal-offer-copy {
+  margin-bottom: 1rem;
+}
+
+.modal-offer-copy__message,
+.modal-offer-copy__other {
+  margin: 0 0 0.65rem;
+  color: #374151;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.modal-offer-copy__other:last-child,
+.modal-offer-copy__message:last-child {
+  margin-bottom: 0;
+}
+
+.modal-csv-media {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  position: sticky;
+  top: 0;
+}
+
+@media (min-width: 768px) {
+  .modal-csv-media {
+    top: 0.5rem;
+  }
+}
+
+.modal-csv-logo {
+  max-height: 52px;
+  width: auto;
+  object-fit: contain;
+  align-self: flex-start;
+}
+
+.modal-csv-hero,
+.modal-csv-product {
+  display: block;
   width: 100%;
-  border-collapse: collapse;
-  margin-top: 1rem;
+  max-width: 100%;
+  max-height: clamp(160px, 28vh, 320px);
+  height: auto;
+  object-fit: contain;
+  object-position: center top;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
 }
 
-.offer-items-table th,
-.offer-items-table td {
-  padding: 0.75rem;
-  text-align: left;
-  border-bottom: 1px solid #e8e8e8;
+.modal-csv-message,
+.modal-csv-other {
+  margin: 0;
+  color: #374151;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
-.offer-items-table th {
-  background: #f5f5f5;
+.modal-editorial-h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1.3;
+}
+
+.modal-editorial-h2 {
+  margin: 0 0 0.65rem;
+  font-size: 0.88rem;
   font-weight: 600;
-  color: #2d2d2d;
+  color: #6b7280;
+  line-height: 1.4;
 }
 
-.offer-items-table td {
-  color: #333;
+.modal-editorial-callouts {
+  margin: 0.5rem 0 0;
+  padding-left: 1.15rem;
+  color: #374151;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.modal-editorial-callouts li {
+  margin-bottom: 0.35rem;
+}
+
+.modal-editorial-callouts li:last-child {
+  margin-bottom: 0;
+}
+
+/* POS (backend/pos.csv) — supporting shelf / kit copy, separate from commercial SKUs */
+.modal-pos {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.modal-pos--main {
+  margin-bottom: 1rem;
+}
+
+.modal-pos__heading {
+  margin: 0 0 0.5rem;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #6b7280;
+}
+
+.modal-pos__text {
+  margin: 0 0 0.5rem;
+  color: #374151;
+  font-size: 0.92rem;
+  line-height: 1.5;
+}
+
+.modal-pos__text--split {
+  font-size: 0.9rem;
+}
+
+.modal-pos__list {
+  margin: 0;
+  padding-left: 1.15rem;
+  color: #1f2937;
+  font-size: 0.88rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.modal-pos__list li {
+  margin-bottom: 0.3rem;
+}
+
+.modal-pos__list li:last-child {
+  margin-bottom: 0;
+}
+
+/* Brand / legacy blocks */
+.offer-info {
+  margin-bottom: 1rem;
+}
+
+.offer-info--strip {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.65rem 1.25rem;
+  padding: 0.85rem 1rem;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 480px) {
+  .offer-info--strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.offer-info--strip p {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.offer-info--strip strong {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+
+.offer-info--strip span {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #111827;
+}
+
+.offer-modal-footnote {
+  margin: 0 0 1rem;
+  font-size: 0.9rem;
+  color: #4b5563;
+  line-height: 1.45;
+}
+
+.offer-modal-footnote strong {
+  color: #111827;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Line item cards (replaces cramped table) */
+.offer-line-card-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.offer-line-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1rem 1.1rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.offer-line-card-title {
+  margin: 0 0 0.85rem;
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #111827;
+  line-height: 1.35;
+}
+
+.offer-line-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem 1rem;
+  margin: 0;
+}
+
+@media (min-width: 600px) {
+  .offer-line-card-metrics {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+.offer-line-metric {
+  margin: 0;
+}
+
+.offer-line-metric dt {
+  margin: 0 0 0.2rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7280;
+  line-height: 1.2;
+}
+
+.offer-line-metric dd {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: #111827;
+  line-height: 1.25;
+}
+
+.offer-line-metric--highlight dd {
+  color: #0f766e;
+}
+
+.offer-line-metric--accent dd {
+  color: #b45309;
+  font-weight: 700;
 }
 
 .tier-section {
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
 }
 
-.tier-section h3 {
-  margin: 0 0 1rem 0;
-  color: #2d2d2d;
-  font-size: 1.2rem;
+.tier-section:last-child {
+  margin-bottom: 0;
+}
+
+.tier-section-title {
+  margin: 0 0 0.75rem;
+  font-size: 1rem;
+  font-weight: 800;
+  color: #1e3a5f;
+  letter-spacing: -0.01em;
 }
 
 .modal-loading,
 .modal-error {
   padding: 2rem;
   text-align: center;
-  color: #666;
+  color: #6b7280;
+  font-size: 1rem;
+}
+
+.modal-error {
+  color: #b91c1c;
 }
 
 .modal-close-btn {
   margin: 1rem auto;
   display: block;
-  padding: 0.5rem 1.5rem;
-  background: #2d2d2d;
-  color: white;
+  padding: 0.65rem 1.5rem;
+  min-height: 44px;
+  background: #111827;
+  color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
   cursor: pointer;
   font-weight: 600;
+  font-size: 1rem;
+  touch-action: manipulation;
 }
 
 .modal-close-btn:hover {
-  background: #1a1a1a;
+  background: #000;
 }
 
-.eveready-brand-card {
-  background: #f8f9fa;
-  border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
+/* Legacy brand cards — spacing for split column */
+.eveready-brand-card,
+.energizer-brand-card,
+.armorall-brand-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.25rem;
 }
 
-.eveready-brand-content {
+.eveready-brand-content,
+.energizer-brand-content,
+.armorall-brand-content {
   display: flex;
   align-items: flex-start;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+  .eveready-brand-content,
+  .energizer-brand-content,
+  .armorall-brand-content {
+    gap: 1.25rem;
+  }
+}
+
+.eveready-brand-content--logo-only,
+.energizer-brand-content--logo-only,
+.armorall-brand-content--logo-only {
+  justify-content: center;
+  align-items: center;
 }
 
 .eveready-logo {
-  height: 80px;
+  height: 72px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
 }
 
-.eveready-brand-text {
-  flex: 1;
-}
-
 .eveready-brand-headline {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 700;
-  color: #2d2d2d;
-  margin: 0 0 0.75rem 0;
+  color: #111827;
+  margin: 0 0 0.5rem;
   line-height: 1.3;
 }
 
 .eveready-brand-description {
-  font-size: 1rem;
-  color: #555;
+  font-size: 0.95rem;
+  color: #4b5563;
   margin: 0;
   line-height: 1.5;
 }
 
-.eveready-brand-images {
+.eveready-brand-images,
+.energizer-brand-images,
+.armorall-brand-images {
   display: flex;
   justify-content: center;
-  align-items: center;
-  gap: 2rem;
   flex-wrap: wrap;
 }
 
 .eveready-product-image {
-  max-width: 450px;
+  max-width: min(100%, 420px);
   height: auto;
   object-fit: contain;
 }
 
 .energizer-brand-card {
-  background: #f8f9fa;
-  border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.energizer-brand-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
+  padding: 1.25rem;
 }
 
 .energizer-logo {
-  height: 80px;
+  height: 72px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-.energizer-brand-text {
-  flex: 1;
 }
 
 .energizer-brand-bullets {
   list-style: none;
   padding: 0;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.75rem;
   text-align: left;
 }
 
 .energizer-brand-bullets li {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: #2d2d2d;
-  margin-bottom: 0.4rem;
-  padding-left: 1.5rem;
+  color: #111827;
+  margin-bottom: 0.35rem;
+  padding-left: 1.25rem;
   position: relative;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .energizer-brand-bullets li:before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: 0;
-  color: #2d2d2d;
+  color: #111827;
   font-weight: 700;
-  font-size: 1.2rem;
 }
 
 .energizer-brand-description {
-  font-size: 1rem;
-  color: #555;
+  font-size: 0.95rem;
+  color: #4b5563;
   margin: 0;
   line-height: 1.5;
 }
 
-.energizer-brand-images {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  flex-wrap: wrap;
-}
-
 .energizer-product-image {
-  max-width: 450px;
+  max-width: min(100%, 420px);
   height: auto;
   object-fit: contain;
 }
 
-.armorall-brand-card {
-  background: #f8f9fa;
-  border: 1px solid #e8e8e8;
-  border-radius: 12px;
-  padding: 2rem;
-  margin-bottom: 2rem;
-}
-
-.armorall-brand-content {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  margin-bottom: 1.5rem;
-}
-
 .armorall-logo {
-  height: 120px;
+  height: 100px;
   width: auto;
   object-fit: contain;
   flex-shrink: 0;
-}
-
-.armorall-brand-text {
-  flex: 1;
 }
 
 .armorall-brand-bullets {
@@ -295,34 +570,23 @@
 }
 
 .armorall-brand-bullets li {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   font-weight: 700;
-  color: #2d2d2d;
-  margin-bottom: 0.4rem;
-  padding-left: 1.5rem;
+  color: #111827;
+  margin-bottom: 0.35rem;
+  padding-left: 1.25rem;
   position: relative;
-  line-height: 1.3;
+  line-height: 1.35;
 }
 
 .armorall-brand-bullets li:before {
-  content: "•";
+  content: '•';
   position: absolute;
   left: 0;
-  color: #2d2d2d;
-  font-weight: 700;
-  font-size: 1.2rem;
-}
-
-.armorall-brand-images {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  gap: 2rem;
-  flex-wrap: wrap;
 }
 
 .armorall-product-image {
-  max-width: 450px;
+  max-width: min(100%, 420px);
   height: auto;
   object-fit: contain;
 }
@@ -330,46 +594,13 @@
 .modal-product-image-section {
   display: flex;
   justify-content: center;
-  align-items: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
 }
 
 .modal-product-image {
-  max-width: 450px;
+  max-width: min(100%, 440px);
   width: 100%;
   height: auto;
   object-fit: contain;
+  border-radius: 12px;
 }
-
-/* CSV-driven Logo / Hero / Product (offers.csv) */
-.modal-csv-media {
-  margin-bottom: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.modal-csv-logo {
-  max-height: 56px;
-  width: auto;
-  object-fit: contain;
-  align-self: flex-start;
-}
-
-.modal-csv-hero,
-.modal-csv-product {
-  width: 100%;
-  max-width: 100%;
-  height: auto;
-  object-fit: contain;
-  border-radius: 8px;
-}
-
-.modal-csv-message,
-.modal-csv-other {
-  margin: 0;
-  color: #333;
-  font-size: 0.95rem;
-  line-height: 1.45;
-}
-

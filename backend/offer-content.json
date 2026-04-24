@@ -10,7 +10,7 @@
   {
     "offer": "Eveready Tower Pre-Pack",
     "logo": "eready.png",
-    "hero": "tower.png",
+    "hero": "evereadyaa.png",
     "h1": "The No. 1 Value Brand in Australia",
     "h2": "Marketing investment delivering over $2M media value",
     "body": "Give your customers reliable everyday batteries at unbeatable expo pricing. The Eveready Tower Pre-Pack is a proven shelf performer."
@@ -56,7 +56,7 @@
     "body": "Button cells, coin batteries, and specialty sizes — the products customers can't find everywhere. Fill the gap in your range at expo pricing."
   },
   {
-    "offer": "ARMOR ALL Range Loose",
+    "offer": "Armor All®  Range Loose",
     "logo": "aall.png",
     "hero": "carcare.png",
     "h1": "PROTECT WHAT MATTERS",
@@ -64,9 +64,14 @@
     "body": "Australia's #1 car care brand. Armor All protectants, washes, wipes and tyre shine — a complete range your customers trust."
   },
   {
-    "offer": "Jelly Belly Range Loose Stock Deal",
+    "offer": "Armor All® Quick Clean Kit",
+    "logo": "aall.png",
+    "hero": "cleankit.png"
+  },
+  {
+    "offer": "Jelly Belly® Range Loose",
     "logo": "jelly.png",
-    "hero": "fragrances.png",
+    "hero": "frag.png",
     "h1": "FRESH SCENTS. BIG DEALS.",
     "h2": "50% OFF EXPO PRICING",
     "body": "Jelly Belly air fresheners bring bold, fun fragrances to the auto category. High impulse purchase, strong margin, easy to merchandise."

@@ -5,6 +5,7 @@ import InsightStatScene from './scenes/InsightStatScene';
 import SplitImageTextScene from './scenes/SplitImageTextScene';
 import OfferScene from './scenes/OfferScene';
 import ClosingCTAScene from './scenes/ClosingCTAScene';
+import StaggeredImagesScene from './scenes/StaggeredImagesScene';
 
 interface Props {
   scene: SceneConfig;
@@ -27,6 +28,8 @@ const SceneRenderer: React.FC<Props> = ({ scene, onCTA }) => {
       return <OfferScene scene={scene} onCTA={onCTA} />;
     case 'closing-cta':
       return <ClosingCTAScene scene={scene} onCTA={onCTA} />;
+    case 'staggered-images':
+      return <StaggeredImagesScene scene={scene} onCTA={onCTA} />;
     default:
       return null;
   }

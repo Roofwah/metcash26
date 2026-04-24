@@ -1,0 +1,44 @@
+================================================================================
+OFFER DATA VS EDITORIAL VS POS
+================================================================================
+
+COMMERCIAL FACTS (SKUs, costs, tiers) — the sales offer
+  • Edit: backend/offers.csv
+  • Reload: POST http://localhost:5001/api/reload-offers
+    (or restart the Node server)
+
+POS (POINT OF SALE) — supporting material only; not part of the commercial offer rows
+  • Edit: backend/pos.csv
+  • Columns: OFFER | Description | Callout
+  • OFFER must match the OFFER column in offers.csv (same normalised matching as JSON).
+  • Description = POS / shelf / kit copy (paragraph).
+  • Callout = short line(s). Use | to separate multiple callouts (e.g. 50% off | Limited time).
+  • Reload: same POST /api/reload-offers as above.
+
+MESSAGING, HEADLINES, IMAGES, EDITORIAL CALLOUTS (hero, modal marketing)
+  • Edit: backend/offer-content.json
+  • Same reload as above — no frontend .ts files, no rebuild for API-driven dev.
+
+MATCHING ROWS TO EDITORIAL
+  • Each JSON object has "offer": "<exact OFFER cell from offers.csv>"
+  • Matching ignores spaces and punctuation (e.g. ®), so names stay stable when CSV wording shifts slightly.
+
+JSON FIELDS (all optional except "offer")
+  offer          — must match the OFFER id from offers.csv
+  logo           — filename under frontend/public/products/
+  hero           — filename under frontend/public/products/
+  productImage   — optional; used if no hero
+  modalTitle     — modal blue-bar title (defaults to Offer Group from CSV)
+  h1, h2         — short headline + subline above the main paragraph
+  body           — main paragraph (shown as "message" in the API)
+  other          — second paragraph
+  callouts       — array of short bullet strings
+
+UI LABELS (Qty, Expo charge back, errors, …)
+  • Edit: frontend/src/content/modalCopy.ts — English labels only, not offer copy.
+
+PRODUCTION
+  • After changing the React app code: npm run build in frontend/
+  • Editorial-only changes: reload API (or redeploy); JSON is read at reload.
+
+================================================================================

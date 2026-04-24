@@ -1,0 +1,869 @@
+
+
+
+/****
+*****
+***** CSS file for AdminSuite
+***** Recent Modification Date: 12/09/18
+***** Test Link : https://nebula.kampyle.com/dig-preview/build/index.html?digitalHost=nebula.kampyle.com&websiteId=81152&formId=18567&propertyType=website
+***** 
+*****
+****/
+
+
+/*-----------------------------------------------------------------------------------*/
+
+/********************************/
+/* Setting fonts */
+/********************************/
+
+/*Declaring fonts*/
+
+@font-face {
+    font-family: font1;
+    src: url(https://assets.kampyle.com/clients/nebula/bunnings/bunningsfont.woff);
+}
+@font-face {
+    font-family: font2;
+    src: url(https://assets.kampyle.com/clients/nebula/bunnings/futura-heavy.woff);
+}
+
+@font-face {
+    font-family: "HelveticaNeue-Bold";
+    src: url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.eot"); /* IE9 Compat Modes */
+    src: url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.eot?#iefix") format("embedded-opentype"), /* IE6-IE8 */
+    url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.otf") format("opentype"), /* Open Type Font */
+    url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.svg") format("svg"), /* Legacy iOS */
+    url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.ttf") format("truetype"), /* Safari, Android, iOS */
+    url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.woff") format("woff"), /* Modern Browsers */
+    url("https://assets.kampyle.com/clients/nebula/bunnings/fonts/HelveticaNeueBold.woff2") format("woff2"); /* Modern Browsers */
+    font-weight: normal;
+    font-style: normal;
+}
+
+/*-----------------------------------------------------------------------------------*/
+
+/********************************/
+/* Page Layout */
+/********************************/
+
+/*Setting up form padding*/
+.page-container{
+    padding: 30px !important;
+}
+
+html{
+    background-color: #F5F5F5;
+    margin: auto !important;
+    max-width: 1280px;
+    min-height: 315px;
+}
+
+#form{
+    margin: 40px auto !important;
+}
+
+/*-----------------------------------------------------------------------------------*/
+
+/********************************/
+/* Adjusting Close "X" button */
+/********************************/
+
+/*Adjusting the closs "X" button*/
+.close-btn-row {
+    width: 27px !important;
+    /* position: absolute; */
+    right: 0px;
+    top: 15px;
+}
+.close-btn-row button{
+    font-size: 30px !important;
+    font-weight: 100 !important;
+}
+
+legend, label, .control-label, button, span, p{
+    font-family: Helvetica !important;
+}
+
+/********************************/
+/* Radio buttons */
+/********************************/
+.radioul{
+    list-style: none !important;
+    /* margin-top: 30px !important; */
+    position: relative;
+    padding-inline-start: 0px;
+    padding: 0px;
+}
+
+.radioButtons [type="radio"]:checked,
+.radioButtons [type="radio"]:not(:checked) {
+    position: absolute;
+    left: -9999px;
+}
+.radioButtons [type="radio"]:checked + label:after,
+.radioButtons [type="radio"]:not(:checked) + label:after{
+    border-radius: 50%;
+    width: 56px !important;
+    height: 56px !important;
+    margin-top: 8px;
+    border: 1px solid #e0e0e0;
+    line-height: unset !important;
+    background: #fff;
+    cursor: pointer;
+    font-weight: 400 !important;
+    position: relative;
+    left: 4%;
+    padding-top: 14px;
+}
+
+
+.radioButtons [type="radio"][value="1"] + label:after{
+    content: url('https://assets.kampyle.com/clients/nebula/bunnings/ThumbsUp.svg');
+}
+
+.radioButtons [type="radio"][value="2"] + label:after{
+    content: url('https://assets.kampyle.com/clients/nebula/bunnings/ThumbsDown.svg');
+}
+
+.radioButtons [type="radio"][value="1"]:checked + label:after{
+    background: #0D5257;
+    content: url('https://assets.kampyle.com/clients/nebula/bunnings/ThumbsUpWhite.svg');
+}
+
+.radioButtons [type="radio"][value="2"]:checked + label:after{
+    background: #0D5257;
+    content: url('https://assets.kampyle.com/clients/nebula/bunnings/ThumbsDownWhite.svg');
+}
+
+/*-----------------------------------------------------------------------------------*/
+
+/********************************/
+/* TextArea and DropDown */
+/********************************/
+.neb-textArea{
+    position: relative;
+    max-width: 340px;
+    margin: auto;
+}
+
+textarea.form-control{
+    font-family: helvetica !important;
+    font-size:16px;
+}
+
+.textArea-container {
+    position: relative;
+    max-width: 340px;
+    margin: auto;
+}
+
+.textArea-container .label-unFocused {
+    display: none;
+}
+
+.textArea-container .label-focused {
+    display: block;
+    position: absolute;
+    background-color: #F5F5F5 !important;
+    color: #222222;
+    font-size: 12px;
+    top: -10px;
+    max-width: 300px;
+    width: auto !important;
+    left: 10px;
+    text-align: left !important;
+    padding: 0 4px;
+}
+
+/********************************/
+/* Buttons */
+/********************************/
+#submitBtn, #nextBtn{
+    height: 48px;
+    width: 208px;
+    line-height: 0;
+    font-size: 14px;
+    background-color: #DA2A1B !important;
+    border: 1px solid transparent !important;
+    color: #FFFFFF !important;
+    border-radius: 0% !important;
+    /*  padding: 20px 32px;*/
+    font-family: 'HelveticaNeue-Bold' !important;
+    display: none;
+    margin-bottom: 24px;
+    background-image: none;
+}
+
+.kmp_has_error {
+    color: #ed0700; }
+
+
+.sectionBreak {
+    height: 1px;
+    border-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #c6c6c6; }
+
+
+.required {
+    color: #e51b24;
+    display: none; }
+
+
+
+/*Below changes are to adjust form dimensions*/
+#form{
+    margin: 0 auto;
+    /* position: relative; */
+    /*margin-top:5%;*/
+    margin-top: 6vh;
+    background-color:white;
+}
+.page-container{
+    width: 450px;
+    height:auto !important;
+}
+#footerSection{
+    width: 450px;
+    position:relative !important;
+    padding-right:  55px;
+}
+.btnsRow{
+    float:right;
+    display: flex !important;
+}
+@media only screen and (min-width:960px) and (max-width: 2350px) {
+
+    #form{
+        width: 100% !important;
+        margin: 0 auto;
+        position: relative;
+        background-color:white;
+    }
+    .page-container{
+        width: 100%;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+}
+
+@media only screen and (min-width:801px) and (max-width: 959px) {
+    #form{
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        /* margin-top:0% !important; */
+        background-color:white;
+    }
+    .page-container{
+        width: 100%;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+}
+
+@media only screen and (min-width:769px) and (max-width: 800px) {
+    #form{
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        margin-top:0% !important;
+        background-color:white;
+    }
+    .page-container{
+        width: 100%;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+}
+
+@media only screen and (min-width:569px) and (max-width: 768px) {
+    #form{
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        margin-top:0% !important;
+        background-color:white;
+    }
+    .page-container{
+        width: 100%;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+}
+
+@media only screen and (min-width:481px) and (max-width: 568px) {
+    #form{
+        width: 100%;
+        margin: 0 auto;
+        position: relative;
+        margin-top:0% !important;
+        background-color:white;
+    }
+    .page-container{
+        width: 100%;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+}
+
+
+
+@media only screen and (min-width:0px) and (max-width: 320px) {
+    #form{
+        width: 100% !important;
+        margin: 0 auto;
+        position: relative;
+        margin-top:0% !important;
+        background-color:white;
+    }
+    .page-container{
+        width: 100% !important;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+    .grading.garding5ScaleContainer{
+        width: 70% !important;
+    }
+}
+/*End of form dimention adjustment*/
+
+
+
+/*Thank You page Ends here*/
+
+@media only screen and (min-width:0px) and (max-width: 340px) {
+
+
+    .page-container{
+        padding: 30px !important;
+    }
+    #submitBtn,#closeBtn{
+        /*  min-width: 9rem !important;*/
+        width: 208px !important;
+    }
+    .grading ul li label
+    {
+        height: 24px;
+        font-size: 1em;
+    }
+
+    .grading label
+    {
+        padding: 2px 4px 0px 2px !important;
+    }
+
+    .rate-area .hovered::before,
+    .rate-area .clicked::before,
+    .rate-area .notHovered::before,
+    .rate-area label::before{
+        font-size: 28px !important;
+    }
+    .rate-area:not(:checked) > label{
+        width: 25px !important;
+    }
+    .grading .rate-area label{
+        height: 31px !important;
+    }
+
+}
+
+@-moz-document url-prefix() {
+
+    .rate-area .hovered::before,
+    .rate-area .clicked::before,
+    .rate-area .notHovered::before,
+    .rate-area label::before{
+        font-size: 40px !important;
+    }
+
+    .grading label{
+        height: 40px;
+    }
+
+    @media only screen and (min-width:0px) and (max-width: 340px) {
+        .rate-area .hovered::before,
+        .rate-area .clicked::before,
+        .rate-area .notHovered::before,
+        .rate-area label::before{
+            font-size: 28px !important;
+        }
+    }
+
+}
+
+@-moz-document url-prefix(http://),url-prefix(https://) {
+    scrollbar {
+        -moz-appearance: none !important;
+        background: rgb(0,255,0) !important;
+    }
+    thumb,scrollbarbutton {
+        -moz-appearance: none !important;
+        background-color: rgb(0,0,255) !important;
+    }
+
+    thumb:hover,scrollbarbutton:hover {
+        -moz-appearance: none !important;
+        background-color: rgb(255,0,0) !important;
+    }
+
+    scrollbarbutton {
+        display: none !important;
+    }
+
+    scrollbar[orient="vertical"] {
+        min-width: 15px !important;
+    }
+}
+
+.page-container .fb-form-object:nth-child(2) .neb-label div label p:first-child
+{
+    color: #6b5e51 !important;
+    font-size: 24px !important;
+    font-family: connections,Arial !important;
+}
+.page-container .fb-form-object:last-child .neb-label div label{
+    color: #666666 !important;
+    font-family: connections,Arial !important;
+}
+.rate-area label{
+    margin-left: 0px !important;
+}
+
+/*::-webkit-scrollbar {
+  display: none;;
+}*/
+
+#form
+{
+    /*height: auto;*/
+    /* overflow-y: auto; */
+    overflow-x: hidden;
+}
+
+@media only screen and (min-width:321px) and (max-width: 480px) {
+
+    #form{
+        width: 100% !important;
+        margin: 0 auto;
+        /* position: relative; */
+        margin-top:0% !important;
+        background-color:white;
+    }
+    .page-container{
+        width: 100% !important;
+        height:auto !important;
+    }
+    #footerSection{
+        width: 100%;
+        position:relative !important;
+    }
+    .btnsRow{
+        float:right;
+    }
+    .grading.garding5ScaleContainer{
+        width: 65% !important;
+    }
+    .grading.garding5ScaleContainer .nps-anchor-table{
+        width: 170px;
+    }
+}
+
+body {
+    /* margin-top: 48px; */
+    overflow: auto;
+    background-color: white;
+    /*-ms-overflow-style: none !important;*/
+}
+
+textarea {
+    resize: none;
+    padding: 4px 4px 0 4px; }
+
+div#footerSection {
+    width: 100%;
+    position: absolute;
+    padding-bottom: 0px;
+    background-color: white;
+    /* border-left: 1px solid  #757575; */
+    /* border-right: 1px solid  #757575; */
+    /* border-bottom: 1px solid  #757575; */
+}
+
+.page-container {
+    padding: 60px;
+    overflow-x: hidden;
+    padding-bottom:  10px;
+    /* border-top: 1px solid #757575; */
+    /* border-left: 1px solid #757575; */
+    /* border-right: 1px solid #757575; */
+}
+
+legend {
+    margin-left: 0px;
+    margin-bottom: 16px !important;
+}
+
+button#closeBtn {
+    margin-right: 5px;
+    background-color: #ffffff !important;
+    color: #00a790 !important;
+    display: none;
+}
+
+.row {
+    /* margin-bottom: 10px !important; */
+    padding-top: 5px;
+}
+
+.sectionBreak {
+    height: 1px;
+    border-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: #c6c6c6; }
+
+
+
+.required {
+    color: #e51b24;
+    display: none; }
+
+.form-control{
+    font-size: 12px;
+    font-family: 'HelveticaNeue-Bold' !important;
+    margin: auto;
+}
+
+textarea{
+    height: 144px !important;
+}
+
+
+
+/*Below changes are to adjust form dimensions*/
+#form{
+    /* width: 450px; */
+    /* margin: 0 auto; */
+    /* position: relative; */
+    /* margin-top: 6%; */
+    margin-top: 6vh;
+    background-color: #f5f5f5;
+    /* margin-bottom: 24px; */
+}
+.page-container{
+    width: auto;
+    height:auto !important;
+    padding: 20px !important;
+    padding-bottom: 0 !important;
+    background-color: white;
+    /* margin-top: 24px; */
+    /* margin-bottom: 48px; */
+}
+#footerSection{
+    width: 450px;
+    position:relative !important;
+    padding-right:  55px;
+}
+.btnsRow{
+    float:right;
+    width: 100% !important;
+    /* height: 60px; */
+}
+
+.borderDark::before{
+    background: url("svg_star_off.svg");
+    background-repeat: no-repeat;
+}
+.borderLightAll ~ label::before{
+    background: url("svg_star_off.svg");
+    background-repeat: no-repeat;
+}
+
+
+#kampyleLogoDiv{
+    display: none;
+}
+
+.neb-content span,label,
+.nps-anchor-table{
+    font-family: 'HelveticaNeue-Bold' !important;
+    color: #222222;
+    font-weight: 100;
+}
+
+.form-group, #IntroContainer,
+.fb-form-object.ng-scope.imageComponent{
+    /* margin-bottom: 25px !important; */
+}
+
+
+.radioButtons.form-group{
+    /* margin-top: -17px; */
+}
+
+.nps-anchor-table{
+    font-size: 11px;
+}
+
+.radioul {
+    display: flex;
+    flex-direction: row;
+    align-items: end;
+    justify-content: center;
+}
+
+.radioli {
+    display: flex;
+    flex-direction: column;
+}
+
+.radioul li:not(:last-child){
+    /* margin-bottom: 5px */
+}
+
+.radioLabel label{
+    display: flex;
+    flex-flow: column;
+}
+
+.horizontal .radioul .radioli{
+    display: inline-block;
+    margin-right: 20px;
+}
+
+.img-responsive.inline-block.image{
+    /* max-width: 125px; */
+    display: inline-block;
+}
+
+.neb-content.ng-scope.labelContainer p strong span span{
+    font-weight: 900 !important;
+}
+
+.powerBySection{
+    display:none;
+}
+
+.screen-capture{
+    display: none;
+    padding-left: 10px;
+}
+
+.page-container.container > :last-child{
+    padding-bottom: 0px;
+    margin-bottom: 20px !important;
+}
+
+.form-group .date label{
+    /*display:block;*/
+}
+
+.control-label:not(.control-label-small){
+    font-weight: 400 !important;
+    font-size: 16px;
+    color: #595959 !important;
+    text-align: center;
+    width: 100%;
+    background-color: white;
+}
+
+#datepicker{
+    width:100%;
+    border: 1px solid #ddd;
+    line-height: 2;
+    padding-left: 10px;
+    background: #ffffff;
+}
+
+.page-container > :not(.imageComponent):nth-child(2){
+    /* margin-top: 25px; */
+    margin-bottom: 12px;
+}
+
+#btnClose:focus{
+    outline: none;url("svg_star_on.svg")
+}
+
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    .imageThankYouPageInner img{
+        max-width: 420px !important;
+    }
+}
+
+select{
+    -webkit-appearance: none;
+}
+
+.page-container > :not(.imageComponent):nth-child(2) fieldset{
+    width: 100%;
+}
+
+#backBtn{
+    /* display: none !important; */
+}
+
+#thankyou{
+    padding-bottom: 0px;
+    margin-top: 30px;
+    margin-bottom: unset !important;
+}
+
+#disable-screen-capture.visibilityUnset{
+    visibility: visible !important;
+}
+
+.datepicker table tr td.active.active,
+.datepicker table tr td.active:hover{
+    background-color: #ff5a00 !important;
+    background-image: linear-gradient(to bottom,#ff5a00,#ff5a00) !important;
+}
+
+.isDesktop ~ .datepicker-dropdown.datepicker-orient-top{
+    margin-top: 50px;
+}
+.isDesktop ~ .datepicker-dropdown.datepicker-orient-bottom{
+    margin-top: 55px;
+}
+
+@media screen and (-ms-high-contrast: active), (-ms-high-contrast: none) {
+    .isDesktop ~ .datepicker-dropdown.datepicker-orient-top{
+        margin-top: 0px;
+    }
+    .isDesktop ~ .datepicker-dropdown.datepicker-orient-bottom{
+        margin-top: 0px;
+    }
+}
+
+.btn:focus{
+    outline: none;
+}
+
+#form:not(.isDesktop) #page_2 ~ #footerSection .btnsRow #closeBtn + #backBtn,
+#form:not(.isDesktop) #page_2 ~ #footerSection .btnsRow  #closeBtn{
+    width: 64px;
+}
+
+body::-webkit-scrollbar {
+    width: 10px;
+    background-color: #f5f5f5;
+}
+
+body::-webkit-scrollbar-track {
+    -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3) !important;
+}
+
+body::-webkit-scrollbar-thumb {
+    background-color: darkgrey;
+    outline: 1px solid slategrey;
+}
+.close-btn-row{
+    display: none;
+}
+
+.neb-label p{
+    font-family: 'font2' !important;
+    font-size: 26px;
+    font-weight: bolder;
+    margin-top: 24px;
+    margin-bottom: 0px !important;
+    color: #0D5257;
+
+}
+
+.radioul{
+    text-align: center;
+    /*margin-left: 19px;*/
+}
+
+.radioli{
+    /*display: inline-block;*/
+    margin: 0 12px;
+}
+
+.radioli .optionText {
+    font-weight: bold;
+}
+
+:focus{
+    outline: unset !important;
+}
+
+.imageThankYouPage, #thankyou_imgCont {
+    margin-top: 15px;
+}
+
+.imageThankYouPageInner,
+#thankyou_h2 {
+    text-align: center;
+}
+
+.ThankYouPageText h4 span,
+#thankyou_h2 h1{
+    text-align: center !important;
+    font-family: 'font2' !important;
+    font-size: 26px !important;
+    color: #0D5257 !important;
+}
+
+.imageThankYouPageInner:after,
+#thankyou_imgCont:after{
+    /*     font-family: "FontAwesome" !important; */
+    /*     font-weight: 400 !important; */
+    font-size: 45px !important;
+    content: url('https://assets.kampyle.com/clients/nebula/bunnings/success.svg') !important;
+    padding-left: 7px;
+    /*     color: #0d5957; */
+    height: 20px;
+    text-align: center;
+}
+
+
+
+
+/* Additional changes */
+.radioButtons{
+    margin-bottom: 14px !important;
+}
+
+@media only screen and (max-width: 600px){
+    body{
+        background-color: unset;
+    }
+}

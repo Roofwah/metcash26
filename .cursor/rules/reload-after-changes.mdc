@@ -1,0 +1,18 @@
+---
+description: Always rebuild frontend and restart backend after code changes (localhost:5001)
+alwaysApply: true
+---
+
+# Reload servers after changes
+
+Port **5001** serves the **compiled** React app from `frontend/build/`, not `frontend/src/`. Edits are invisible there until a new build is produced and the backend is serving fresh files.
+
+**Do not** finish a task that touched `frontend/` or `backend/` without reloading for local verification:
+
+1. From the repo root, run **`npm run restart`** (builds frontend, kills anything on 5001, starts backend), **or** run `CI= DISABLE_ESLINT_PLUGIN=true npm --prefix frontend run build` and restart the backend if you only need a build.
+
+2. After backend-only edits, restart the Node process on 5001 (same `npm run restart`, or stop/start `npm --prefix backend start`).
+
+**Assume the user expects this every time** — they should not have to repeat it. If you changed code and did not run restart/build, say so explicitly and run it before handing off.
+
+**Exception:** CRA dev server on **3000** hot-reloads; **5001** does not.

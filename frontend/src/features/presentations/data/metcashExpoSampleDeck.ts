@@ -4,10 +4,15 @@ import { Deck } from '../types/presentation';
  * Energizer Christmas Category Story
  * Based on Metcash Expo example deck content.
  *
+ * The app uses `features/presentation-killer/` + `killerPresentationDeck` for the in-flow story.
+ * This file remains as a stable reference copy.
+ * Preview: /?preview=presentation (killer deck) or /?preview=presentation-killer (same deck)
+ * (dev: port 3000, production: same origin e.g. :5001)
+ *
  * To create a new deck:
  * 1. Copy this file, give it a new name and id.
  * 2. Edit the scenes array — each scene maps to a SceneType component.
- * 3. Import and pass your deck to <PresentationPlayer deck={yourDeck} />.
+ * 3. Import and pass your deck to <PresentationPlayer deck={yourDeck} /> and PresentationPreview.tsx.
  */
 export const metcashExpoSampleDeck: Deck = {
   id: 'energizer-christmas-2025',
@@ -53,6 +58,24 @@ export const metcashExpoSampleDeck: Deck = {
       ],
     },
 
+    // ─── Specialty sizes — stagger in (2032 → A76) ───────────────────────────
+    {
+      id: 'scene-stagger-specialty',
+      type: 'staggered-images',
+      eyebrow: 'Specialty range',
+      title: 'Core cell formats',
+      subtitle: 'Key sizes for displays and counter units — in order of opportunity.',
+      backgroundGradient: ['#070f1c', '#0a1628'],
+      accentColor: '#ff6c08',
+      imageSequence: [
+        { src: '/products/2032.png', label: '2032' },
+        { src: '/products/2025.png', label: '2025' },
+        { src: '/products/2016.png', label: '2016' },
+        { src: '/products/a23.png', label: 'A23' },
+        { src: '/products/a76.png', label: 'A76' },
+      ],
+    },
+
     // ─── Scene 3: Insight / Risk ─────────────────────────────────────────────
     {
       id: 'scene-insight',
@@ -73,27 +96,6 @@ export const metcashExpoSampleDeck: Deck = {
           highlight: true,
         },
       ],
-    },
-
-    // ─── Scene 4: Offer ──────────────────────────────────────────────────────
-    {
-      id: 'scene-offer',
-      type: 'offer',
-      eyebrow: 'Featured Deal',
-      title: 'Energizer Specialty Range',
-      subtitle: "Australia's No.1 Specialty Battery Range",
-      badge: '40% OFF',
-      body: 'Purchase at least 1 of each of the top 5 specialty SKUs and receive 40% off. LPED may also be extended into the next cycle. Specialty Counter Units available on request.',
-      backgroundGradient: ['#07101e', '#05090f'],
-      accentColor: '#ff6c08',
-      stats: [
-        {
-          value: '81%',
-          label: 'of specialty sales are just these 5 SKUs',
-          highlight: true,
-        },
-      ],
-      // image: '/products/energizer-specialty.png', ← drop real asset here
     },
 
     // ─── Scene 5: Closing CTA ────────────────────────────────────────────────

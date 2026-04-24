@@ -1,0 +1,106 @@
+/* to ensure notification doesn’t overlap with the cart button. */
+#insideChatFrame.notificationMode {
+  margin-top: -100px;
+}
+
+/* z-index adjustment */
+#inside_holder {
+  z-index: 99999999;
+}
+
+/* hide chat header when user typing on mobile landscape mode */
+@media(max-height: 100px) {
+  #inside_chatPaneHeader {
+    display: none;
+  }
+}
+
+/* egift popup show as chat tab without cross icon */
+.inside_visitorNotify[eventid="53"] .inside_closeButton {
+  display: none;
+}
+
+/* hide close cross on online tab on homepage */
+#inside_holder[chatsettingsid='19'] #inside_liveChatTab.inside_chat_online .chatHeaderIcons {
+  display: none !important;
+}
+
+/* make sure the notification is clickable - eg it was being covered on checkout pages. */
+div#inside_holder.notificationMode {
+  z-index: 1000;
+}
+
+/* make sure the tab height is not set to 0 */
+.inside_chatTabImage {
+  height: auto !important;
+}
+
+/*#region custom chat tab */
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2 {
+  display: block;
+  transform: none;
+  border-radius: 0;
+  margin: 0;
+  border: 0;
+  width: 24px;
+  height: 47px !important;
+  top: -45px;
+  border-bottom: 2px solid #E37F77;
+  box-sizing: border-box;
+  box-shadow:  none;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2 .inside_closeCross {
+  min-width: 24px;
+  width: 24px;
+  height: 44px;
+  margin: 0;
+  max-height: none;
+  background: #DA291C;
+  color: white;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2 svg {
+  width: 8px;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab,
+#inside_holder.vertical-chat-tab #inside_liveChatTab img {
+  transform: none !important;
+  width: 24px !important;
+  right: 24px !important;
+  /* outline: none !important; */
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2{
+  border-top: 1px solid white;
+  border-left: 1px solid white;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab {
+  border-left: 1px solid white;
+  border-bottom: 1px solid white;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2:hover .inside_closeCross,
+#inside_holder.vertical-chat-tab #inside_liveChatTab .chatHeaderIcons.chatV2 .inside_closeCross:focus-within,
+#inside_holder.vertical-chat-tab #inside_liveChatTab .inside_chatTabImage:hover,
+#inside_holder.vertical-chat-tab #inside_liveChatTab:focus-within .inside_chatTabImage {
+  filter: brightness(107%);
+}
+
+body.inside-vertical-chat-tab #globalFooter #medalliaContainer {
+  bottom: var(--feedbackBottomOffset, 35vh);
+}
+
+#inside_holder.vertical-chat-tab .chatHeaderIcons {
+  overflow: visible;
+}
+
+#inside_holder.vertical-chat-tab #inside_liveChatTab:focus,
+#inside_holder.vertical-chat-tab .chatHeaderIcons .inside_closeCross:focus {
+  outline: rgb(218, 41, 28) solid 2px !important;
+  outline-offset: 1px;
+}
+
+/*#endregion custom chat tab */

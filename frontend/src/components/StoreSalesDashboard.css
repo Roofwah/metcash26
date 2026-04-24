@@ -1,0 +1,204 @@
+.store-sales-page {
+  box-sizing: border-box;
+  min-height: calc(100vh - 120px);
+  padding: 1rem 1rem 2rem;
+  background: linear-gradient(165deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+  color: #e2e8f0;
+}
+
+/* Rendered inside App.tsx modal shell */
+.store-sales-page--modal {
+  min-height: 0;
+  max-height: min(85vh, 880px);
+  overflow-y: auto;
+  padding: 0.75rem 0.65rem 1rem;
+  -webkit-overflow-scrolling: touch;
+  border-radius: 16px;
+}
+
+.store-sales-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(15, 23, 42, 0.78);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(0.75rem, env(safe-area-inset-right))
+    max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
+  box-sizing: border-box;
+}
+
+.store-sales-modal-panel {
+  width: 100%;
+  max-width: 760px;
+  max-height: 92vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.store-sales-card {
+  max-width: 720px;
+  margin: 0 auto;
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 1.5rem 1.25rem 1.75rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  text-align: left;
+}
+
+.store-sales-kicker {
+  margin: 0 0 0.35rem;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #94a3b8;
+}
+
+.store-sales-title {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #f8fafc;
+}
+
+.store-sales-store-name {
+  margin: 0.5rem 0 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: #f1f5f9;
+  line-height: 1.3;
+}
+
+.store-sales-meta {
+  margin: 0.35rem 0 0;
+  font-size: 0.9rem;
+  color: #94a3b8;
+}
+
+.store-sales-total-block {
+  margin: 1.25rem 0 1.5rem;
+  padding: 1rem 1.1rem;
+  border-radius: 12px;
+  background: rgba(30, 41, 59, 0.9);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+}
+
+.store-sales-total-label {
+  margin: 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: #7dd3fc;
+}
+
+.store-sales-total-value {
+  margin: 0.35rem 0 0;
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.store-sales-table-title {
+  margin: 0 0 0.65rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #cbd5e1;
+}
+
+.store-sales-table-wrap {
+  overflow-x: auto;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.store-sales-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.store-sales-table thead {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.store-sales-table th,
+.store-sales-table td {
+  padding: 0.55rem 0.65rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.store-sales-table th {
+  font-weight: 600;
+  color: #94a3b8;
+  text-align: left;
+}
+
+.store-sales-table th.num,
+.store-sales-table td.num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.store-sales-item-name {
+  color: #e2e8f0;
+  word-break: break-word;
+}
+
+.store-sales-table td.qty {
+  font-variant-numeric: tabular-nums;
+  color: #bae6fd;
+}
+
+.store-sales-loading,
+.store-sales-error,
+.store-sales-muted {
+  margin: 0 0 1rem;
+  color: #cbd5e1;
+}
+
+.store-sales-error {
+  color: #fca5a5;
+}
+
+.store-sales-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.store-sales-btn {
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.store-sales-btn.primary {
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.35);
+}
+
+.store-sales-btn.secondary {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.store-sales-btn.secondary:hover {
+  color: #e2e8f0;
+  border-color: rgba(255, 255, 255, 0.35);
+}
+
+.store-sales-btn.primary:hover {
+  filter: brightness(1.05);
+}

@@ -39,6 +39,7 @@ export function brandLogoPathForBrand(brand: string): string {
   if (b.includes('eveready')) return '/products/eready.png';
   if (b.includes('energizer')) return '/products/energizer.png';
   if (b.includes('armor')) return '/products/aall.png';
+  if (b.includes('jelly')) return '/products/jelly.png';
   return '';
 }
 
@@ -55,6 +56,71 @@ export const NON_PALLET_DISPLAY_IDS = new Set<string>(NON_PALLET_DISPLAY_ORDER);
 export function isNonPalletDisplayOffer(offerId: string): boolean {
   if (typeof offerId !== 'string' || !offerId.trim()) return false;
   return NON_PALLET_DISPLAY_IDS.has(offerId);
+}
+
+/**
+ * Fixed display sequence: retail carousel + MSO matrix columns.
+ * Matches mcash26 / offers.csv `OFFER` ids; trims / collapses whitespace when matching.
+ * Unknown offer ids sort after known ids, then by name.
+ */
+export const OFFER_DISPLAY_ORDER: readonly string[] = [
+  'Energizer Tower Pre-Pack',
+  'Eveready Tower Pre-Pack',
+  "Energizer Max Plus 10's Penta",
+  'Energizer Max 14/16 Loose Stock',
+  'Energizer Max 24pk Loose Stock',
+  'Energizer Specialty Range Loose',
+  'Armor All® Quick Clean Kit',
+  'Armor All®  Range Loose',
+  'Jelly Belly® Range Loose',
+  'Eveready Lighting Tower',
+  // Legacy program (after current rows when still present)
+  'Energizer 7',
+  'Energizer 8',
+  'Energizer 9',
+  'ArmorAll 4',
+  'ArmorAll 5',
+  'Energizer 1',
+  'Energizer 2',
+  'Energizer 3',
+  'Energizer 4',
+  'Energizer 5',
+  'Energizer 6',
+  'Eveready 1',
+  'Eveready 2',
+  'Eveready 3',
+  'ArmorAll 1',
+  'ArmorAll 2',
+  'ArmorAll 3',
+];
+
+export function normalizeOfferIdKey(id: string): string {
+  return String(id || '')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+const OFFER_DISPLAY_ORDER_INDEX = new Map<string, number>();
+for (let i = 0; i < OFFER_DISPLAY_ORDER.length; i++) {
+  OFFER_DISPLAY_ORDER_INDEX.set(normalizeOfferIdKey(OFFER_DISPLAY_ORDER[i]), i);
+}
+
+export function compareOffersByDisplayOrder(
+  a: { offerId: string },
+  b: { offerId: string },
+): number {
+  const ka = normalizeOfferIdKey(a.offerId);
+  const kb = normalizeOfferIdKey(b.offerId);
+  const ia = OFFER_DISPLAY_ORDER_INDEX.get(ka);
+  const ib = OFFER_DISPLAY_ORDER_INDEX.get(kb);
+  const fa = ia === undefined ? 100000 : ia;
+  const fb = ib === undefined ? 100000 : ib;
+  if (fa !== fb) return fa - fb;
+  return ka.localeCompare(kb, undefined, { numeric: true, sensitivity: 'base' });
+}
+
+export function sortOffersByDisplayOrder<T extends { offerId: string }>(offers: T[]): T[] {
+  return [...offers].sort(compareOffersByDisplayOrder);
 }
 
 /** New-format CSV uses `Type` → API `offerGroup` (e.g. Batteries Prepack, Batteries Loose). */

@@ -2,6 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { SceneConfig } from '../../types/presentation';
 import { fadeUp, scaleIn, staggerContainer } from '../../utils/transitions';
+import SpecialtyOrbitVisual from '../SpecialtyOrbitVisual';
 
 interface Props {
   scene: SceneConfig;
@@ -96,7 +97,13 @@ const OfferScene: React.FC<Props> = ({ scene, onCTA }) => {
 
         {/* ── Right: visual ── */}
         <motion.div className="offer-visual-col" variants={scaleIn}>
-          {scene.image ? (
+          {scene.orbitImageSequence && scene.orbitImageSequence.length > 0 ? (
+            <SpecialtyOrbitVisual
+              items={scene.orbitImageSequence}
+              accentColor={accent}
+              centerLabel={(scene.orbitCenterLabel || 'SPECIALTY BATTERIES').trim()}
+            />
+          ) : scene.image ? (
             <img src={scene.image} alt={scene.title} className="offer-image" />
           ) : (
             /* Placeholder product visual — replace image prop with real asset path */

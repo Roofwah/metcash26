@@ -89,6 +89,33 @@
   margin-top: 1.5rem;
 }
 
+.store-confirm-actions--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.store-confirm-sales-snapshot {
+  border: 2px solid #1e3a5f;
+  border-radius: 12px;
+  background: #fff;
+  color: #0f172a;
+  font-size: clamp(0.9rem, 2vw, 1.05rem);
+  font-weight: 700;
+  min-height: 48px;
+  padding: 12px 22px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.store-confirm-sales-snapshot:hover {
+  background: #f1f5f9;
+  border-color: #163b78;
+}
+
 .store-confirm-waiting {
   margin-top: 1.2rem;
   display: inline-flex;

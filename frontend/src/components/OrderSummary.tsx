@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './OrderSummary.css';
 import type { StoreData } from '../api';
+import { DEFAULT_DROP_MONTH, DROP_MONTH_OPTIONS, normalizeDropMonth } from '../constants/dropMonths';
 
 interface CartItem {
   offerId: string;
@@ -9,6 +10,8 @@ interface CartItem {
   description: string;
   cost: string;
   dropMonths?: string[];
+  minQuantity?: number;
+  lockQuantity?: boolean;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -21,7 +24,7 @@ interface OrderSummaryProps {
   onUpdateDropMonth: (index: number, unitIndex: number, dropMonth: string) => void;
   onRemoveItem: (index: number) => void;
   onBack: () => void;
-  onSubmit: (data: { position: string; purchaseOrder?: string; email: string; storeCode: string }) => void;
+  onSubmit: (data: { position: string; purchaseOrder?: string; email: string }) => void;
 }
 
 const OrderSummary: React.FC<OrderSummaryProps> = ({
@@ -37,7 +40,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
   const [position, setPosition] = useState(userData.position || '');
   const [orderedAt] = useState(() => new Date());
   const [email, setEmail] = useState('');
-  const [storeCode, setStoreCode] = useState('');
   const [purchaseOrder, setPurchaseOrder] = useState('');
   const [includePO, setIncludePO] = useState(false);
 
@@ -47,8 +49,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
   const canSubmit =
     position.trim().length > 0 &&
-    EMAIL_REGEX.test(email.trim()) &&
-    /^\d{8}$/.test(storeCode.trim());
+    EMAIL_REGEX.test(email.trim());
 
   const orderDateTimeLabel = orderedAt.toLocaleString('en-AU', {
     weekday: 'long',
@@ -83,7 +84,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
       position: position.trim(),
       purchaseOrder: includePO ? purchaseOrder.trim() : undefined,
       email: email.trim(),
-      storeCode: storeCode.trim()
     });
   };
 
@@ -104,6 +104,15 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           <div className="store-info">
             <h2>{storeData.storeName}</h2>
             {storeData.banner !== '-' && <p>{storeData.banner}</p>}
+            {storeData.storeId ? (
+              <p className="order-store-id-meta">Store ID: {storeData.storeId}</p>
+            ) : null}
+            {storeData.ownerGroup ? (
+              <p className="order-store-id-meta">Group: {storeData.ownerGroup}</p>
+            ) : null}
+            {storeData.storeRank != null ? (
+              <p className="order-store-id-meta">No. {storeData.storeRank}</p>
+            ) : null}
           </div>
         </div>
       </div>
@@ -138,7 +147,11 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
 
         <div className="order-items-section">
           <h2>Items in Your Order</h2>
-          {cartItems.map((item, index) => (
+          {cartItems.map((item, index) => {
+            const firstDropMonth = item.dropMonths?.[0] ?? DEFAULT_DROP_MONTH;
+            const minQty = Math.max(0, item.minQuantity ?? 1);
+            const isLocked = !!item.lockQuantity;
+            return (
             <div key={index} className="order-item">
               <div className="item-info">
                 <div className="item-description">{item.description}</div>
@@ -149,42 +162,25 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 {item.quantity > 1 && (
                   <div className="drop-months-container">
                     {Array.from({ length: item.quantity }, (_, unitIndex) => {
-                      const dropMonths = item.dropMonths || Array(item.quantity).fill('March');
-                      const currentDropMonth = dropMonths[unitIndex] || 'March';
+                      const rawMonths = item.dropMonths || Array(item.quantity).fill(DEFAULT_DROP_MONTH);
+                      const dropMonths = rawMonths.map((m) => normalizeDropMonth(m));
+                      const currentDropMonth = dropMonths[unitIndex] || DEFAULT_DROP_MONTH;
                       return (
                         <div key={unitIndex} className="drop-month-selector">
-                          <label className="drop-month-label">Unit {unitIndex + 1} Drop Month:</label>
+                          <label className="drop-month-label">Unit {unitIndex + 1} drop date:</label>
                           <div className="drop-month-radio-group">
-                            <label className="radio-option">
-                              <input
-                                type="radio"
-                                name={`dropMonth-${index}-${unitIndex}`}
-                                value="March"
-                                checked={currentDropMonth === 'March'}
-                                onChange={(e) => onUpdateDropMonth(index, unitIndex, e.target.value)}
-                              />
-                              <span>March</span>
-                            </label>
-                            <label className="radio-option">
-                              <input
-                                type="radio"
-                                name={`dropMonth-${index}-${unitIndex}`}
-                                value="May"
-                                checked={currentDropMonth === 'May'}
-                                onChange={(e) => onUpdateDropMonth(index, unitIndex, e.target.value)}
-                              />
-                              <span>May</span>
-                            </label>
-                            <label className="radio-option">
-                              <input
-                                type="radio"
-                                name={`dropMonth-${index}-${unitIndex}`}
-                                value="July"
-                                checked={currentDropMonth === 'July'}
-                                onChange={(e) => onUpdateDropMonth(index, unitIndex, e.target.value)}
-                              />
-                              <span>July</span>
-                            </label>
+                            {DROP_MONTH_OPTIONS.map(({ value, label }) => (
+                              <label key={value} className="radio-option">
+                                <input
+                                  type="radio"
+                                  name={`dropMonth-${index}-${unitIndex}`}
+                                  value={value}
+                                  checked={currentDropMonth === value}
+                                  onChange={(e) => onUpdateDropMonth(index, unitIndex, e.target.value)}
+                                />
+                                <span>{label}</span>
+                              </label>
+                            ))}
                           </div>
                         </div>
                       );
@@ -193,38 +189,20 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 )}
                 {item.quantity === 1 && (
                   <div className="drop-month-selector">
-                    <label className="drop-month-label">Drop Month:</label>
+                    <label className="drop-month-label">Drop date:</label>
                     <div className="drop-month-radio-group">
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name={`dropMonth-${index}`}
-                          value="March"
-                          checked={(item.dropMonths && item.dropMonths[0] === 'March') || (!item.dropMonths)}
-                          onChange={(e) => onUpdateDropMonth(index, 0, e.target.value)}
-                        />
-                        <span>March</span>
-                      </label>
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name={`dropMonth-${index}`}
-                          value="May"
-                          checked={item.dropMonths && item.dropMonths[0] === 'May'}
-                          onChange={(e) => onUpdateDropMonth(index, 0, e.target.value)}
-                        />
-                        <span>May</span>
-                      </label>
-                      <label className="radio-option">
-                        <input
-                          type="radio"
-                          name={`dropMonth-${index}`}
-                          value="July"
-                          checked={item.dropMonths && item.dropMonths[0] === 'July'}
-                          onChange={(e) => onUpdateDropMonth(index, 0, e.target.value)}
-                        />
-                        <span>July</span>
-                      </label>
+                      {DROP_MONTH_OPTIONS.map(({ value, label }) => (
+                        <label key={value} className="radio-option">
+                          <input
+                            type="radio"
+                            name={`dropMonth-${index}`}
+                            value={value}
+                            checked={firstDropMonth === value}
+                            onChange={(e) => onUpdateDropMonth(index, 0, e.target.value)}
+                          />
+                          <span>{label}</span>
+                        </label>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -234,19 +212,23 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                   <button 
                     onClick={() => onUpdateQuantity(index, item.quantity - 1)}
                     className="qty-btn"
+                    disabled={isLocked || item.quantity <= minQty}
                   >-</button>
                   <span className="qty-display">{item.quantity}</span>
                   <button 
                     onClick={() => onUpdateQuantity(index, item.quantity + 1)}
                     className="qty-btn"
+                    disabled={isLocked}
                   >+</button>
                 </div>
                 <div className="item-total">
                   ${(parseFloat(item.cost) * item.quantity).toFixed(2)}
                 </div>
+                {isLocked && <div className="item-tier">Fixed bundle line</div>}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         <div className="order-total-section">
@@ -285,22 +267,6 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               placeholder="Enter your email address"
               className="form-select"
               autoComplete="email"
-            />
-          </div>
-
-          <div className="form-section">
-            <label htmlFor="order-store-code">8-digit store code *</label>
-            <input
-              id="order-store-code"
-              type="text"
-              inputMode="numeric"
-              pattern="\d{8}"
-              maxLength={8}
-              value={storeCode}
-              onChange={(e) => setStoreCode(e.target.value.replace(/\D/g, '').slice(0, 8))}
-              placeholder="Enter 8-digit store code"
-              className="form-select"
-              autoComplete="off"
             />
           </div>
 

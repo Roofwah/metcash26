@@ -1,21 +1,25 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 import UserForm from './components/UserForm';
 import LoadingStep from './components/LoadingStep';
 import StoreConfirm from './components/StoreConfirm';
+import StoreSalesDashboard from './components/StoreSalesDashboard';
 import OffersListing from './components/OffersListing';
 import OfferDetail from './components/OfferDetail';
 import OrderSummary from './components/OrderSummary';
 import EmptyCartThankYou from './components/EmptyCartThankYou';
+import MsoOfferMatrix, { msoStoreKey, type MsoMatrixCartItem } from './components/MsoOfferMatrix';
 import TopNav from './components/TopNav';
 import Dashboard from './components/Dashboard';
 import Footer from './components/Footer';
 import LandscapeHint from './components/LandscapeHint';
 import LoginScreen from './components/LoginScreen';
-import PresentationPlayer from './features/presentations/components/PresentationPlayer';
-import { metcashExpoSampleDeck } from './features/presentations/data/metcashExpoSampleDeck';
+import PresentationPlayer from './features/presentation-killer/components/PresentationPlayer';
+import { killerPresentationDeck } from './features/presentation-killer/data/killerPresentationDeck';
 import axios from 'axios';
 import { apiUrl, StoreData } from './api';
+import { DEFAULT_DROP_MONTH, normalizeDropMonth } from './constants/dropMonths';
+import { storeSales } from './content/modalCopy';
 
 interface UserData {
   fullName: string;
@@ -30,6 +34,10 @@ interface CartItem {
   description: string;
   cost: string;
   dropMonths?: string[];
+  minQuantity?: number;
+  lockQuantity?: boolean;
+  /** MSO matrix: group line items per store for split POST */
+  msoStoreKey?: string;
 }
 
 type AppStep =
@@ -39,6 +47,7 @@ type AppStep =
   | 'store-confirm'
   | 'offers-listing'
   | 'offer-detail'
+  | 'mso-matrix'
   | 'order-summary'
   | 'thankyou'
   | 'empty-cart-thankyou';
@@ -53,7 +62,12 @@ function App() {
   const [printData, setPrintData] = useState<any>(null);
   const [showPresentation, setShowPresentation] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
+  const [showStoreSalesModal, setShowStoreSalesModal] = useState(false);
+  const [storeHasSalesData, setStoreHasSalesData] = useState<boolean | null>(null);
   const [formBackHandler, setFormBackHandler] = useState<(() => void) | null>(null);
+  /** MSO path: store picker → matrix → split orders (skips store confirm + presentation) */
+  const [sessionFlow, setSessionFlow] = useState<'retail' | 'mso'>('retail');
+  const [msoStores, setMsoStores] = useState<StoreData[]>([]);
 
   // Extract rep name from energizer-style email: sarah.cussen@energizer.com → "Sarah Cussen"
   const repName = sessionEmail
@@ -61,9 +75,31 @@ function App() {
     : undefined;
   const repEmail = sessionEmail || undefined;
 
+  useEffect(() => {
+    if (currentStep !== 'store-confirm' || !storeData?.storeId?.trim()) {
+      setStoreHasSalesData(null);
+      return;
+    }
+    let cancelled = false;
+    const sid = storeData.storeId.trim();
+    axios
+      .get(apiUrl(`/api/store-sales/${encodeURIComponent(sid)}`))
+      .then((res) => {
+        if (!cancelled) setStoreHasSalesData(!!res.data?.hasData);
+      })
+      .catch(() => {
+        if (!cancelled) setStoreHasSalesData(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentStep, storeData?.storeId]);
+
   const connectedDatasets = [
     'Products API',
     'Orders API',
+    ...(sessionFlow === 'mso' && storeData?.msoGroup ? [`MSO · ${storeData.msoGroup}`] : []),
+    ...(sessionFlow === 'mso' && msoStores.length > 1 ? [`${msoStores.length} stores`] : []),
     ...(storeData?.storeName ? [`Store: ${storeData.storeName}`] : []),
     ...(storeData?.banner ? [`Banner: ${storeData.banner}`] : []),
   ];
@@ -82,6 +118,8 @@ function App() {
     setSelectedOfferId(null);
     setPrintData(null);
     setSessionEmail(null);
+    setSessionFlow('retail');
+    setMsoStores([]);
     setCurrentStep('login');
   };
 
@@ -89,10 +127,26 @@ function App() {
     setUserData(data);
     if (storeDataFromForm) {
       setStoreData(storeDataFromForm);
+      setSessionFlow('retail');
+      setMsoStores([]);
       setCurrentStep('store-confirm');
     } else {
       setCurrentStep('loading');
     }
+  };
+
+  const handleMsoStoresSubmit = (
+    data: UserData,
+    payload: { group: string; stores: StoreData[] }
+  ) => {
+    setUserData(data);
+    setSessionFlow('mso');
+    setMsoStores(payload.stores);
+    setStoreData(payload.stores[0] ?? null);
+    setShowPresentation(false);
+    setCartItems([]);
+    setSelectedOfferId(null);
+    setCurrentStep('mso-matrix');
   };
 
   const handleLoadingComplete = (storeDataFromLoading?: StoreData) => {
@@ -105,9 +159,13 @@ function App() {
     }
   };
 
+  const goToOffersAfterStoreConfirm = () => {
+    setCurrentStep('offers-listing');
+    setShowPresentation(true);
+  };
+
   const handleStoreConfirmContinue = () => {
-    setCurrentStep('offers-listing'); // navigate to offers so they load in background
-    setShowPresentation(true);        // play presentation on top
+    goToOffersAfterStoreConfirm();
   };
   const handleStoreConfirmBack    = () => setCurrentStep('form');
 
@@ -124,7 +182,7 @@ function App() {
   const handleAddToCart = (items: CartItem[]) => {
     const itemsWithDropMonths = items.map(item => ({
       ...item,
-      dropMonths: item.dropMonths || Array(item.quantity).fill('March'),
+      dropMonths: item.dropMonths || Array(item.quantity).fill(DEFAULT_DROP_MONTH),
     }));
     setCartItems(prev => [...prev, ...itemsWithDropMonths]);
     setCurrentStep('offers-listing');
@@ -136,14 +194,18 @@ function App() {
   };
 
   const handleUpdateQuantity = (index: number, quantity: number) => {
-    if (quantity <= 0) { handleRemoveItem(index); return; }
     setCartItems(prev => {
       const updated = [...prev];
       const currentItem = updated[index];
-      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill('March');
+      if (!currentItem) return prev;
+      if (currentItem.lockQuantity) return prev;
+      const minQty = Math.max(0, currentItem.minQuantity ?? 1);
+      if (quantity < minQty) quantity = minQty;
+      if (quantity <= 0) { return prev.filter((_, i) => i !== index); }
+      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
       if (quantity > currentItem.quantity) {
         const newDropMonths = [...currentDropMonths];
-        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push('March');
+        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push(DEFAULT_DROP_MONTH);
         updated[index].dropMonths = newDropMonths;
       } else {
         updated[index].dropMonths = currentDropMonths.slice(0, quantity);
@@ -167,10 +229,10 @@ function App() {
       if (itemIndex < 0) return prev;
       const updated = [...prev];
       const currentItem = updated[itemIndex];
-      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill('March');
+      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
       if (quantity > currentItem.quantity) {
         const newDropMonths = [...currentDropMonths];
-        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push('March');
+        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push(DEFAULT_DROP_MONTH);
         updated[itemIndex].dropMonths = newDropMonths;
       } else {
         updated[itemIndex].dropMonths = currentDropMonths.slice(0, quantity);
@@ -188,7 +250,7 @@ function App() {
     setCartItems(prev => {
       const updated = [...prev];
       const currentItem = updated[index];
-      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill('March');
+      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
       const newDropMonths = [...currentDropMonths];
       newDropMonths[unitIndex] = dropMonth;
       updated[index].dropMonths = newDropMonths;
@@ -196,27 +258,70 @@ function App() {
     });
   };
 
-  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string; email: string; storeCode: string }) => {
+  const orderPayloadItem = (it: CartItem) => ({
+    offerId: it.offerId,
+    offerTier: it.offerTier,
+    quantity: it.quantity,
+    description: it.description,
+    cost: it.cost,
+    dropMonths: it.dropMonths?.map((m) => normalizeDropMonth(m)),
+  });
+
+  const handleOrderSubmit = async (data: { position: string; purchaseOrder?: string; email: string }) => {
     if (!userData || !storeData) return;
-    const orderData = {
-      userName: userData.fullName,
-      storeNumber: userData.storeNo,
-      storeName: storeData.storeName,
-      banner: storeData.banner,
-      position: data.position,
-      purchaseOrder: data.purchaseOrder || '',
-      email: data.email,
-      storeCode: data.storeCode,
-      repEmail: repEmail || '',
-      items: cartItems,
-      totalValue: cartItems.reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0).toFixed(2),
-    };
-    try {
+
+    const postOrder = async (orderData: Record<string, unknown>) => {
       await axios.post(apiUrl('/api/save-order'), orderData);
+    };
+
+    try {
+      if (sessionFlow === 'mso' && msoStores.length > 0) {
+        let lastPrint: Record<string, unknown> | null = null;
+        for (const store of msoStores) {
+          const key = msoStoreKey(store);
+          const items = cartItems.filter((i) => i.msoStoreKey === key).map(orderPayloadItem);
+          if (items.length === 0) continue;
+          const totalValue = cartItems
+            .filter((i) => i.msoStoreKey === key)
+            .reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0)
+            .toFixed(2);
+          const orderData = {
+            userName: userData.fullName,
+            storeNumber: store.storeNo,
+            storeName: store.storeName,
+            banner: store.banner,
+            position: data.position,
+            purchaseOrder: data.purchaseOrder || '',
+            email: data.email,
+            storeCode: (store.storeId || '').trim(),
+            repEmail: repEmail || '',
+            items,
+            totalValue,
+          };
+          await postOrder(orderData);
+          lastPrint = orderData;
+        }
+        setPrintData(lastPrint);
+      } else {
+        const orderData = {
+          userName: userData.fullName,
+          storeNumber: userData.storeNo,
+          storeName: storeData.storeName,
+          banner: storeData.banner,
+          position: data.position,
+          purchaseOrder: data.purchaseOrder || '',
+          email: data.email,
+          storeCode: (storeData.storeId || '').trim(),
+          repEmail: repEmail || '',
+          items: cartItems.map(orderPayloadItem),
+          totalValue: cartItems.reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0).toFixed(2),
+        };
+        await postOrder(orderData);
+        setPrintData(orderData);
+      }
     } catch (error) {
       console.error('Error saving order:', error);
     }
-    setPrintData(orderData);
     setCurrentStep('thankyou');
   };
 
@@ -226,10 +331,29 @@ function App() {
     setCartItems([]);
     setSelectedOfferId(null);
     setPrintData(null);
+    setSessionFlow('retail');
+    setMsoStores([]);
     setCurrentStep('form');
   };
 
-  const handleBackFromOrderSummary = () => setCurrentStep('offers-listing');
+  const handleBackFromOrderSummary = () =>
+    setCurrentStep(sessionFlow === 'mso' ? 'mso-matrix' : 'offers-listing');
+
+  const handleBackFromMsoMatrix = () => {
+    setCurrentStep('form');
+    setMsoStores([]);
+    setCartItems([]);
+    setSessionFlow('retail');
+  };
+
+  const handleMsoMatrixCheckout = (items: MsoMatrixCartItem[]) => {
+    const itemsWithDropMonths = items.map((item) => ({
+      ...item,
+      dropMonths: Array(item.quantity).fill(DEFAULT_DROP_MONTH),
+    }));
+    setCartItems(itemsWithDropMonths);
+    setCurrentStep('order-summary');
+  };
 
   const handleViewPresentation = () => setShowPresentation(true);
   const handlePresentationClose = () => setShowPresentation(false);
@@ -246,9 +370,12 @@ function App() {
       case 'store-confirm':       return handleStoreConfirmBack;
       case 'loading':             return () => setCurrentStep('form');
       case 'offers-listing':      return () => setCurrentStep('store-confirm');
+      case 'mso-matrix':          return handleBackFromMsoMatrix;
       case 'offer-detail':        return handleBackFromOfferDetail;
       case 'order-summary':       return handleBackFromOrderSummary;
-      case 'empty-cart-thankyou': return () => setCurrentStep('offers-listing');
+      case 'empty-cart-thankyou':
+        return () =>
+          sessionFlow === 'mso' ? setCurrentStep('mso-matrix') : setCurrentStep('offers-listing');
       default:                    return null;
     }
   };
@@ -261,7 +388,12 @@ function App() {
         storeNumber: userData.storeNo,
         storeName: storeData.storeName,
         banner: storeData.banner,
-        position: '', purchaseOrder: '', items: [], totalValue: '0.00',
+        position: '',
+        purchaseOrder: '',
+        email: '',
+        storeCode: (storeData.storeId || '').trim(),
+        items: [],
+        totalValue: '0.00',
       });
     } catch (error) {
       console.error('Error saving order:', error);
@@ -286,9 +418,43 @@ function App() {
         <Dashboard repEmail={repEmail} onClose={() => setShowDashboard(false)} />
       )}
 
+      {showStoreSalesModal && userData && storeData && (
+        <div
+          className="store-sales-modal-overlay"
+          role="presentation"
+          onClick={() => setShowStoreSalesModal(false)}
+        >
+          <div
+            className="store-sales-modal-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={storeSales.overlayAriaLabel}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <StoreSalesDashboard
+              variant="modal"
+              userData={userData}
+              storeData={storeData}
+              onBack={() => setShowStoreSalesModal(false)}
+              onContinue={() => {
+                setShowStoreSalesModal(false);
+                goToOffersAfterStoreConfirm();
+              }}
+            />
+          </div>
+        </div>
+      )}
+
       {currentStep === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
 
-      {currentStep === 'form' && <UserForm onSubmit={handleFormSubmit} onBackChange={h => setFormBackHandler(h ? () => h : null)} />}
+      {currentStep === 'form' && (
+        <UserForm
+          initialFullName={userData?.fullName ?? ''}
+          onSubmit={handleFormSubmit}
+          onMsoStoresSubmit={handleMsoStoresSubmit}
+          onBackChange={(h) => setFormBackHandler(h ? () => h : null)}
+        />
+      )}
 
       {currentStep === 'loading' && userData && (
         <LoadingStep userData={userData} onComplete={handleLoadingComplete} onBack={() => setCurrentStep('form')} />
@@ -300,6 +466,8 @@ function App() {
           storeData={storeData}
           onContinue={handleStoreConfirmContinue}
           onBack={handleStoreConfirmBack}
+          showSalesDashboardButton={storeHasSalesData === true}
+          onOpenSalesDashboard={() => setShowStoreSalesModal(true)}
         />
       )}
 
@@ -314,6 +482,14 @@ function App() {
           cartItems={cartItems}
           onAddToCart={handleAddToCart}
           onUpdateCartQuantity={handleUpdateCartQuantityByOfferId}
+        />
+      )}
+
+      {currentStep === 'mso-matrix' && storeData?.msoGroup && msoStores.length > 0 && (
+        <MsoOfferMatrix
+          msoGroup={storeData.msoGroup}
+          stores={msoStores}
+          onProceedToCheckout={handleMsoMatrixCheckout}
         />
       )}
 
@@ -354,7 +530,9 @@ function App() {
         <EmptyCartThankYou
           userData={userData}
           storeData={storeData}
-          onBack={() => setCurrentStep('offers-listing')}
+          onBack={() =>
+            sessionFlow === 'mso' ? setCurrentStep('mso-matrix') : setCurrentStep('offers-listing')
+          }
           onThank={handleEmptyCartThank}
         />
       )}
@@ -366,7 +544,7 @@ function App() {
       {/* ── Presentation Player overlay ─────────────────────────── */}
       {showPresentation && (
         <PresentationPlayer
-          deck={metcashExpoSampleDeck}
+          deck={killerPresentationDeck}
           onClose={handlePresentationClose}
           onCTAAction={handlePresentationCTA}
         />

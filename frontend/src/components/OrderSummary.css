@@ -2,6 +2,8 @@
   min-height: 100vh;
   background-color: #DADBDC;
   padding: 2rem;
+  /* Clear fixed App footer so “Submit order” stays tappable when scrolled to the bottom */
+  padding-bottom: calc(2rem + 52px + env(safe-area-inset-bottom, 0px));
   position: relative;
   overflow: hidden;
 }
@@ -94,6 +96,13 @@
   color: #f4f4f5 !important;
   font-size: clamp(0.92rem, 2.1vw, 1.1rem);
   line-height: 1.25;
+}
+
+.order-header .store-info .order-store-id-meta {
+  margin-top: 0.35rem;
+  font-size: clamp(0.8rem, 1.8vw, 0.95rem);
+  color: rgba(255, 255, 255, 0.82) !important;
+  letter-spacing: 0.02em;
 }
 
 .store-info {
@@ -502,6 +511,7 @@
 @media (max-width: 768px) {
   .order-summary-container {
     padding: 1rem;
+    padding-bottom: calc(1rem + 52px + env(safe-area-inset-bottom, 0px));
   }
 
   .order-header {

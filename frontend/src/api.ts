@@ -39,4 +39,12 @@ export interface StoreData {
   suburb?: string;
   state?: string;
   pcode?: string;
+  /** Metcash store id from mcash26.csv (Storeid column) — sent as order store_code */
+  storeId?: string;
+  /** RANK from mcash26.csv (sort / reporting) */
+  storeRank?: number | null;
+  /** Group from mcash26.csv — owner / group name */
+  ownerGroup?: string;
+  /** MSO path: which group was selected in the wizard (for labels / nav) */
+  msoGroup?: string;
 }

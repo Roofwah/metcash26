@@ -587,6 +587,68 @@
   flex: 1;
 }
 
+/* Last-year qty sits beside the 2026 order stepper (see .offer-qty-row) */
+.offer-qty-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  width: 100%;
+  margin-top: 0.75rem;
+  padding-top: 0.5rem;
+  border-top: 1px solid #e8e8e8;
+}
+
+.offer-qty-row--ordered {
+  padding-top: 0.5rem;
+}
+
+/* Stepper only (no 2025 block): centre the controls */
+.offer-qty-row:not(:has(.offer-prior-year-sales--beside-qty)) {
+  justify-content: center;
+}
+
+.offer-prior-year-sales--beside-qty {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.offer-prior-year-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 3.35rem;
+  height: 3.35rem;
+  min-width: 3.35rem;
+  min-height: 3.35rem;
+  border-radius: 50%;
+  background: #c41e3a;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(196, 30, 58, 0.35);
+  line-height: 1.05;
+}
+
+.offer-prior-year-badge-year {
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  opacity: 0.92;
+  margin-bottom: 0.08rem;
+}
+
+.offer-prior-year-badge-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
 .offer-range {
   font-size: 0.95rem;
   color: #666;
@@ -695,6 +757,13 @@
 .offer-action-small:focus-visible {
   outline: 3px solid #fca5a5;
   outline-offset: 2px;
+}
+
+.offer-qty-row .offer-quantity-controls {
+  margin-top: 0;
+  padding: 0.5rem 0.35rem;
+  border-top: none;
+  flex: 0 0 auto;
 }
 
 .offer-quantity-controls {

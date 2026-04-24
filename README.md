@@ -46,6 +46,7 @@ Frontend runs on `http://localhost:3000` by default and loads the metcash26 flow
 
 ## Included backend endpoints
 
+- `GET /api/store-sales/:storeId` — FY25 snapshot from `sales25.csv` (store ID match; used after retail store confirm)
 - `GET /api/store/:storeNumber`
 - `GET /api/store-data/:storeNumber`
 - `GET /api/states`
@@ -60,9 +61,9 @@ Frontend runs on `http://localhost:3000` by default and loads the metcash26 flow
 
 Backend CSV ingest files:
 
-- `backend/ihg26stores.csv`
-- `backend/mcash26.csv`
+- `backend/mcash26.csv` (store list; `GET /api/store/:storeNo` matches **Location ID** / `store_id` digits to a row)
 - `backend/offers.csv`
+- `backend/sales25.csv` (optional — store sales dashboard after confirm)
 
 ## Render deployment (single service)
 
