@@ -3,6 +3,15 @@ import axios from 'axios';
 import './OfferDetail.css';
 import LearnMoreModal from './LearnMoreModal';
 import { apiUrl } from '../api';
+import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
+import { recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { offerCardEditorialHeading, offerEditorialImageGalleryUrls } from '../utils/offerMedia';
+import {
+  chooseNMaxUnitsForLine,
+  countSelectedChooseNLines,
+  initChooseNLineQuantities,
+  isMixedChooseNOffer,
+} from '../utils/mixedChooseN';
 
 interface OfferItem {
   OFFER: string;
@@ -54,10 +63,19 @@ interface OfferDetailData {
   offerGroup: string;
   brand: string;
   range: string;
+  expoChargeBackCost?: string;
   hasTiers: boolean;
   tiers?: { [key: string]: OfferItem[] };
   items?: OfferItem[];
   rules?: OfferRules;
+  logoUrl?: string;
+  heroUrl?: string;
+  productImageUrl?: string;
+  logo?: string | null;
+  hero?: string | null;
+  productImage?: string | null;
+  modalTitle?: string;
+  h1?: string;
 }
 
 interface OfferDetailProps {
@@ -65,64 +83,24 @@ interface OfferDetailProps {
   userData: { fullName: string; storeNo: string; position: string };
   storeData: { storeName: string; banner: string };
   onBack: () => void;
-  onAddToCart: (items: { offerId: string; offerTier?: string; quantity: number; description: string; cost: string }[]) => void;
+  onAddToCart: (
+    items: {
+      offerId: string;
+      offerTier?: string;
+      quantity: number;
+      description: string;
+      cost: string;
+      minQuantity?: number;
+      lockQuantity?: boolean;
+      fixedBundle?: boolean;
+      splitBundle?: boolean;
+      chooseNBundle?: boolean;
+      lineDetails?: BundleLineDetail[];
+      chooseNMinSel?: number;
+      dropMonths?: string[];
+    }[],
+  ) => void;
 }
-
-// Helper function to get product images for each offer - matching card images
-const getOfferImages = (offerId: string, offerGroup: string): string[] => {
-  const offerKey = offerId.toLowerCase();
-  const groupKey = offerGroup.toLowerCase();
-  
-  // Eveready Offer (Heavy Duty 50) - use card image
-  if (offerKey.includes('eveready 1') || offerKey.includes('eveready 2') || offerKey.includes('eveready 3') || groupKey.includes('eveready heavy duty')) {
-    return ['/products/hd50.png'];
-  }
-  
-  // Energizer 16/14 packs - use card image
-  if (offerKey.includes('energizer 4') || offerKey.includes('energizer 5') || offerKey.includes('energizer 6') || groupKey.includes('16/14 packs')) {
-    return ['/products/1614.png'];
-  }
-  
-  // Energizer 30/24 packs - use card image (Energizer 1 = penta)
-  if (offerKey.includes('energizer 1')) {
-    return ['/products/penta.png'];
-  }
-  if (offerKey.includes('energizer 2') || offerKey.includes('energizer 3') || groupKey.includes('30/24 packs')) {
-    return ['/products/3024.png'];
-  }
-  
-  // ArmorAll Wash - use card image
-  if (offerKey.includes('armorall 1') || offerKey.includes('armorall 2') || offerKey.includes('armorall 3') || groupKey.includes('armor all wash')) {
-    return ['/products/wash.png'];
-  }
-  
-  // Energizer Display Prepack (MAX MOD) - use card image
-  if (offerKey.includes('energizer 7') || groupKey.includes('max mod bin display')) {
-    return ['/products/maxmod.png'];
-  }
-  
-  // Energizer Headlight Range - use card image
-  if (offerKey.includes('energizer 8') || groupKey.includes('headlight range')) {
-    return ['/products/hl.png'];
-  }
-  
-  // ArmorAll SLR Range - use card image
-  if (offerKey.includes('armorall 4') || groupKey.includes('slr range')) {
-    return ['/products/slr.png'];
-  }
-  
-  // Auto Fragrance Deal - use card image
-  if (offerKey.includes('armorall 5') || groupKey.includes('auto fragrance')) {
-    return ['/products/fragrances.png'];
-  }
-  
-  // Energizer Lights Range (Dolphin) - use card image
-  if (offerKey.includes('energizer 9') || groupKey.includes('lights range')) {
-    return ['/products/torch.png'];
-  }
-  
-  return [];
-};
 
 const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData, onBack, onAddToCart }) => {
   const [offerData, setOfferData] = useState<OfferDetailData | null>(null);
@@ -156,13 +134,20 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
         const mode = String(response.data?.rules?.offerMode || '').toUpperCase();
         const minBundle = Math.max(1, Number(response.data?.rules?.minBundleQty) || 1);
         setBundleQuantity(minBundle);
-        const initialLineQuantities: { [key: string]: number } = {};
-        response.data.items.forEach((item: OfferItem, idx: number) => {
-          const base = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
-          initialLineQuantities[`line-${idx}`] = base;
-        });
-        if (mode === 'SPLIT') setLineQuantities(initialLineQuantities);
-        else setLineQuantities({});
+        const rules = response.data?.rules;
+        const items = response.data.items as OfferItem[];
+        if (isMixedChooseNOffer(rules)) {
+          const minSel = Math.max(0, Number(rules?.minSelections) || 0);
+          setLineQuantities(initChooseNLineQuantities(items, minSel));
+        } else {
+          const initialLineQuantities: { [key: string]: number } = {};
+          items.forEach((item: OfferItem, idx: number) => {
+            const base = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
+            initialLineQuantities[`line-${idx}`] = base;
+          });
+          if (mode === 'SPLIT') setLineQuantities(initialLineQuantities);
+          else setLineQuantities({});
+        }
       }
     } catch (err) {
       console.error('Error fetching offer details:', err);
@@ -190,6 +175,12 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
       cost: string;
       minQuantity?: number;
       lockQuantity?: boolean;
+      fixedBundle?: boolean;
+      splitBundle?: boolean;
+      chooseNBundle?: boolean;
+      lineDetails?: BundleLineDetail[];
+      chooseNMinSel?: number;
+      dropMonths?: string[];
     }[] = [];
 
     if (offerData.hasTiers && offerData.tiers) {
@@ -216,23 +207,32 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
 
       if (mode === 'FIXED' || (mode === 'SPLIT' && !allowLineIncrease)) {
         const safeBundleQty = Math.max(minBundle, bundleQuantity);
-        offerData.items.forEach((item, idx) => {
+        let totalExpo = 0;
+        offerData.items.forEach((item) => {
           const baseQty = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
-          const quantity = baseQty * safeBundleQty;
-          if (quantity <= 0) return;
-          const unitCostFromCsv = Number(item.lineUnitExpoCost ?? 0);
-          const fallbackExpoTotal = parseFloat(String(item['Expo Total Cost'] || '0')) || 0;
-          const unitCost = unitCostFromCsv > 0 ? unitCostFromCsv : (baseQty > 0 ? fallbackExpoTotal / baseQty : fallbackExpoTotal);
-          items.push({
-            offerId: offerData.offerId,
-            quantity,
-            description: `${item.Description || 'SKU'} (${item.sku || item.metcashCode || idx + 1})`,
-            cost: unitCost.toFixed(2),
-            minQuantity: quantity,
-            lockQuantity: true,
-          });
+          if (baseQty <= 0) return;
+          totalExpo += parseFloat(String(item['Expo Total Cost'] || '0')) || 0;
+        });
+        const label =
+          offerCardEditorialHeading({
+            modalTitle: offerData.modalTitle,
+            h1: offerData.h1,
+          }) || offerData.offerGroup;
+        const perBundle =
+          safeBundleQty > 0 && totalExpo > 0
+            ? totalExpo / safeBundleQty
+            : parseFloat(offerData.expoChargeBackCost || '0') || 0;
+        items.push({
+          offerId: offerData.offerId,
+          quantity: safeBundleQty,
+          description: label,
+          cost: perBundle.toFixed(2),
+          minQuantity: minBundle,
+          lockQuantity: true,
+          fixedBundle: true,
         });
       } else if (mode === 'SPLIT') {
+        const lineDetails: BundleLineDetail[] = [];
         offerData.items.forEach((item, idx) => {
           const key = `line-${idx}`;
           const baseQty = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
@@ -241,15 +241,79 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
           const unitCostFromCsv = Number(item.lineUnitExpoCost ?? 0);
           const fallbackExpoTotal = parseFloat(String(item['Expo Total Cost'] || '0')) || 0;
           const unitCost = unitCostFromCsv > 0 ? unitCostFromCsv : (baseQty > 0 ? fallbackExpoTotal / baseQty : fallbackExpoTotal);
-          items.push({
-            offerId: offerData.offerId,
-            quantity,
+          lineDetails.push({
             description: `${item.Description || 'SKU'} (${item.sku || item.metcashCode || idx + 1})`,
+            quantity,
             cost: unitCost.toFixed(2),
-            minQuantity: baseQty,
-            lockQuantity: false,
+            baseQty,
+            sku: String(item.sku || item.metcashCode || '').trim() || undefined,
           });
         });
+        if (lineDetails.length > 0) {
+          const W = recomputeSplitBundleW(lineDetails);
+          const sum = lineDetails.reduce((s, l) => s + parseFloat(l.cost) * l.quantity, 0);
+          const perW = W > 0 ? sum / W : 0;
+          const label =
+            offerCardEditorialHeading({
+              modalTitle: offerData.modalTitle,
+              h1: offerData.h1,
+            }) || offerData.offerGroup;
+          items.push({
+            offerId: offerData.offerId,
+            quantity: W,
+            description: label,
+            cost: perW.toFixed(2),
+            minQuantity: 1,
+            lockQuantity: false,
+            splitBundle: true,
+            lineDetails,
+            dropMonths: Array.from({ length: W }, () => DEFAULT_DROP_MONTH),
+          });
+        }
+      } else if (isMixedChooseNOffer(offerData.rules)) {
+        const minS = Math.max(0, Number(offerData.rules?.minSelections) || 0);
+        const maxS = Math.max(0, Number(offerData.rules?.maxSelections) || 0);
+        const n = countSelectedChooseNLines(lineQuantities, offerData.items.length);
+        if (n < minS || n > maxS) return;
+        const lineDetails: BundleLineDetail[] = [];
+        let sum = 0;
+        offerData.items.forEach((item, idx) => {
+          const key = `line-${idx}`;
+          const baseQty = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
+          const quantity = Math.max(0, Number(lineQuantities[key] ?? 0));
+          if (quantity <= 0) return;
+          if (quantity < baseQty) return;
+          const unitCostFromCsv = Number(item.lineUnitExpoCost ?? 0);
+          const fallbackExpoTotal = parseFloat(String(item['Expo Total Cost'] || '0')) || 0;
+          const unitCost = unitCostFromCsv > 0 ? unitCostFromCsv : (baseQty > 0 ? fallbackExpoTotal / baseQty : fallbackExpoTotal);
+          sum += unitCost * quantity;
+          lineDetails.push({
+            description: `${item.Description || 'SKU'} (${item.sku || item.metcashCode || idx + 1})`,
+            quantity,
+            cost: unitCost.toFixed(2),
+            baseQty,
+            sku: String(item.sku || item.metcashCode || '').trim() || undefined,
+          });
+        });
+        if (lineDetails.length > 0) {
+          const label =
+            offerCardEditorialHeading({
+              modalTitle: offerData.modalTitle,
+              h1: offerData.h1,
+            }) || offerData.offerGroup;
+          items.push({
+            offerId: offerData.offerId,
+            quantity: 1,
+            description: label,
+            cost: sum.toFixed(2),
+            minQuantity: 1,
+            lockQuantity: true,
+            chooseNBundle: true,
+            chooseNMinSel: minS,
+            lineDetails,
+            dropMonths: [DEFAULT_DROP_MONTH],
+          });
+        }
       } else {
         if (quantities.single > 0) {
           const totalCost = offerData.items.reduce((sum, item) => {
@@ -291,6 +355,9 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
   const allowLineIncrease = !!offerData.rules?.allowLineIncrease;
   const isFixedMode = mode === 'FIXED' || (mode === 'SPLIT' && !allowLineIncrease);
   const isSplitMode = mode === 'SPLIT' && allowLineIncrease;
+  const isChooseNMode = isMixedChooseNOffer(offerData.rules);
+  const minSelTorch = Math.max(0, Number(offerData.rules?.minSelections) || 0);
+  const maxSelTorch = Math.max(0, Number(offerData.rules?.maxSelections) || 0);
 
   const hasItemsInCart = offerData.items
     ? isFixedMode
@@ -300,8 +367,19 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
             const base = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
             return Math.max(base, Number(lineQuantities[`line-${idx}`] ?? base)) > 0;
           })
-        : Object.values(quantities).some(qty => qty > 0)
-    : Object.values(quantities).some(qty => qty > 0);
+        : isChooseNMode
+          ? (() => {
+              const n = countSelectedChooseNLines(lineQuantities, offerData.items!.length);
+              if (n < minSelTorch || n > maxSelTorch) return false;
+              for (let i = 0; i < offerData.items!.length; i++) {
+                const base = Math.max(0, Number(offerData.items![i].baseQty ?? offerData.items![i].qty ?? offerData.items![i].Qty ?? 0) || 0);
+                const q = Math.max(0, Number(lineQuantities[`line-${i}`] ?? 0));
+                if (q > 0 && q < base) return false;
+              }
+              return n > 0;
+            })()
+          : Object.values(quantities).some((qty) => qty > 0)
+    : Object.values(quantities).some((qty) => qty > 0);
 
   return (
     <div className="offer-detail-container">
@@ -326,7 +404,7 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
 
         {/* Product Images */}
         {(() => {
-          const images = getOfferImages(offerData.offerId, offerData.offerGroup);
+          const images = offerEditorialImageGalleryUrls(offerData);
           if (images.length > 0) {
             return (
               <div className="offer-images-section">
@@ -435,9 +513,21 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
                   <h3>Adjust carton quantities</h3>
                   <p>Minimum quantities are pre-loaded. You can increase individual lines.</p>
                 </div>
+              ) : isChooseNMode ? (
+                <div className="offer-mode-banner">
+                  <h3>Mix-and-match torches</h3>
+                  <p>
+                    Select at least {minSelTorch} and at most {maxSelTorch} torch lines. Each selected line must be at
+                    least 1 unit (up to the carton max per line).
+                  </p>
+                </div>
               ) : null}
               <div className="offer-items">
-                {offerData.items.map((item, idx) => (
+                {offerData.items.map((item, idx) => {
+                  const itemCount = offerData.items!.length;
+                  const baseRow = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
+                  const maxUnits = chooseNMaxUnitsForLine(item);
+                  return (
                   <div key={idx} className="item-row">
                     <div className="item-row-main">
                       <span className="item-description">{item.Description}</span>
@@ -446,6 +536,10 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
                     <div className="item-row-meta">
                       {isFixedMode ? (
                         <span className="item-meta-pill">Qty: <strong>{Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0) * bundleQuantity}</strong></span>
+                      ) : isChooseNMode ? (
+                        <span className="item-meta-pill">
+                          Qty: <strong>{Number(lineQuantities[`line-${idx}`] ?? 0)}</strong>
+                        </span>
                       ) : (
                         item.qty && <span className="item-meta-pill">Prepack: <strong>{item.qty}</strong></span>
                       )}
@@ -496,11 +590,85 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
                         </div>
                       </div>
                     )}
+                    {isChooseNMode && (
+                      <div className="line-quantity-controls">
+                        <span className="line-qty-label">Line qty</span>
+                        <div className="quantity-controls">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLineQuantities((prev) => {
+                                const key = `line-${idx}`;
+                                const cur = Number(prev[key] ?? 0);
+                                if (cur <= 0) return prev;
+                                const nextVal = cur - 1;
+                                const newVal = nextVal < baseRow ? 0 : nextVal;
+                                if (newVal === 0) {
+                                  const test = { ...prev, [key]: 0 };
+                                  if (countSelectedChooseNLines(test, itemCount) < minSelTorch) return prev;
+                                }
+                                return { ...prev, [key]: newVal };
+                              })
+                            }
+                            className="qty-btn"
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            className="qty-input"
+                            min={0}
+                            max={maxUnits}
+                            value={Number(lineQuantities[`line-${idx}`] ?? 0)}
+                            onChange={(e) => {
+                              const raw = parseInt(e.target.value, 10);
+                              const v = Number.isFinite(raw) ? raw : 0;
+                              setLineQuantities((prev) => {
+                                const key = `line-${idx}`;
+                                let next = Math.min(maxUnits, Math.max(0, v));
+                                if (next > 0 && next < baseRow) next = baseRow;
+                                if (next === 0) {
+                                  const test = { ...prev, [key]: 0 };
+                                  if (countSelectedChooseNLines(test, itemCount) < minSelTorch) return prev;
+                                }
+                                if (next > 0) {
+                                  const test = { ...prev, [key]: next };
+                                  const prevSel = countSelectedChooseNLines(prev, itemCount);
+                                  const wasOff = (Number(prev[key]) || 0) === 0;
+                                  if (wasOff && prevSel >= maxSelTorch) return prev;
+                                  if (countSelectedChooseNLines(test, itemCount) > maxSelTorch) return prev;
+                                }
+                                return { ...prev, [key]: next };
+                              });
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setLineQuantities((prev) => {
+                                const key = `line-${idx}`;
+                                const cur = Number(prev[key] ?? 0);
+                                if (cur >= maxUnits) return prev;
+                                if (cur === 0) {
+                                  if (countSelectedChooseNLines(prev, itemCount) >= maxSelTorch) return prev;
+                                  return { ...prev, [key]: baseRow };
+                                }
+                                return { ...prev, [key]: cur + 1 };
+                              })
+                            }
+                            className="qty-btn"
+                          >
+                            +
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                ))}
+                );
+                })}
               </div>
 
-              {!isFixedMode && !isSplitMode && (
+              {!isFixedMode && !isSplitMode && !isChooseNMode && (
               <div className="offer-quantity">
                 <label>Quantity:</label>
                 <div className="quantity-controls">

@@ -15,11 +15,18 @@ import Footer from './components/Footer';
 import LandscapeHint from './components/LandscapeHint';
 import LoginScreen from './components/LoginScreen';
 import PresentationPlayer from './features/presentation-killer/components/PresentationPlayer';
+import InsightsNavigation from './features/presentation-killer/components/InsightsNavigation';
 import { killerPresentationDeck } from './features/presentation-killer/data/killerPresentationDeck';
+import SpinToWinPage from './features/spintowin/SpinToWinPage';
 import axios from 'axios';
 import { apiUrl, StoreData } from './api';
 import { DEFAULT_DROP_MONTH, normalizeDropMonth } from './constants/dropMonths';
 import { storeSales } from './content/modalCopy';
+import {
+  expandRetailCartItemsForSaveOrder,
+  recomputeSplitBundleW,
+  type BundleLineDetail,
+} from './utils/expandRetailOrderItems';
 
 interface UserData {
   fullName: string;
@@ -36,8 +43,23 @@ interface CartItem {
   dropMonths?: string[];
   minQuantity?: number;
   lockQuantity?: boolean;
+  /** One row per fixed / no-line-increase bundle; quantity = number of bundles shipped. */
+  fixedBundle?: boolean;
+  /** SPLIT + line increase: one row; quantity = synced bundle count W. */
+  splitBundle?: boolean;
+  /** MIXED CHOOSE_N: one custom bundle; quantity = 1. */
+  chooseNBundle?: boolean;
+  lineDetails?: BundleLineDetail[];
+  /** Used when removing torch lines so the cart can enforce min selections. */
+  chooseNMinSel?: number;
   /** MSO matrix: group line items per store for split POST */
   msoStoreKey?: string;
+}
+
+function padBundleDropMonths(prev: string[] | undefined, w: number): string[] {
+  const out = [...(prev || [])];
+  while (out.length < w) out.push(DEFAULT_DROP_MONTH);
+  return out.slice(0, Math.max(0, w));
 }
 
 type AppStep =
@@ -61,6 +83,8 @@ function App() {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
   const [showPresentation, setShowPresentation] = useState(false);
+  const [showInsightsNavigation, setShowInsightsNavigation] = useState(false);
+  const [showPostSpinThankYou, setShowPostSpinThankYou] = useState(false);
   const [showDashboard, setShowDashboard] = useState(false);
   const [showStoreSalesModal, setShowStoreSalesModal] = useState(false);
   const [storeHasSalesData, setStoreHasSalesData] = useState<boolean | null>(null);
@@ -76,7 +100,7 @@ function App() {
   const repEmail = sessionEmail || undefined;
 
   useEffect(() => {
-    if (currentStep !== 'store-confirm' || !storeData?.storeId?.trim()) {
+    if (!storeData?.storeId?.trim()) {
       setStoreHasSalesData(null);
       return;
     }
@@ -93,7 +117,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [currentStep, storeData?.storeId]);
+  }, [storeData?.storeId]);
 
   const connectedDatasets = [
     'Products API',
@@ -111,6 +135,7 @@ function App() {
 
   const handleLogout = () => {
     setShowPresentation(false);
+    setShowInsightsNavigation(false);
     setFormBackHandler(null);
     setUserData(null);
     setStoreData(null);
@@ -121,6 +146,7 @@ function App() {
     setSessionFlow('retail');
     setMsoStores([]);
     setCurrentStep('login');
+    setShowPostSpinThankYou(false);
   };
 
   const handleFormSubmit = (data: UserData, storeDataFromForm?: StoreData) => {
@@ -161,7 +187,8 @@ function App() {
 
   const goToOffersAfterStoreConfirm = () => {
     setCurrentStep('offers-listing');
-    setShowPresentation(true);
+    setShowInsightsNavigation(true);
+    setShowPresentation(false);
   };
 
   const handleStoreConfirmContinue = () => {
@@ -180,11 +207,85 @@ function App() {
   };
 
   const handleAddToCart = (items: CartItem[]) => {
-    const itemsWithDropMonths = items.map(item => ({
+    const itemsWithDropMonths = items.map((item) => ({
       ...item,
       dropMonths: item.dropMonths || Array(item.quantity).fill(DEFAULT_DROP_MONTH),
     }));
-    setCartItems(prev => [...prev, ...itemsWithDropMonths]);
+    setCartItems((prev) => {
+      const next = [...prev];
+      for (const incoming of itemsWithDropMonths) {
+        const splitMergeIdx = next.findIndex(
+          (x) =>
+            incoming.splitBundle &&
+            x.splitBundle &&
+            x.offerId === incoming.offerId &&
+            (x.offerTier || '') === (incoming.offerTier || ''),
+        );
+        if (splitMergeIdx >= 0 && incoming.lineDetails?.length) {
+          const existing = next[splitMergeIdx];
+          const ex = existing.lineDetails || [];
+          const inc = incoming.lineDetails;
+          const merged: BundleLineDetail[] = ex.map((e, i) => ({
+            ...e,
+            quantity: e.quantity + (inc[i]?.quantity ?? 0),
+          }));
+          const newW = recomputeSplitBundleW(merged);
+          next[splitMergeIdx] = {
+            ...existing,
+            lineDetails: merged,
+            quantity: newW,
+            dropMonths: padBundleDropMonths(existing.dropMonths, newW),
+          };
+          continue;
+        }
+
+        const chooseMergeIdx = next.findIndex((x) => incoming.chooseNBundle && x.chooseNBundle && x.offerId === incoming.offerId);
+        if (chooseMergeIdx >= 0 && incoming.lineDetails?.length) {
+          const existing = next[chooseMergeIdx];
+          const merged = [...(existing.lineDetails || [])];
+          for (const row of incoming.lineDetails) {
+            const mi = merged.findIndex((m) => m.description === row.description);
+            if (mi >= 0) merged[mi] = { ...merged[mi], quantity: merged[mi].quantity + row.quantity };
+            else merged.push({ ...row });
+          }
+          const lineSum = merged.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+          next[chooseMergeIdx] = {
+            ...existing,
+            lineDetails: merged,
+            quantity: 1,
+            cost: lineSum.toFixed(2),
+            chooseNMinSel: existing.chooseNMinSel ?? incoming.chooseNMinSel,
+          };
+          continue;
+        }
+
+        const idx = next.findIndex(
+          (x) =>
+            x.offerId === incoming.offerId &&
+            (x.offerTier || '') === (incoming.offerTier || '') &&
+            x.description === incoming.description &&
+            x.cost === incoming.cost &&
+            !x.splitBundle &&
+            !x.chooseNBundle &&
+            !incoming.splitBundle &&
+            !incoming.chooseNBundle,
+        );
+        if (idx >= 0) {
+          const existing = next[idx];
+          next[idx] = {
+            ...existing,
+            quantity: existing.quantity + incoming.quantity,
+            dropMonths: [...(existing.dropMonths || []), ...(incoming.dropMonths || [])],
+            minQuantity: Math.max(existing.minQuantity ?? 0, incoming.minQuantity ?? 0),
+            lockQuantity: !!(existing.lockQuantity || incoming.lockQuantity),
+            fixedBundle: !!(existing.fixedBundle || incoming.fixedBundle),
+          };
+        } else {
+          next.push(incoming);
+        }
+      }
+      return next;
+    });
     setCurrentStep('offers-listing');
     setSelectedOfferId(null);
   };
@@ -194,51 +295,194 @@ function App() {
   };
 
   const handleUpdateQuantity = (index: number, quantity: number) => {
-    setCartItems(prev => {
+    setCartItems((prev) => {
       const updated = [...prev];
       const currentItem = updated[index];
       if (!currentItem) return prev;
-      if (currentItem.lockQuantity) return prev;
+
+      if (currentItem.splitBundle) {
+        const minW = Math.max(1, currentItem.minQuantity ?? 1);
+        let newW = quantity;
+        if (newW < minW) newW = minW;
+        if (newW <= 0) {
+          return prev.filter((_, i) => i !== index);
+        }
+        const details = (currentItem.lineDetails || []).map((d) => {
+          const b = Math.max(1, Number(d.baseQty) || 1);
+          return { ...d, quantity: newW * b };
+        });
+        const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
+        updated[index] = {
+          ...currentItem,
+          quantity: newW,
+          lineDetails: details,
+          dropMonths: padBundleDropMonths(currentDropMonths, newW),
+        };
+        return updated;
+      }
+
+      if (currentItem.chooseNBundle) {
+        if (quantity <= 0) {
+          return prev.filter((_, i) => i !== index);
+        }
+        return prev;
+      }
+
+      if (currentItem.lockQuantity && !currentItem.fixedBundle) return prev;
       const minQty = Math.max(0, currentItem.minQuantity ?? 1);
-      if (quantity < minQty) quantity = minQty;
-      if (quantity <= 0) { return prev.filter((_, i) => i !== index); }
+      let q = quantity;
+      if (q < minQty) q = minQty;
+      if (q <= 0) {
+        return prev.filter((_, i) => i !== index);
+      }
       const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
-      if (quantity > currentItem.quantity) {
+      if (q > currentItem.quantity) {
         const newDropMonths = [...currentDropMonths];
-        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push(DEFAULT_DROP_MONTH);
+        for (let i = currentItem.quantity; i < q; i++) newDropMonths.push(DEFAULT_DROP_MONTH);
         updated[index].dropMonths = newDropMonths;
       } else {
-        updated[index].dropMonths = currentDropMonths.slice(0, quantity);
+        updated[index].dropMonths = currentDropMonths.slice(0, q);
       }
-      updated[index].quantity = quantity;
+      updated[index].quantity = q;
       return updated;
     });
   };
 
-  const handleUpdateCartQuantityByOfferId = (offerId: string, quantity: number, offerTier?: string) => {
-    if (quantity <= 0) {
-      setCartItems(prev =>
-        prev.filter(item => item.offerId !== offerId || (offerTier !== undefined && item.offerTier !== offerTier))
+  const handleClearOfferCartLines = (offerId: string) => {
+    setCartItems((prev) => prev.filter((item) => item.offerId !== offerId));
+  };
+
+  const handleUpdateCartLineQuantity = (
+    offerId: string,
+    description: string,
+    quantity: number,
+    minQuantity = 0
+  ) => {
+    setCartItems((prev) => {
+      const bundleIdx = prev.findIndex(
+        (item) =>
+          item.offerId === offerId &&
+          (item.splitBundle || item.chooseNBundle) &&
+          item.lineDetails?.some((d) => d.description === description),
       );
-      return;
-    }
-    setCartItems(prev => {
-      const itemIndex = prev.findIndex(
-        item => item.offerId === offerId && (offerTier === undefined || item.offerTier === offerTier)
-      );
-      if (itemIndex < 0) return prev;
-      const updated = [...prev];
-      const currentItem = updated[itemIndex];
-      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
-      if (quantity > currentItem.quantity) {
-        const newDropMonths = [...currentDropMonths];
-        for (let i = currentItem.quantity; i < quantity; i++) newDropMonths.push(DEFAULT_DROP_MONTH);
-        updated[itemIndex].dropMonths = newDropMonths;
-      } else {
-        updated[itemIndex].dropMonths = currentDropMonths.slice(0, quantity);
+      if (bundleIdx >= 0) {
+        const updated = [...prev];
+        const current = updated[bundleIdx];
+        const details = [...(current.lineDetails || [])];
+        const di = details.findIndex((d) => d.description === description);
+        if (di < 0) return prev;
+        const base = Math.max(1, Number(details[di].baseQty) || 1);
+        const W = Math.max(1, Number(current.quantity) || 1);
+        const floorSync = W * base;
+        // Allow lowering a line below the current synced floor when the caller is reducing bundle count
+        // (target qty < W×base). Surplus trims pass target === W×base so the usual floor still applies.
+        const minLine = current.splitBundle
+          ? quantity < floorSync
+            ? quantity
+            : floorSync
+          : Math.max(base, minQuantity);
+        const nextLineQty = Math.max(minLine, quantity);
+        if (current.chooseNBundle && nextLineQty <= 0) {
+          const rest = details.filter((_, i) => i !== di);
+          const minSel = Math.max(0, current.chooseNMinSel ?? 0);
+          const active = rest.filter((l) => l.quantity > 0).length;
+          if (active < minSel) {
+            return prev.filter((_, i) => i !== bundleIdx);
+          }
+          details.splice(di, 1);
+          const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+          updated[bundleIdx] = {
+            ...current,
+            lineDetails: details,
+            cost: lineSum.toFixed(2),
+          };
+          return updated;
+        }
+        details[di] = { ...details[di], quantity: nextLineQty };
+        if (current.splitBundle) {
+          const newW = recomputeSplitBundleW(details);
+          if (newW <= 0) {
+            return prev.filter((_, i) => i !== bundleIdx);
+          }
+          updated[bundleIdx] = {
+            ...current,
+            lineDetails: details,
+            quantity: newW,
+            dropMonths: padBundleDropMonths(current.dropMonths, newW),
+          };
+          return updated;
+        }
+        const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+        updated[bundleIdx] = {
+          ...current,
+          lineDetails: details,
+          quantity: 1,
+          cost: lineSum.toFixed(2),
+        };
+        return updated;
       }
-      updated[itemIndex].quantity = quantity;
+
+      const idx = prev.findIndex((item) => item.offerId === offerId && item.description === description);
+      if (idx < 0) return prev;
+      const updated = [...prev];
+      const current = updated[idx];
+      // Locked rows (fixed bundles) can be reduced by card-level "-" but not increased manually.
+      if (current.lockQuantity && !current.fixedBundle && quantity >= current.quantity) return prev;
+      const minQty = Math.max(0, minQuantity, current.minQuantity ?? 0);
+      const nextQty = Math.max(minQty, quantity);
+      if (nextQty <= 0) {
+        return prev.filter((_, i) => i !== idx);
+      }
+      const currentDropMonths = current.dropMonths || Array(current.quantity).fill(DEFAULT_DROP_MONTH);
+      if (nextQty > current.quantity) {
+        const nextMonths = [...currentDropMonths];
+        for (let i = current.quantity; i < nextQty; i++) nextMonths.push(DEFAULT_DROP_MONTH);
+        updated[idx] = { ...current, quantity: nextQty, dropMonths: nextMonths };
+      } else if (nextQty < current.quantity) {
+        updated[idx] = { ...current, quantity: nextQty, dropMonths: currentDropMonths.slice(0, nextQty) };
+      }
       return updated;
+    });
+  };
+
+  const handleRemoveCartLine = (offerId: string, description: string) => {
+    setCartItems((prev) => {
+      const bidx = prev.findIndex(
+        (item) =>
+          item.offerId === offerId &&
+          (item.chooseNBundle || item.splitBundle) &&
+          item.lineDetails?.some((d) => d.description === description),
+      );
+      if (bidx >= 0) {
+        const row = prev[bidx];
+        const minSel = Math.max(0, row.chooseNMinSel ?? 0);
+        const details = (row.lineDetails || []).filter((d) => d.description !== description);
+        const active = details.filter((l) => l.quantity > 0).length;
+        if (row.chooseNBundle && active < minSel) {
+          return prev.filter((_, i) => i !== bidx);
+        }
+        if (details.length === 0 || (row.chooseNBundle && active === 0)) {
+          return prev.filter((_, i) => i !== bidx);
+        }
+        const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+        const next = [...prev];
+        if (row.splitBundle) {
+          const newW = recomputeSplitBundleW(details);
+          if (newW <= 0 || !details.length) {
+            return prev.filter((_, i) => i !== bidx);
+          }
+          next[bidx] = {
+            ...row,
+            lineDetails: details,
+            quantity: newW,
+            dropMonths: padBundleDropMonths(row.dropMonths, newW),
+          };
+        } else {
+          next[bidx] = { ...row, lineDetails: details, quantity: 1, cost: lineSum.toFixed(2) };
+        }
+        return next;
+      }
+      return prev.filter((item) => !(item.offerId === offerId && item.description === description));
     });
   };
 
@@ -276,14 +520,24 @@ function App() {
 
     try {
       if (sessionFlow === 'mso' && msoStores.length > 0) {
+        const offersRes = await axios.get(apiUrl('/api/offers'));
+        const offers = Array.isArray(offersRes.data) ? offersRes.data : [];
         let lastPrint: Record<string, unknown> | null = null;
         for (const store of msoStores) {
           const key = msoStoreKey(store);
-          const items = cartItems.filter((i) => i.msoStoreKey === key).map(orderPayloadItem);
-          if (items.length === 0) continue;
-          const totalValue = cartItems
-            .filter((i) => i.msoStoreKey === key)
-            .reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0)
+          const slice = cartItems.filter((i) => i.msoStoreKey === key);
+          if (slice.length === 0) continue;
+          const exploded = expandRetailCartItemsForSaveOrder(slice, offers);
+          const items = exploded.map((it) => ({
+            offerId: it.offerId,
+            offerTier: it.offerTier,
+            quantity: it.quantity,
+            description: it.description,
+            cost: it.cost,
+            dropMonths: it.dropMonths?.map((m) => normalizeDropMonth(m)),
+          }));
+          const totalValue = exploded
+            .reduce((sum, item) => sum + parseFloat(item.cost || '0') * (item.quantity || 0), 0)
             .toFixed(2);
           const orderData = {
             userName: userData.fullName,
@@ -303,6 +557,20 @@ function App() {
         }
         setPrintData(lastPrint);
       } else {
+        const offersRes = await axios.get(apiUrl('/api/offers'));
+        const offers = Array.isArray(offersRes.data) ? offersRes.data : [];
+        const exploded = expandRetailCartItemsForSaveOrder(cartItems, offers);
+        const items = exploded.map((it) => ({
+          offerId: it.offerId,
+          offerTier: it.offerTier,
+          quantity: it.quantity,
+          description: it.description,
+          cost: it.cost,
+          dropMonths: it.dropMonths?.map((m) => normalizeDropMonth(m)),
+        }));
+        const totalValue = exploded
+          .reduce((sum, item) => sum + parseFloat(item.cost || '0') * (item.quantity || 0), 0)
+          .toFixed(2);
         const orderData = {
           userName: userData.fullName,
           storeNumber: userData.storeNo,
@@ -313,8 +581,8 @@ function App() {
           email: data.email,
           storeCode: (storeData.storeId || '').trim(),
           repEmail: repEmail || '',
-          items: cartItems.map(orderPayloadItem),
-          totalValue: cartItems.reduce((sum, item) => sum + parseFloat(item.cost) * item.quantity, 0).toFixed(2),
+          items,
+          totalValue,
         };
         await postOrder(orderData);
         setPrintData(orderData);
@@ -323,6 +591,7 @@ function App() {
       console.error('Error saving order:', error);
     }
     setCurrentStep('thankyou');
+    setShowPostSpinThankYou(false);
   };
 
   const handleThankYouComplete = () => {
@@ -334,7 +603,16 @@ function App() {
     setSessionFlow('retail');
     setMsoStores([]);
     setCurrentStep('form');
+    setShowPostSpinThankYou(false);
   };
+
+  useEffect(() => {
+    if (!(currentStep === 'thankyou' && showPostSpinThankYou)) return;
+    const timeoutId = window.setTimeout(() => {
+      handleThankYouComplete();
+    }, 2200);
+    return () => window.clearTimeout(timeoutId);
+  }, [currentStep, showPostSpinThankYou]);
 
   const handleBackFromOrderSummary = () =>
     setCurrentStep(sessionFlow === 'mso' ? 'mso-matrix' : 'offers-listing');
@@ -347,15 +625,29 @@ function App() {
   };
 
   const handleMsoMatrixCheckout = (items: MsoMatrixCartItem[]) => {
-    const itemsWithDropMonths = items.map((item) => ({
-      ...item,
-      dropMonths: Array(item.quantity).fill(DEFAULT_DROP_MONTH),
-    }));
-    setCartItems(itemsWithDropMonths);
+    const itemsWithDropMonths = items.map((item) => {
+      const W =
+        item.fixedBundle || item.splitBundle
+          ? Math.max(1, Number(item.quantity) || 1)
+          : item.chooseNBundle
+            ? 1
+            : Math.max(1, Number(item.quantity) || 1);
+      const dropMonths =
+        item.dropMonths && item.dropMonths.length >= (item.chooseNBundle ? 1 : W)
+          ? item.dropMonths
+          : item.chooseNBundle
+            ? [DEFAULT_DROP_MONTH]
+            : Array.from({ length: W }, () => DEFAULT_DROP_MONTH);
+      return { ...item, dropMonths };
+    });
+    setCartItems(itemsWithDropMonths as CartItem[]);
     setCurrentStep('order-summary');
   };
 
-  const handleViewPresentation = () => setShowPresentation(true);
+  const handleOpenInsightsNavigation = () => {
+    setShowInsightsNavigation(true);
+    setShowPresentation(false);
+  };
   const handlePresentationClose = () => setShowPresentation(false);
   const handlePresentationCTA = (action: string) => {
     setShowPresentation(false);
@@ -466,8 +758,6 @@ function App() {
           storeData={storeData}
           onContinue={handleStoreConfirmContinue}
           onBack={handleStoreConfirmBack}
-          showSalesDashboardButton={storeHasSalesData === true}
-          onOpenSalesDashboard={() => setShowStoreSalesModal(true)}
         />
       )}
 
@@ -481,7 +771,12 @@ function App() {
           cartItemCount={cartItems.length}
           cartItems={cartItems}
           onAddToCart={handleAddToCart}
-          onUpdateCartQuantity={handleUpdateCartQuantityByOfferId}
+          onUpdateCartLineQuantity={handleUpdateCartLineQuantity}
+          onRemoveCartLine={handleRemoveCartLine}
+          onClearOfferCartLines={handleClearOfferCartLines}
+          showSalesDashboardButton={storeHasSalesData === true}
+          onOpenSalesDashboard={() => setShowStoreSalesModal(true)}
+          onOpenInsightsNavigation={handleOpenInsightsNavigation}
         />
       )}
 
@@ -508,6 +803,8 @@ function App() {
           userData={userData}
           storeData={storeData}
           cartItems={cartItems}
+          msoOrder={sessionFlow === 'mso'}
+          msoStoreCount={sessionFlow === 'mso' ? msoStores.length : undefined}
           onUpdateQuantity={handleUpdateQuantity}
           onUpdateDropMonth={handleUpdateDropMonth}
           onRemoveItem={handleRemoveItem}
@@ -517,13 +814,29 @@ function App() {
       )}
 
       {currentStep === 'thankyou' && userData && (
-        <UserForm
-          onSubmit={handleThankYouComplete}
-          onThankYouComplete={handleThankYouComplete}
-          showThankYou={true}
-          userData={userData}
-          printData={printData}
-        />
+        showPostSpinThankYou ? (
+          <UserForm
+            onSubmit={handleThankYouComplete}
+            onThankYouComplete={handleThankYouComplete}
+            showThankYou={true}
+            userData={userData}
+            printData={printData}
+            thankYouMsoGroup={sessionFlow === 'mso' ? storeData?.msoGroup?.trim() || undefined : undefined}
+          />
+        ) : (
+          <SpinToWinPage
+            onClaimPrize={() => setShowPostSpinThankYou(true)}
+            spinSessionMeta={{
+              sessionKind: sessionFlow === 'mso' ? 'mso' : 'retail',
+              repEmail: sessionEmail || undefined,
+              userName: userData.fullName,
+              storeName: sessionFlow === 'retail' ? storeData?.storeName : undefined,
+              msoGroup: sessionFlow === 'mso' ? storeData?.msoGroup?.trim() || undefined : undefined,
+              msoStoreCount: sessionFlow === 'mso' ? msoStores.length : undefined,
+              storeId: storeData?.storeId,
+            }}
+          />
+        )
       )}
 
       {currentStep === 'empty-cart-thankyou' && userData && storeData && (
@@ -540,6 +853,17 @@ function App() {
       <Footer onBack={getBackHandler()} hideStatusOrb={currentStep === 'login'} />
 
       {currentStep === 'store-confirm' && <LandscapeHint />}
+
+      {showInsightsNavigation && (
+        <InsightsNavigation
+          onClose={() => setShowInsightsNavigation(false)}
+          onOpenChristmasInsights={() => {
+            setShowInsightsNavigation(false);
+            setShowPresentation(true);
+          }}
+          onContinueToSales={() => setShowInsightsNavigation(false)}
+        />
+      )}
 
       {/* ── Presentation Player overlay ─────────────────────────── */}
       {showPresentation && (

@@ -1,79 +1,113 @@
 [
   {
-    "offer": "Energizer Tower Pre-Pack",
+    "offer": "ENERGIZER_1",
     "logo": "energizer.png",
-    "hero": "tower.png",
+    "hero": "tower.jpg",
+    "productImage": "tower.jpg",
+    "showPromos": true,
+    "promoImage": "promo_1.svg",
+    "modalTitle": "Energizer Tower Pre-Pack",
     "h1": "No. 1 Battery Brand in Australia",
     "h2": "High volume promotional lines designed to maximise category sales",
-    "body": "Load your shelves with Australia's most trusted battery brand. The Energizer Tower Pre-Pack gives you the perfect mix of AA and AAA in a ready-to-sell display."
+    "body": "Load your shelves with Australia's most trusted battery brand. The Energizer Tower Pre-Pack gives you the perfect mix of AA and AAA in a ready-to-sell display.",
+    "callouts": ["Ready-to-merchandise tower", "AA & AAA core sizes"]
   },
   {
-    "offer": "Eveready Tower Pre-Pack",
-    "logo": "eready.png",
-    "hero": "evereadyaa.png",
-    "h1": "The No. 1 Value Brand in Australia",
-    "h2": "Marketing investment delivering over $2M media value",
-    "body": "Give your customers reliable everyday batteries at unbeatable expo pricing. The Eveready Tower Pre-Pack is a proven shelf performer."
-  },
-  {
-    "offer": "Eveready Lighting Tower",
-    "logo": "eready.png",
-    "hero": "torch.png",
-    "h1": "The No. 1 Value Brand in Australia",
-    "h2": "Marketing investment delivering over $2M media value",
-    "body": "From headlamps to lanterns, the Eveready Lighting Tower brings a full range of portable lighting solutions at expo-exclusive pricing."
-  },
-  {
-    "offer": "Energizer Max Plus 10's Penta",
+    "offer": "ENERGIZER_2",
     "logo": "energizer.png",
     "hero": "penta.png",
+    "productImage": "penta.png",
+    "showPromos": true,
+    "promoImage": "promo_2.svg",
+    "modalTitle": "Energizer Max+ Pre-Pack",
     "h1": "Australia’s No.1 in High Performance",
     "h2": "Extensively supported with promotions to drive sales and category value",
-    "body": "The Energizer MAX PLUS Penta display is a high-impact in-store unit packed with premium AA and AAA batteries — ready to go straight to the floor."
+    "body": "The Energizer MAX PLUS display is a high-impact in-store unit packed with premium AA and AAA batteries — ready to go straight to the floor.",
+    "callouts": ["MAX PLUS AA & AAA", "Expo pricing"]
   },
   {
-    "offer": "Energizer Max 14/16 Loose Stock",
+    "offer": "ENERGIZER_3",
     "logo": "energizer.png",
-    "hero": "1614.png",
-    "h1": "The No. 1 & 2 Top Selling SKUs.",
-    "h2": "High Volume Promotional Lines",
-    "body": "Expo Special: Once a year 50% discount  Improved deal from the standard 40% off on all other ½ Price promotions"
-  },
-  {
-    "offer": "Energizer Max 24pk Loose Stock",
-    "logo": "energizer.png",
-    "hero": "aa.png",
-    "h1": "GO BIG THIS SEASON",
+    "hero": "810.jpg",
+    "productImage": "810.jpg",
+    "showPromos": true,
+    "promoImage": "promo_3.svg",
+    "modalTitle": "Energizer Max 8s & 10s Loose",
+    "h1": "ORDER PENTA BIN SEPARATELY",
     "h2": "50% OFF EXPO PRICING",
-    "body": "The Energizer MAX 24 pack is your highest-value battery offering. Stock deep, sell fast, and keep your customers coming back."
+    "body": "Flexible loose-stock offer on Energizer MAX 8s and 10s — stock deep, sell fast, and keep your customers coming back.",
+    "callouts": ["Split quantity rules apply", "Line increases where allowed"]
   },
   {
-    "offer": "Energizer Specialty Range Loose",
+    "offer": "ENERGIZER_4",
     "logo": "energizer.png",
     "hero": "special.png",
+    "productImage": "special.png",
+    "modalTitle": "Energizer Specialty Range Loose",
     "h1": "SPECIALTY BATTERIES",
     "h2": "EXPO EXCLUSIVE DEALS",
-    "body": "Button cells, coin batteries, and specialty sizes — the products customers can't find everywhere. Fill the gap in your range at expo pricing."
+    "body": "Button cells, coin batteries, and specialty sizes — the products customers can't find everywhere. Fill the gap in your range at expo pricing.",
+    "callouts": ["Coin & specialty cells", "Impulse add-on sales"]
   },
   {
-    "offer": "Armor All®  Range Loose",
+    "offer": "EVEREADY_1",
+    "logo": "eready.png",
+    "hero": "evertower.jpg",
+    "productImage": "evertower.jpg",
+    "showPromos": true,
+    "promoImage": "promo_4.svg",
+    "modalTitle": "Eveready Tower Pre-Pack",
+    "h1": "The No. 1 Value Brand in Australia",
+    "h2": "Marketing investment delivering over $2M media value",
+    "body": "Give your customers reliable everyday batteries at unbeatable expo pricing. The Eveready Tower Pre-Pack is a proven shelf performer.",
+    "callouts": ["Value tier tower", "AA & AAA family"]
+  },
+  {
+    "offer": "ARMORALL_1",
+    "logo": "aall.png",
+    "hero": "cleankit.png",
+    "productImage": "cleankit.png",
+    "modalTitle": "ArmorAll Express Clean Gift Pack",
+    "h1": "PROTECT WHAT MATTERS",
+    "h2": "Order in Cases of 4",
+    "body": "Gift-pack car care that customers recognise — strong impulse and seasonal uplift at expo-only terms.",
+    "callouts": ["Gift pack format", "High-recognition brand"]
+  },
+  {
+    "offer": "ARMORALL_2",
     "logo": "aall.png",
     "hero": "carcare.png",
+    "productImage": "carcare.png",
+    "showPromos": true,
+    "promoImage": "promo_5.svg",
+    "modalTitle": "ArmorAll Range Loose",
     "h1": "PROTECT WHAT MATTERS",
     "h2": "50% OFF EXPO PRICING",
-    "body": "Australia's #1 car care brand. Armor All protectants, washes, wipes and tyre shine — a complete range your customers trust."
+    "body": "Australia's #1 car care brand. Armor All protectants, washes, wipes and tyre shine — a complete range your customers trust.",
+    "callouts": ["Full car care range", "Split lines where allowed"]
   },
   {
-    "offer": "Armor All® Quick Clean Kit",
-    "logo": "aall.png",
-    "hero": "cleankit.png"
-  },
-  {
-    "offer": "Jelly Belly® Range Loose",
+    "offer": "JELLYBELLY_1",
     "logo": "jelly.png",
     "hero": "frag.png",
-    "h1": "FRESH SCENTS. BIG DEALS.",
-    "h2": "50% OFF EXPO PRICING",
-    "body": "Jelly Belly air fresheners bring bold, fun fragrances to the auto category. High impulse purchase, strong margin, easy to merchandise."
+    "productImage": "frag.jpg",
+    "showPromos": true,
+    "promoImage": "promo_jelly.png",
+    "modalTitle": "Jelly Belly Counter Pre-Pack",
+    "h1": "30% DISCOUNT WITH TRAY",
+    "h2": "30% DISCOUNT WITH TRAY",
+    "body": "Australia’s Fastest Growing Auto Fragrance Range",
+    "callouts": ["Highly impulsive and responsive to promotional activity","Broad market appeal."]
+  },
+  {
+    "offer": "TORCH_1",
+    "logo": "eready.png",
+    "hero": "torch.jpg",
+    "productImage": "torch.jpg",
+    "modalTitle": "Eveready Torch Case Loose (Min Orders of 3SKU types)",
+    "h1": "The No. 1 Value Brand in Australia",
+    "h2": "Iconic Australian Torches",
+    "body": "Iconic Australian Torches — Headlamo=p, 100lm, Floating Torch 100lm, Metal Flashlight 90lm, Brilliant Beam 65lm",
+    "callouts": ["MIXED selection rules (miniumum 3 SKU types)", "Torch & lantern styles"]
   }
 ]

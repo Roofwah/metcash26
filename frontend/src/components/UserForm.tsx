@@ -31,6 +31,8 @@ interface UserFormProps {
   showThankYou?: boolean;
   userData?: { fullName: string; storeNo: string; position: string };
   printData?: any;
+  /** MSO: show group on thank-you subtitle instead of a single store name. */
+  thankYouMsoGroup?: string;
   onBackChange?: (handler: (() => void) | null) => void;
 }
 
@@ -49,6 +51,7 @@ const UserForm: React.FC<UserFormProps> = ({
   onThankYouComplete,
   showThankYou: externalShowThankYou,
   userData: externalUserData,
+  thankYouMsoGroup,
   onBackChange,
 }) => {
   const [currentStep, setCurrentStep] = useState(STEP_HOME);
@@ -461,7 +464,10 @@ const UserForm: React.FC<UserFormProps> = ({
   const renderThankYouStep = () => {
     if (!externalShowThankYou) return null;
     const displayFullName = externalUserData?.fullName || 'there';
-    const displayStore = storeInfo?.storeName || externalUserData?.storeNo || '';
+    const msoHead = thankYouMsoGroup?.trim();
+    const displayStore = msoHead
+      ? `MSO · ${msoHead}`
+      : storeInfo?.storeName || externalUserData?.storeNo || '';
     return (
       <div className="thank-you-screen">
         <div className="logo-container">

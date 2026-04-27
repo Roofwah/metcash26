@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_4" data-name="Layer 4" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1548.2 968.17">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        font-size: 34.83px;
+      }
+
+      .cls-3, .cls-4, .cls-5, .cls-6 {
+        font-family: Arial-BoldMT, Arial;
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        stroke: #000;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-4 {
+        font-size: 37.73px;
+      }
+
+      .cls-5 {
+        font-size: 36.76px;
+      }
+
+      .cls-7 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-6 {
+        fill: #010101;
+        font-size: 60px;
+      }
+    </style>
+    <clipPath id="clippath">
+      <polygon class="cls-1" points="0 97.52 1547.82 44.52 1547.82 915.17 0 968.17 0 97.52"/>
+    </clipPath>
+  </defs>
+  <text class="cls-6" transform="translate(438.56 58.96)"><tspan x="0" y="0">PROMOTIONS 2026/27</tspan></text>
+  <g class="cls-7">
+    <line class="cls-2" x1="577.53" y1="246.64" x2="577.53" y2="133.31"/>
+    <line class="cls-2" x1="732.31" y1="246.64" x2="732.31" y2="133.31"/>
+    <line class="cls-2" x1="887.09" y1="246.64" x2="887.09" y2="133.31"/>
+    <line class="cls-2" x1="1041.88" y1="246.64" x2="1041.88" y2="133.31"/>
+    <line class="cls-2" x1="1196.66" y1="246.64" x2="1196.66" y2="133.31"/>
+    <line class="cls-2" x1="1351.44" y1="246.64" x2="1351.44" y2="133.31"/>
+    <line class="cls-2" x1="35.79" y1="247.12" x2="577.53" y2="247.12"/>
+    <line class="cls-2" x1="577.53" y1="247.12" x2="732.31" y2="247.12"/>
+    <line class="cls-2" x1="577.53" y1="358.44" x2="577.53" y2="247.6"/>
+    <line class="cls-2" x1="732.31" y1="247.12" x2="887.09" y2="247.12"/>
+    <line class="cls-2" x1="732.31" y1="358.44" x2="732.31" y2="247.6"/>
+    <line class="cls-2" x1="887.09" y1="247.12" x2="1041.88" y2="247.12"/>
+    <line class="cls-2" x1="887.09" y1="358.44" x2="887.09" y2="247.6"/>
+    <line class="cls-2" x1="1041.88" y1="247.12" x2="1196.66" y2="247.12"/>
+    <line class="cls-2" x1="1041.88" y1="358.44" x2="1041.88" y2="247.6"/>
+    <line class="cls-2" x1="1196.66" y1="247.12" x2="1351.44" y2="247.12"/>
+    <line class="cls-2" x1="1196.66" y1="358.44" x2="1196.66" y2="247.6"/>
+    <line class="cls-2" x1="1351.44" y1="247.12" x2="1506.7" y2="247.12"/>
+    <line class="cls-2" x1="1351.44" y1="358.44" x2="1351.44" y2="247.6"/>
+    <line class="cls-2" x1="1506.22" y1="358.44" x2="1506.22" y2="247.6"/>
+    <line class="cls-2" x1="35.79" y1="358.92" x2="577.53" y2="358.92"/>
+    <line class="cls-2" x1="577.53" y1="358.92" x2="732.31" y2="358.92"/>
+    <line class="cls-2" x1="732.31" y1="358.92" x2="887.09" y2="358.92"/>
+    <line class="cls-2" x1="887.09" y1="358.92" x2="1041.88" y2="358.92"/>
+    <line class="cls-2" x1="1041.88" y1="358.92" x2="1196.66" y2="358.92"/>
+    <line class="cls-2" x1="1196.66" y1="358.92" x2="1351.44" y2="358.92"/>
+    <line class="cls-2" x1="1351.44" y1="358.92" x2="1506.7" y2="358.92"/>
+    <line class="cls-2" x1="34.83" y1="132.83" x2="577.53" y2="132.83"/>
+    <line class="cls-2" x1="35.31" y1="247.12" x2="35.31" y2="133.31"/>
+    <line class="cls-2" x1="577.53" y1="132.83" x2="732.31" y2="132.83"/>
+    <line class="cls-2" x1="732.31" y1="132.83" x2="887.09" y2="132.83"/>
+    <line class="cls-2" x1="887.09" y1="132.83" x2="1041.88" y2="132.83"/>
+    <line class="cls-2" x1="1041.88" y1="132.83" x2="1196.66" y2="132.83"/>
+    <line class="cls-2" x1="1196.66" y1="132.83" x2="1351.44" y2="132.83"/>
+    <line class="cls-2" x1="1351.44" y1="132.83" x2="1506.7" y2="132.83"/>
+    <line class="cls-2" x1="1506.22" y1="246.64" x2="1506.22" y2="133.31"/>
+    <line class="cls-2" x1="35.31" y1="358.92" x2="35.31" y2="247.12"/>
+    <text class="cls-5" transform="translate(136.89 203.36)"><tspan x="0" y="0">SKU DESCRIPTION</tspan></text>
+    <text class="cls-5" transform="translate(614.09 203.36)"><tspan x="0" y="0">AUG</tspan></text>
+    <text class="cls-5" transform="translate(773.26 203.36)"><tspan x="0" y="0">SEP</tspan></text>
+    <text class="cls-5" transform="translate(925.71 203.36)"><tspan x="0" y="0">OCT</tspan></text>
+    <text class="cls-5" transform="translate(1079.44 203.36)"><tspan x="0" y="0">NOV</tspan></text>
+    <text class="cls-5" transform="translate(1235.23 203.36)"><tspan x="0" y="0">DEC</tspan></text>
+    <text class="cls-5" transform="translate(1392.05 203.36)"><tspan x="0" y="0">JAN</tspan></text>
+    <text class="cls-3" transform="translate(68.07 300.2)"><tspan x="0" y="0">ENERGIZER MAX PLUS </tspan><tspan x="0" y="41.79">AA 10PK</tspan></text>
+    <text class="cls-4" transform="translate(617.17 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(771.96 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(926.76 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1081.56 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1236.36 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1391.16 316.26)"><tspan x="0" y="0">40%</tspan></text>
+    <line class="cls-2" x1="577.53" y1="469.44" x2="577.53" y2="358.6"/>
+    <line class="cls-2" x1="732.31" y1="469.44" x2="732.31" y2="358.6"/>
+    <line class="cls-2" x1="887.09" y1="469.44" x2="887.09" y2="358.6"/>
+    <line class="cls-2" x1="1041.88" y1="469.44" x2="1041.88" y2="358.6"/>
+    <line class="cls-2" x1="1196.66" y1="469.44" x2="1196.66" y2="358.6"/>
+    <line class="cls-2" x1="1351.44" y1="469.44" x2="1351.44" y2="358.6"/>
+    <line class="cls-2" x1="1506.22" y1="469.44" x2="1506.22" y2="358.6"/>
+    <line class="cls-2" x1="35.79" y1="469.92" x2="577.53" y2="469.92"/>
+    <line class="cls-2" x1="577.53" y1="469.92" x2="732.31" y2="469.92"/>
+    <line class="cls-2" x1="732.31" y1="469.92" x2="887.09" y2="469.92"/>
+    <line class="cls-2" x1="887.09" y1="469.92" x2="1041.88" y2="469.92"/>
+    <line class="cls-2" x1="1041.88" y1="469.92" x2="1196.66" y2="469.92"/>
+    <line class="cls-2" x1="1196.66" y1="469.92" x2="1351.44" y2="469.92"/>
+    <line class="cls-2" x1="1351.44" y1="469.92" x2="1506.7" y2="469.92"/>
+    <line class="cls-2" x1="35.31" y1="469.92" x2="35.31" y2="358.12"/>
+    <text class="cls-3" transform="translate(68.07 411.2)"><tspan x="0" y="0">ENERGIZER MAX PLUS </tspan><tspan x="0" y="41.79">AAA 10PK</tspan></text>
+    <text class="cls-4" transform="translate(617.17 427.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(771.96 427.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(926.76 427.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1081.56 427.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1236.36 427.26)"><tspan x="0" y="0">40%</tspan></text>
+    <text class="cls-4" transform="translate(1391.16 427.26)"><tspan x="0" y="0">40%</tspan></text>
+  </g>
+</svg>

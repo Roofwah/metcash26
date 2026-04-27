@@ -1,37 +1,7 @@
 /**
- * Single source for offer **UI** wiring (images + strip grouping). Typed at build time — no
- * extra runtime files to sync. Commercial data stays on the API / backend offers.csv.
- *
- * Unknown `offerId` → no card image (card still renders). Unknown brand → no logo.
+ * Display order + brand logo fallbacks. Offer images come from the API
+ * (`offer-content.json` merged on the backend), not from offer id maps here.
  */
-
-export const OFFER_CARD_IMAGE_BY_OFFER_KEY: Record<string, string> = {
-  'energizer 7': '/products/maxmod.png',
-  'energizer 8': '/products/hl.png',
-  'energizer 9': '/products/torch.png',
-  'armorall 1': '/products/wash.png',
-  'armorall 2': '/products/wash.png',
-  'armorall 3': '/products/wash.png',
-  'armorall 4': '/products/slr.png',
-  'armorall 5': '/products/fragrances.png',
-  'energizer 1': '/products/penta.png',
-  'energizer 2': '/products/3024.png',
-  'energizer 3': '/products/3024.png',
-  'energizer 4': '/products/1614.png',
-  'energizer 5': '/products/1614.png',
-  'energizer 6': '/products/1614.png',
-  'eveready 1': '/products/hd50.png',
-  'eveready 2': '/products/hd50.png',
-  'eveready 3': '/products/hd50.png',
-};
-
-export function offerCardImageForOfferId(offerId: string): string | null {
-  if (typeof offerId !== 'string') return null;
-  const key = offerId.trim().toLowerCase();
-  if (!key) return null;
-  const path = OFFER_CARD_IMAGE_BY_OFFER_KEY[key];
-  return typeof path === 'string' && path.length > 0 ? path : null;
-}
 
 export function brandLogoPathForBrand(brand: string): string {
   if (typeof brand !== 'string' || !brand.trim()) return '';
@@ -40,6 +10,7 @@ export function brandLogoPathForBrand(brand: string): string {
   if (b.includes('energizer')) return '/products/energizer.png';
   if (b.includes('armor')) return '/products/aall.png';
   if (b.includes('jelly')) return '/products/jelly.png';
+  if (b.includes('torch')) return '/products/eready.png';
   return '';
 }
 
@@ -64,6 +35,15 @@ export function isNonPalletDisplayOffer(offerId: string): boolean {
  * Unknown offer ids sort after known ids, then by name.
  */
 export const OFFER_DISPLAY_ORDER: readonly string[] = [
+  'ENERGIZER_1',
+  'ENERGIZER_2',
+  'ENERGIZER_3',
+  'ENERGIZER_4',
+  'EVEREADY_1',
+  'ARMORALL_1',
+  'ARMORALL_2',
+  'JELLYBELLY_1',
+  'TORCH_1',
   'Energizer Tower Pre-Pack',
   'Eveready Tower Pre-Pack',
   "Energizer Max Plus 10's Penta",

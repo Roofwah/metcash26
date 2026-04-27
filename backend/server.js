@@ -24,6 +24,19 @@ function normaliseOfferName(s) {
   return (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
+/** Basename only for /products/ — rejects paths, URLs, and traversal. */
+function safeEditorialImageFilename(v) {
+  if (v === undefined || v === null) return null;
+  const s = String(v).trim();
+  if (!s) return null;
+  if (/^https?:\/\//i.test(s)) return null;
+  const norm = s.replace(/\\/g, '/');
+  if (norm.includes('..')) return null;
+  const base = path.basename(norm);
+  if (!base || base === '.' || base === '..') return null;
+  return base;
+}
+
 function loadOfferContentFromDisk() {
   offerContentMap = {};
   try {
@@ -102,12 +115,25 @@ function applyPosContent(grouped) {
  */
 function mergeEditorialFromContent(target, content) {
   if (!content || typeof content !== 'object') return target;
-  if (content.logo) target.logoUrl = `/products/${content.logo}`;
-  if (content.hero) target.heroUrl = `/products/${content.hero}`;
-  if (content.productImage) target.productImageUrl = `/products/${content.productImage}`;
+  const logoFile = safeEditorialImageFilename(content.logo);
+  const heroFile = safeEditorialImageFilename(content.hero);
+  const productFile = safeEditorialImageFilename(content.productImage);
+  const promoFile = safeEditorialImageFilename(content.promoImage);
+  target.logo = logoFile;
+  target.hero = heroFile;
+  target.productImage = productFile;
+  target.promoImage = promoFile;
+  if (logoFile) target.logoUrl = `/products/${logoFile}`;
+  if (heroFile) target.heroUrl = `/products/${heroFile}`;
+  if (productFile) target.productImageUrl = `/products/${productFile}`;
+  if (promoFile) target.promoImageUrl = `/products/${promoFile}`;
+  if (content.showPromos !== undefined) target.showPromos = !!content.showPromos;
   if (content.h1 !== undefined) target.h1 = content.h1;
   if (content.h2 !== undefined) target.h2 = content.h2;
-  if (content.body !== undefined) target.message = content.body;
+  if (content.body !== undefined) {
+    target.body = content.body;
+    target.message = content.body;
+  }
   if (content.other !== undefined) target.other = content.other;
   if (content.modalTitle !== undefined) target.modalTitle = content.modalTitle;
   if (Array.isArray(content.callouts)) {
@@ -117,7 +143,14 @@ function mergeEditorialFromContent(target, content) {
 }
 
 function mergeEditorialIntoMetaByOfferId(meta, offerId) {
-  const content = offerContentMap[normaliseOfferName(offerId)] || {};
+  const content = offerContentMap[normaliseOfferName(offerId)];
+  if (!content || typeof content !== 'object') return meta;
+  meta.logoUrl = '';
+  meta.heroUrl = '';
+  meta.productImageUrl = '';
+  meta.logo = null;
+  meta.hero = null;
+  meta.productImage = null;
   return mergeEditorialFromContent(meta, content);
 }
 
@@ -125,7 +158,14 @@ function applyOfferContent(grouped) {
   Object.keys(grouped).forEach((key) => {
     const match = offerContentMap[normaliseOfferName(key)];
     if (!match) return;
-    mergeEditorialFromContent(grouped[key], match);
+    const g = grouped[key];
+    g.logoUrl = '';
+    g.heroUrl = '';
+    g.productImageUrl = '';
+    g.logo = null;
+    g.hero = null;
+    g.productImage = null;
+    mergeEditorialFromContent(g, match);
   });
   return grouped;
 }
@@ -232,6 +272,24 @@ async function initDb() {
   `);
 
   await pool.query(`
+    CREATE TABLE IF NOT EXISTS spin_win_events (
+      id              SERIAL PRIMARY KEY,
+      created_at      TIMESTAMPTZ DEFAULT NOW(),
+      session_kind    TEXT NOT NULL,
+      rep_email       TEXT,
+      user_name       TEXT,
+      store_name      TEXT,
+      mso_group       TEXT,
+      mso_store_count INTEGER,
+      store_id        TEXT,
+      prize_id        TEXT NOT NULL,
+      sku             TEXT NOT NULL,
+      prize_name      TEXT NOT NULL,
+      prize_brand     TEXT NOT NULL
+    )
+  `);
+
+  await pool.query(`
     CREATE TABLE IF NOT EXISTS mcash_stores (
       id      SERIAL PRIMARY KEY,
       name    TEXT NOT NULL,
@@ -330,6 +388,16 @@ let sales25Rows = [];
 let sales25ItemNames = [];
 /** Single flight — API handlers await this so data exists before responding. */
 let sales25CsvLoadPromise = null;
+/** In-memory rows from suggest.csv — store-level suggested sell quantities by category. */
+let suggestRows = [];
+let suggestItemNames = [];
+let suggestCsvLoadPromise = null;
+/** Offer-id schema columns from suggest.csv: <offer>_sales / <offer>_suggest */
+let suggestOfferColumns = {};
+
+function canonicalOfferIdKey(s) {
+  return String(s || '').toUpperCase().replace(/[^A-Z0-9_]/g, '');
+}
 
 function normalizeSales25StoreId(s) {
   return String(s ?? '')
@@ -488,6 +556,75 @@ function loadSales25Csv() {
       });
   });
   return sales25CsvLoadPromise;
+}
+
+function resolveSuggestCsvPath() {
+  const candidates = [
+    path.join(__dirname, 'suggest.csv'),
+    path.join(process.cwd(), 'backend', 'suggest.csv'),
+    path.join(process.cwd(), 'suggest.csv'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function loadSuggestCsv() {
+  if (suggestCsvLoadPromise) return suggestCsvLoadPromise;
+  suggestCsvLoadPromise = new Promise((resolve) => {
+    const filePath = resolveSuggestCsvPath();
+    if (!filePath) {
+      console.warn('suggest.csv not found — suggested sell badges disabled.');
+      suggestRows = [];
+      suggestItemNames = [];
+      suggestOfferColumns = {};
+      return resolve();
+    }
+    let raw = fs.readFileSync(filePath, 'utf8');
+    if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
+    const headerNames = [];
+    const rows = [];
+    Readable.from([raw])
+      .pipe(
+        csv({
+          mapHeaders: ({ header, index }) => {
+            headerNames[index] = removeBOM(String(header || '').trim());
+            return `c${index}`;
+          },
+        }),
+      )
+      .on('data', (row) => rows.push(row))
+      .on('end', () => {
+        suggestRows = rows;
+        suggestItemNames = Array.from({ length: 10 }, (_, i) =>
+          String(headerNames[3 + i] || `Item ${i + 1}`).trim() || `Item ${i + 1}`,
+        );
+        suggestOfferColumns = {};
+        for (let i = 0; i < headerNames.length; i++) {
+          const raw = String(headerNames[i] || '').trim();
+          if (!raw) continue;
+          const m = raw.match(/^(.+?)[_\s]+(sales|suggest)$/i);
+          if (!m) continue;
+          const offerKey = canonicalOfferIdKey(m[1]);
+          if (!offerKey) continue;
+          const kind = m[2].toLowerCase();
+          if (!suggestOfferColumns[offerKey]) suggestOfferColumns[offerKey] = {};
+          if (kind === 'sales') suggestOfferColumns[offerKey].salesCol = i;
+          if (kind === 'suggest') suggestOfferColumns[offerKey].suggestCol = i;
+        }
+        console.log(`Loaded ${rows.length} suggest.csv rows from ${filePath}.`);
+        resolve();
+      })
+      .on('error', (err) => {
+        console.error('suggest.csv parse error:', err.message);
+        suggestRows = [];
+        suggestItemNames = [];
+        suggestOfferColumns = {};
+        resolve();
+      });
+  });
+  return suggestCsvLoadPromise;
 }
 
 function invalidateOffersFallbackCache() {
@@ -1768,6 +1905,53 @@ app.post('/api/reload-offers', async (req, res) => {
   }
 });
 
+/** Persist post-checkout spin wins (retail store vs MSO group context). */
+app.post('/api/spin-win', async (req, res) => {
+  try {
+    const b = req.body || {};
+    const clip = (v, n) => {
+      const s = v == null ? '' : String(v).trim();
+      return s.length > n ? s.slice(0, n) : s;
+    };
+    const sessionKind = String(b.sessionKind || '').toLowerCase() === 'mso' ? 'mso' : 'retail';
+    const userName = clip(b.userName, 200);
+    const prizeId = clip(b.prizeId, 64);
+    const sku = clip(b.sku, 64);
+    const prizeName = clip(b.prizeName, 500);
+    const prizeBrand = clip(b.prizeBrand, 200);
+    if (!prizeId || !sku || !prizeName) {
+      res.status(400).json({ ok: false, error: 'Missing prize fields' });
+      return;
+    }
+    const msc = b.msoStoreCount;
+    const msoStoreCount =
+      msc === '' || msc === undefined || msc === null
+        ? null
+        : Number.parseInt(String(msc), 10);
+    await pool.query(
+      `INSERT INTO spin_win_events (session_kind, rep_email, user_name, store_name, mso_group, mso_store_count, store_id, prize_id, sku, prize_name, prize_brand)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,
+      [
+        sessionKind,
+        clip(b.repEmail, 320) || null,
+        userName || null,
+        clip(b.storeName, 500) || null,
+        clip(b.msoGroup, 500) || null,
+        Number.isFinite(msoStoreCount) ? msoStoreCount : null,
+        clip(b.storeId, 64) || null,
+        prizeId,
+        sku,
+        prizeName,
+        prizeBrand || null,
+      ],
+    );
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/spin-win:', err.message || err);
+    res.status(500).json({ ok: false });
+  }
+});
+
 // ---------------------------------------------------------------------------
 // API – orders
 // ---------------------------------------------------------------------------
@@ -1946,6 +2130,90 @@ app.get('/api/store-sales/:storeId', async (req, res) => {
   } catch (err) {
     console.error('GET /api/store-sales error:', err.message);
     res.status(500).json({ hasData: false, error: 'Failed to load store sales' });
+  }
+});
+
+app.get('/api/store-suggest/:storeId', async (req, res) => {
+  try {
+    await loadSuggestCsv();
+    const param = (req.params.storeId || '').trim();
+    const idNorm = normalizeSales25StoreId(param);
+    if (!param || !idNorm) {
+      return res.json({ hasData: false, reason: 'no_store_id' });
+    }
+    if (!suggestRows || suggestRows.length === 0) {
+      return res.json({ hasData: false, reason: 'no_csv' });
+    }
+    const matching = suggestRows.filter((row) => {
+      const raw = removeBOM(String(row.c0 ?? '').trim());
+      const rowNorm = normalizeSales25StoreId(raw);
+      return rowNorm === idNorm || raw === param;
+    });
+    if (matching.length === 0) return res.json({ hasData: false });
+
+    let storeName = '';
+    if (Object.keys(suggestOfferColumns).length > 0) {
+      const offers = [];
+      for (const offerKey of Object.keys(suggestOfferColumns)) {
+        const cols = suggestOfferColumns[offerKey] || {};
+        let sales = 0;
+        let suggest = 0;
+        for (const row of matching) {
+          if (!storeName && row.c1) storeName = String(row.c1).trim();
+          if (Number.isInteger(cols.salesCol)) {
+            sales += parseFloat(String(row[`c${cols.salesCol}`] ?? '').replace(/,/g, '')) || 0;
+          }
+          if (Number.isInteger(cols.suggestCol)) {
+            suggest += parseFloat(String(row[`c${cols.suggestCol}`] ?? '').replace(/,/g, '')) || 0;
+          }
+        }
+        offers.push({
+          offerId: offerKey,
+          sales: Math.round(sales * 1000) / 1000,
+          suggest: Math.round(suggest * 1000) / 1000,
+        });
+      }
+      const hasData = offers.some((x) => x.sales > 0 || x.suggest > 0);
+      return res.json({
+        hasData,
+        storeName: storeName || String(matching[0].c1 || '').trim(),
+        storeId: String(matching[0].c0 ?? '').trim(),
+        offers,
+      });
+    }
+
+    const itemAgg = Array.from({ length: 10 }, (_, i) => ({
+      name: suggestItemNames[i] || `Item ${i + 1}`,
+      qty: 0,
+    }));
+    for (const row of matching) {
+      if (!storeName && row.c1) storeName = String(row.c1).trim();
+      for (let i = 0; i < 10; i++) {
+        const q = parseFloat(String(row[`c${3 + i}`] ?? '').replace(/,/g, '')) || 0;
+        itemAgg[i].qty += q;
+      }
+    }
+    const byName = new Map();
+    for (const it of itemAgg) {
+      const canon = canonicalSalesCategoryKey(String(it.name || ''));
+      if (!canon) continue;
+      const cur = byName.get(canon) || { name: String(it.name || '').trim(), qty: 0 };
+      cur.qty += it.qty;
+      if (!cur.name) cur.name = String(it.name || '').trim();
+      byName.set(canon, cur);
+    }
+    const items = Array.from(byName.values())
+      .map((it) => ({ name: it.name, qty: Math.round(it.qty * 1000) / 1000 }))
+      .sort((a, b) => b.qty - a.qty);
+    return res.json({
+      hasData: items.some((x) => x.qty > 0),
+      storeName: storeName || String(matching[0].c1 || '').trim(),
+      storeId: String(matching[0].c0 ?? '').trim(),
+      items,
+    });
+  } catch (err) {
+    console.error('GET /api/store-suggest error:', err.message);
+    return res.status(500).json({ hasData: false, error: 'Failed to load store suggested sell' });
   }
 });
 
@@ -2241,6 +2509,7 @@ app.listen(PORT, async () => {
   console.log(`Metcash API → http://localhost:${PORT}`);
   await loadPosCsvFromDisk().catch((err) => console.error('pos.csv:', err.message));
   loadSales25Csv().catch((err) => console.error('sales25.csv:', err.message));
+  loadSuggestCsv().catch((err) => console.error('suggest.csv:', err.message));
   initDbWithRetry();
 });
 

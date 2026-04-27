@@ -16,9 +16,6 @@ interface StoreConfirmProps {
   };
   onContinue: () => void;
   onBack: () => void;
-  /** When true (and handler set), show button to open FY25 store sales in a modal */
-  showSalesDashboardButton?: boolean;
-  onOpenSalesDashboard?: () => void;
 }
 
 const StoreConfirm: React.FC<StoreConfirmProps> = ({
@@ -26,8 +23,6 @@ const StoreConfirm: React.FC<StoreConfirmProps> = ({
   storeData,
   onContinue,
   onBack: _onBack,
-  showSalesDashboardButton,
-  onOpenSalesDashboard,
 }) => {
   const [showNext, setShowNext] = useState(false);
   const firstName = (userData.fullName || '').trim().split(/\s+/)[0] || userData.fullName || 'there';
@@ -76,15 +71,6 @@ const StoreConfirm: React.FC<StoreConfirmProps> = ({
             </div>
           ) : (
             <div className="store-confirm-actions store-confirm-actions--stack">
-              {showSalesDashboardButton && onOpenSalesDashboard ? (
-                <button
-                  type="button"
-                  className="store-confirm-sales-snapshot"
-                  onClick={onOpenSalesDashboard}
-                >
-                  View FY25 store sales
-                </button>
-              ) : null}
               <button type="button" className="store-confirm-next" onClick={onContinue}>
                 NEXT
               </button>

@@ -93,6 +93,44 @@
   position: relative !important;
 }
 
+.offers-fy25-btn {
+  background: #1d4ed8;
+  color: #fff;
+  border: 1px solid #1e40af;
+  border-radius: 8px;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.offers-fy25-btn:hover {
+  background: #1e40af;
+}
+
+.offers-insights-btn {
+  background: #0f766e;
+  color: #fff;
+  border: 1px solid #115e59;
+  border-radius: 8px;
+  padding: 0.4rem 0.62rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  white-space: nowrap;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.offers-insights-btn:hover {
+  background: #115e59;
+}
+
 .offers-header .next-button.has-items {
   border-radius: 16px !important;
   width: auto !important;
@@ -568,6 +606,10 @@
   max-height: min(38vh, 320px);
 }
 
+.offer-product-image-container--promo {
+  max-height: min(46vh, 430px);
+}
+
 .offer-product-image {
   max-width: 100%;
   max-height: 100%;
@@ -576,6 +618,59 @@
   object-fit: contain;
   object-position: center center;
   display: block;
+}
+
+/* Editorial h2 (offer-content) or CSV Offer Name — below product image */
+.offer-card-h2 {
+  margin: 0.35rem 0 0.25rem;
+  padding: 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #444;
+  text-align: center;
+  align-self: stretch;
+}
+
+.offer-card-h2-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  margin: 0.3rem 0 0.25rem;
+  padding: 0 0.2rem;
+}
+
+.offer-card-h2-row .offer-card-h2 {
+  margin: 0;
+  padding: 0;
+  text-align: left;
+  flex: 1 1 auto;
+}
+
+.offer-card-h2-spacer {
+  flex: 1 1 auto;
+}
+
+.offer-promos-btn {
+  border: 1px solid #9a3412;
+  background: #ea580c;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1;
+  padding: 0.26rem 0.5rem;
+  min-width: 0;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+
+.offer-promos-btn:hover {
+  background: #c2410c;
+  border-color: #7c2d12;
 }
 
 .offer-group {
@@ -618,35 +713,31 @@
   justify-content: center;
 }
 
-.offer-prior-year-badge {
+.offer-suggest-sales--beside-qty {
+  flex: 0 0 auto;
+  margin: 0;
+  padding: 0;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  width: 3.35rem;
-  height: 3.35rem;
-  min-width: 3.35rem;
-  min-height: 3.35rem;
-  border-radius: 50%;
-  background: #c41e3a;
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(196, 30, 58, 0.35);
-  line-height: 1.05;
 }
 
-.offer-prior-year-badge-year {
-  font-size: 0.58rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  opacity: 0.92;
-  margin-bottom: 0.08rem;
-}
-
-.offer-prior-year-badge-value {
-  font-size: 1.05rem;
+.offer-inline-stat {
+  display: inline-block;
+  font-size: 0.9rem;
   font-weight: 800;
-  line-height: 1;
+  line-height: 1.2;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
   font-variant-numeric: tabular-nums;
+}
+
+.offer-inline-stat--lastyear {
+  color: #b91c1c;
+}
+
+.offer-inline-stat--suggest {
+  color: #15803d;
 }
 
 .offer-range {
@@ -664,11 +755,76 @@
   border: none;
 }
 
+.offer-descriptions-table thead th {
+  text-align: left;
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #6b7280;
+  font-weight: 800;
+  padding: 0.15rem 0.3rem 0.3rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 .offer-descriptions-table td {
   padding: 0.3rem 0.3rem 0.3rem 0;
   color: #333;
   border: none;
   line-height: 1.3;
+}
+
+.line-qty-inline-controls {
+  display: inline-flex;
+  align-items: stretch;
+  justify-content: center;
+  min-height: 1.6rem;
+  border-radius: 8px;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+  background: #1e293b;
+  overflow: hidden;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  margin-left: 0.45rem;
+}
+
+.line-qty-inline-btn {
+  margin: 0;
+  min-width: 1.4rem;
+  border: none;
+  background: rgba(0, 0, 0, 0.2);
+  color: #f1f5f9;
+  font-size: 0.95rem;
+  line-height: 1;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0 0.25rem;
+}
+
+.line-qty-inline-btn.mso-matrix-qty-minus {
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.line-qty-inline-btn.mso-matrix-qty-plus {
+  border-left: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.line-qty-inline-controls .mso-matrix-qty-value {
+  min-width: 1.6rem;
+  padding: 0 0.25rem;
+  color: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-qty-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 
 .offer-descriptions-table tbody tr:nth-child(even) {
@@ -725,7 +881,7 @@
 }
 
 .offer-action-small {
-  margin-top: 0.65rem;
+  margin-top: 0;
   color: #fff;
   font-weight: 800;
   font-size: 0.95rem;
@@ -740,6 +896,13 @@
   box-shadow: 0 2px 8px rgba(220, 38, 38, 0.45);
   cursor: pointer;
   width: 100%;
+}
+
+.offer-card-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.45rem;
 }
 
 .offer-action-small:hover {
@@ -765,6 +928,7 @@
   border-top: none;
   flex: 0 0 auto;
 }
+
 
 .offer-quantity-controls {
   display: flex;
@@ -1001,12 +1165,20 @@
     max-height: min(24vh, 220px);
   }
 
+  .offers-strip-host .offer-product-image-container--promo {
+    max-height: min(33vh, 320px);
+  }
+
   .offers-strip-host .offer-product-image {
     max-height: min(24vh, 220px);
     max-width: 100%;
     width: auto;
     height: auto;
     object-position: center center;
+  }
+
+  .offers-strip-host .offer-product-image-container--promo .offer-product-image {
+    max-height: min(33vh, 320px);
   }
 
   .offers-strip-host .offer-brand-logo:not(.armor-logo) {

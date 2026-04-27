@@ -45,12 +45,49 @@ export interface StoreSalesLineItem {
   qty: number;
 }
 
+const OFFER_ID_CATEGORY_MAP: Record<string, string[]> = {
+  ENERGIZER1: ['Energizer Tower Pre-Pack'],
+  ENERGIZER2: ["Energizer Max Plus 10's Penta"],
+  ENERGIZER3: ['Energizer Max 14/16 Loose Stock', 'Energizer Max 24pk Loose Stock'],
+  ENERGIZER4: ['Energizer Specialty Range Loose'],
+  EVEREADY1: ['Eveready Tower Pre-Pack'],
+  ARMORALL1: ['Armor All Quick Clean Kit'],
+  ARMORALL2: ['Armor All Range Loose'],
+  JELLYBELLY1: ['Jelly Belly Range Loose Stock Deal'],
+  TORCH1: ['Eveready Lighting Tower'],
+};
+
+function canonicalOfferId(s: string): string {
+  return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+}
+
 /** Map offer row → qty from GET /api/store-sales (items[].name = sales25 header). */
 export function findPriorYearSalesQty(
   offer: { offerGroup?: string; offerId?: string },
   items: StoreSalesLineItem[],
 ): number | undefined {
   if (!items.length) return undefined;
+
+  // Prefer explicit OFFER-id mapping to avoid broad/ambiguous group-name matching (e.g. "Energizer").
+  const idKey = canonicalOfferId(String(offer.offerId || ''));
+  const mappedCategories = OFFER_ID_CATEGORY_MAP[idKey];
+  if (mappedCategories && mappedCategories.length > 0) {
+    const qtyByCategory = new Map<string, number>();
+    for (const it of items) {
+      qtyByCategory.set(canonicalSalesCategoryKey(it.name), it.qty);
+    }
+    let sum = 0;
+    let found = false;
+    for (const c of mappedCategories) {
+      const q = qtyByCategory.get(canonicalSalesCategoryKey(c));
+      if (q !== undefined && Number.isFinite(q)) {
+        sum += q;
+        found = true;
+      }
+    }
+    if (found) return Math.round(sum * 1000) / 1000;
+  }
+
   const rawCandidates = [offer.offerGroup, offer.offerId].filter((s) => String(s || '').trim().length > 0);
   const candidates = rawCandidates.filter((s, i) => rawCandidates.indexOf(s) === i);
 

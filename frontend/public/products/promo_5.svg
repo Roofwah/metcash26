@@ -1,0 +1,304 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg id="Layer_5" data-name="Layer 5" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 1600 1004.42">
+  <defs>
+    <style>
+      .cls-1, .cls-2 {
+        fill: none;
+      }
+
+      .cls-3 {
+        font-size: 39px;
+      }
+
+      .cls-3, .cls-4, .cls-5, .cls-6 {
+        font-family: Arial-BoldMT, Arial;
+        font-weight: 700;
+      }
+
+      .cls-2 {
+        stroke: #000;
+        stroke-miterlimit: 10;
+      }
+
+      .cls-4 {
+        font-size: 38px;
+      }
+
+      .cls-7 {
+        letter-spacing: -.07em;
+      }
+
+      .cls-8 {
+        letter-spacing: -.02em;
+      }
+
+      .cls-9 {
+        letter-spacing: -.05em;
+      }
+
+      .cls-10 {
+        letter-spacing: -.05em;
+      }
+
+      .cls-11 {
+        letter-spacing: -.06em;
+      }
+
+      .cls-12 {
+        letter-spacing: -.04em;
+      }
+
+      .cls-13 {
+        clip-path: url(#clippath);
+      }
+
+      .cls-5 {
+        fill: #010101;
+        font-size: 60px;
+      }
+
+      .cls-6 {
+        font-size: 35px;
+      }
+    </style>
+    <clipPath id="clippath">
+      <rect class="cls-1" y="51.47" width="1600" height="900"/>
+    </clipPath>
+  </defs>
+  <g class="cls-13">
+    <line class="cls-2" x1="741" y1="205.62" x2="741" y2="88.47"/>
+    <line class="cls-2" x1="744" y1="205.62" x2="744" y2="88.47"/>
+    <line class="cls-2" x1="904" y1="205.62" x2="904" y2="88.47"/>
+    <line class="cls-2" x1="1064" y1="205.62" x2="1064" y2="88.47"/>
+    <line class="cls-2" x1="1224" y1="205.62" x2="1224" y2="88.47"/>
+    <line class="cls-2" x1="1384" y1="205.62" x2="1384" y2="88.47"/>
+    <line class="cls-2" x1="37" y1="206.12" x2="741" y2="206.12"/>
+    <line class="cls-2" x1="741" y1="206.12" x2="744" y2="206.12"/>
+    <line class="cls-2" x1="741" y1="281.62" x2="741" y2="206.62"/>
+    <line class="cls-2" x1="744" y1="206.12" x2="904" y2="206.12"/>
+    <line class="cls-2" x1="744" y1="281.62" x2="744" y2="206.62"/>
+    <line class="cls-2" x1="904" y1="206.12" x2="1064" y2="206.12"/>
+    <line class="cls-2" x1="904" y1="281.62" x2="904" y2="206.62"/>
+    <line class="cls-2" x1="1064" y1="206.12" x2="1224" y2="206.12"/>
+    <line class="cls-2" x1="1064" y1="281.62" x2="1064" y2="206.62"/>
+    <line class="cls-2" x1="1224" y1="206.12" x2="1384" y2="206.12"/>
+    <line class="cls-2" x1="1224" y1="281.62" x2="1224" y2="206.62"/>
+    <line class="cls-2" x1="1384" y1="206.12" x2="1544.5" y2="206.12"/>
+    <line class="cls-2" x1="1384" y1="281.62" x2="1384" y2="206.62"/>
+    <line class="cls-2" x1="1544" y1="281.62" x2="1544" y2="206.62"/>
+    <line class="cls-2" x1="37" y1="282.12" x2="741" y2="282.12"/>
+    <line class="cls-2" x1="741" y1="282.12" x2="744" y2="282.12"/>
+    <line class="cls-2" x1="741" y1="357.62" x2="741" y2="282.62"/>
+    <line class="cls-2" x1="744" y1="282.12" x2="904" y2="282.12"/>
+    <line class="cls-2" x1="744" y1="357.62" x2="744" y2="282.62"/>
+    <line class="cls-2" x1="904" y1="282.12" x2="1064" y2="282.12"/>
+    <line class="cls-2" x1="904" y1="357.62" x2="904" y2="282.62"/>
+    <line class="cls-2" x1="1064" y1="282.12" x2="1224" y2="282.12"/>
+    <line class="cls-2" x1="1064" y1="357.62" x2="1064" y2="282.62"/>
+    <line class="cls-2" x1="1224" y1="282.12" x2="1384" y2="282.12"/>
+    <line class="cls-2" x1="1224" y1="357.62" x2="1224" y2="282.62"/>
+    <line class="cls-2" x1="1384" y1="282.12" x2="1544.5" y2="282.12"/>
+    <line class="cls-2" x1="1384" y1="357.62" x2="1384" y2="282.62"/>
+    <line class="cls-2" x1="1544" y1="357.62" x2="1544" y2="282.62"/>
+    <line class="cls-2" x1="37" y1="358.12" x2="741" y2="358.12"/>
+    <line class="cls-2" x1="741" y1="358.12" x2="744" y2="358.12"/>
+    <line class="cls-2" x1="741" y1="433.62" x2="741" y2="358.62"/>
+    <line class="cls-2" x1="744" y1="358.12" x2="904" y2="358.12"/>
+    <line class="cls-2" x1="744" y1="433.62" x2="744" y2="358.62"/>
+    <line class="cls-2" x1="904" y1="358.12" x2="1064" y2="358.12"/>
+    <line class="cls-2" x1="904" y1="433.62" x2="904" y2="358.62"/>
+    <line class="cls-2" x1="1064" y1="358.12" x2="1224" y2="358.12"/>
+    <line class="cls-2" x1="1064" y1="433.62" x2="1064" y2="358.62"/>
+    <line class="cls-2" x1="1224" y1="358.12" x2="1384" y2="358.12"/>
+    <line class="cls-2" x1="1224" y1="433.62" x2="1224" y2="358.62"/>
+    <line class="cls-2" x1="1384" y1="358.12" x2="1544.5" y2="358.12"/>
+    <line class="cls-2" x1="1384" y1="433.62" x2="1384" y2="358.62"/>
+    <line class="cls-2" x1="1544" y1="433.62" x2="1544" y2="358.62"/>
+    <line class="cls-2" x1="37" y1="434.12" x2="741" y2="434.12"/>
+    <line class="cls-2" x1="741" y1="434.12" x2="744" y2="434.12"/>
+    <line class="cls-2" x1="741" y1="509.62" x2="741" y2="434.62"/>
+    <line class="cls-2" x1="744" y1="434.12" x2="904" y2="434.12"/>
+    <line class="cls-2" x1="744" y1="509.62" x2="744" y2="434.62"/>
+    <line class="cls-2" x1="904" y1="434.12" x2="1064" y2="434.12"/>
+    <line class="cls-2" x1="904" y1="509.62" x2="904" y2="434.62"/>
+    <line class="cls-2" x1="1064" y1="434.12" x2="1224" y2="434.12"/>
+    <line class="cls-2" x1="1064" y1="509.62" x2="1064" y2="434.62"/>
+    <line class="cls-2" x1="1224" y1="434.12" x2="1384" y2="434.12"/>
+    <line class="cls-2" x1="1224" y1="509.62" x2="1224" y2="434.62"/>
+    <line class="cls-2" x1="1384" y1="434.12" x2="1544.5" y2="434.12"/>
+    <line class="cls-2" x1="1384" y1="509.62" x2="1384" y2="434.62"/>
+    <line class="cls-2" x1="1544" y1="509.62" x2="1544" y2="434.62"/>
+    <line class="cls-2" x1="37" y1="510.12" x2="741" y2="510.12"/>
+    <line class="cls-2" x1="741" y1="510.12" x2="744" y2="510.12"/>
+    <line class="cls-2" x1="741" y1="585.62" x2="741" y2="510.62"/>
+    <line class="cls-2" x1="744" y1="510.12" x2="904" y2="510.12"/>
+    <line class="cls-2" x1="744" y1="585.62" x2="744" y2="510.62"/>
+    <line class="cls-2" x1="904" y1="510.12" x2="1064" y2="510.12"/>
+    <line class="cls-2" x1="904" y1="585.62" x2="904" y2="510.62"/>
+    <line class="cls-2" x1="1064" y1="510.12" x2="1224" y2="510.12"/>
+    <line class="cls-2" x1="1064" y1="585.62" x2="1064" y2="510.62"/>
+    <line class="cls-2" x1="1224" y1="510.12" x2="1384" y2="510.12"/>
+    <line class="cls-2" x1="1224" y1="585.62" x2="1224" y2="510.62"/>
+    <line class="cls-2" x1="1384" y1="510.12" x2="1544.5" y2="510.12"/>
+    <line class="cls-2" x1="1384" y1="585.62" x2="1384" y2="510.62"/>
+    <line class="cls-2" x1="1544" y1="585.62" x2="1544" y2="510.62"/>
+    <line class="cls-2" x1="37" y1="586.12" x2="741" y2="586.12"/>
+    <line class="cls-2" x1="741" y1="586.12" x2="744" y2="586.12"/>
+    <line class="cls-2" x1="741" y1="661.62" x2="741" y2="586.62"/>
+    <line class="cls-2" x1="744" y1="586.12" x2="904" y2="586.12"/>
+    <line class="cls-2" x1="744" y1="661.62" x2="744" y2="586.62"/>
+    <line class="cls-2" x1="904" y1="586.12" x2="1064" y2="586.12"/>
+    <line class="cls-2" x1="904" y1="661.62" x2="904" y2="586.62"/>
+    <line class="cls-2" x1="1064" y1="586.12" x2="1224" y2="586.12"/>
+    <line class="cls-2" x1="1064" y1="661.62" x2="1064" y2="586.62"/>
+    <line class="cls-2" x1="1224" y1="586.12" x2="1384" y2="586.12"/>
+    <line class="cls-2" x1="1224" y1="661.62" x2="1224" y2="586.62"/>
+    <line class="cls-2" x1="1384" y1="586.12" x2="1544.5" y2="586.12"/>
+    <line class="cls-2" x1="1384" y1="661.62" x2="1384" y2="586.62"/>
+    <line class="cls-2" x1="1544" y1="661.62" x2="1544" y2="586.62"/>
+    <line class="cls-2" x1="740.5" y1="662.12" x2="744" y2="662.12"/>
+    <line class="cls-2" x1="741" y1="737.62" x2="741" y2="662.62"/>
+    <line class="cls-2" x1="744" y1="662.12" x2="904" y2="662.12"/>
+    <line class="cls-2" x1="744" y1="737.62" x2="744" y2="662.62"/>
+    <line class="cls-2" x1="904" y1="662.12" x2="1064" y2="662.12"/>
+    <line class="cls-2" x1="904" y1="737.62" x2="904" y2="662.62"/>
+    <line class="cls-2" x1="1064" y1="662.12" x2="1224" y2="662.12"/>
+    <line class="cls-2" x1="1064" y1="737.62" x2="1064" y2="662.62"/>
+    <line class="cls-2" x1="1224" y1="662.12" x2="1384" y2="662.12"/>
+    <line class="cls-2" x1="1224" y1="737.62" x2="1224" y2="662.62"/>
+    <line class="cls-2" x1="1384" y1="662.12" x2="1544.5" y2="662.12"/>
+    <line class="cls-2" x1="1384" y1="737.62" x2="1384" y2="662.62"/>
+    <line class="cls-2" x1="1544" y1="737.62" x2="1544" y2="662.62"/>
+    <line class="cls-2" x1="740.5" y1="738.12" x2="744" y2="738.12"/>
+    <line class="cls-2" x1="741" y1="813.62" x2="741" y2="738.62"/>
+    <line class="cls-2" x1="744" y1="738.12" x2="904" y2="738.12"/>
+    <line class="cls-2" x1="744" y1="813.62" x2="744" y2="738.62"/>
+    <line class="cls-2" x1="904" y1="738.12" x2="1064" y2="738.12"/>
+    <line class="cls-2" x1="904" y1="813.62" x2="904" y2="738.62"/>
+    <line class="cls-2" x1="1064" y1="738.12" x2="1224" y2="738.12"/>
+    <line class="cls-2" x1="1064" y1="813.62" x2="1064" y2="738.62"/>
+    <line class="cls-2" x1="1224" y1="738.12" x2="1384" y2="738.12"/>
+    <line class="cls-2" x1="1224" y1="813.62" x2="1224" y2="738.62"/>
+    <line class="cls-2" x1="1384" y1="738.12" x2="1544.5" y2="738.12"/>
+    <line class="cls-2" x1="1384" y1="813.62" x2="1384" y2="738.62"/>
+    <line class="cls-2" x1="1544" y1="813.62" x2="1544" y2="738.62"/>
+    <line class="cls-2" x1="740.5" y1="814.12" x2="744" y2="814.12"/>
+    <line class="cls-2" x1="741" y1="889.62" x2="741" y2="814.62"/>
+    <line class="cls-2" x1="744" y1="814.12" x2="904" y2="814.12"/>
+    <line class="cls-2" x1="744" y1="889.62" x2="744" y2="814.62"/>
+    <line class="cls-2" x1="904" y1="814.12" x2="1064" y2="814.12"/>
+    <line class="cls-2" x1="904" y1="889.62" x2="904" y2="814.62"/>
+    <line class="cls-2" x1="1064" y1="814.12" x2="1224" y2="814.12"/>
+    <line class="cls-2" x1="1064" y1="889.62" x2="1064" y2="814.62"/>
+    <line class="cls-2" x1="1224" y1="814.12" x2="1384" y2="814.12"/>
+    <line class="cls-2" x1="1224" y1="889.62" x2="1224" y2="814.62"/>
+    <line class="cls-2" x1="1384" y1="814.12" x2="1544.5" y2="814.12"/>
+    <line class="cls-2" x1="1384" y1="889.62" x2="1384" y2="814.62"/>
+    <line class="cls-2" x1="1544" y1="889.62" x2="1544" y2="814.62"/>
+    <line class="cls-2" x1="36" y1="87.97" x2="741" y2="87.97"/>
+    <line class="cls-2" x1="36.5" y1="206.12" x2="36.5" y2="88.47"/>
+    <line class="cls-2" x1="741" y1="87.97" x2="744" y2="87.97"/>
+    <line class="cls-2" x1="744" y1="87.97" x2="904" y2="87.97"/>
+    <line class="cls-2" x1="904" y1="87.97" x2="1064" y2="87.97"/>
+    <line class="cls-2" x1="1064" y1="87.97" x2="1224" y2="87.97"/>
+    <line class="cls-2" x1="1224" y1="87.97" x2="1384" y2="87.97"/>
+    <line class="cls-2" x1="1384" y1="87.97" x2="1544.5" y2="87.97"/>
+    <line class="cls-2" x1="1544" y1="205.62" x2="1544" y2="88.47"/>
+    <line class="cls-2" x1="36.5" y1="282.12" x2="36.5" y2="206.12"/>
+    <line class="cls-2" x1="36.5" y1="358.12" x2="36.5" y2="282.12"/>
+    <line class="cls-2" x1="36.5" y1="434.12" x2="36.5" y2="358.12"/>
+    <line class="cls-2" x1="36.5" y1="510.12" x2="36.5" y2="434.12"/>
+    <line class="cls-2" x1="36.5" y1="586.12" x2="36.5" y2="510.12"/>
+    <line class="cls-2" x1="36.5" y1="661.62" x2="36.5" y2="586.12"/>
+    <line class="cls-2" x1="36" y1="662.12" x2="740.5" y2="662.12"/>
+    <line class="cls-2" x1="36.5" y1="737.62" x2="36.5" y2="662.62"/>
+    <line class="cls-2" x1="36" y1="738.12" x2="740.5" y2="738.12"/>
+    <line class="cls-2" x1="36.5" y1="813.62" x2="36.5" y2="738.62"/>
+    <line class="cls-2" x1="36" y1="814.12" x2="740.5" y2="814.12"/>
+    <line class="cls-2" x1="36.5" y1="889.62" x2="36.5" y2="814.62"/>
+    <line class="cls-2" x1="36" y1="890.12" x2="741" y2="890.12"/>
+    <line class="cls-2" x1="741" y1="890.12" x2="744" y2="890.12"/>
+    <line class="cls-2" x1="744" y1="890.12" x2="904" y2="890.12"/>
+    <line class="cls-2" x1="904" y1="890.12" x2="1064" y2="890.12"/>
+    <line class="cls-2" x1="1064" y1="890.12" x2="1224" y2="890.12"/>
+    <line class="cls-2" x1="1224" y1="890.12" x2="1384" y2="890.12"/>
+    <line class="cls-2" x1="1384" y1="890.12" x2="1544.5" y2="890.12"/>
+    <text class="cls-4" transform="translate(213.51 160.88)"><tspan x="0" y="0">SKU DESCRIPTION</tspan></text>
+    <text class="cls-4" transform="translate(742.51 160.88)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-4" transform="translate(786.32 160.88)"><tspan x="0" y="0">SEP</tspan></text>
+    <text class="cls-4" transform="translate(943.91 160.88)"><tspan x="0" y="0">OCT</tspan></text>
+    <text class="cls-4" transform="translate(1102.82 160.88)"><tspan x="0" y="0">NOV</tspan></text>
+    <text class="cls-4" transform="translate(1263.87 160.88)"><tspan x="0" y="0">DEC</tspan></text>
+    <text class="cls-4" transform="translate(1425.98 160.88)"><tspan x="0" y="0">JAN</tspan></text>
+    <text class="cls-6" transform="translate(65.97 256.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan class="cls-12" x="208.08" y="0"> </tspan><tspan x="216.54" y="0">A/FRESH NEW CAR2.5ML</tspan></text>
+    <text class="cls-3" transform="translate(742.5 258.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 258.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 258.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 258.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 258.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 258.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(81.22 332.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan class="cls-12" x="208.08" y="0"> </tspan><tspan x="216.54" y="0">A/FRESH CARD FRANG</tspan></text>
+    <text class="cls-3" transform="translate(742.5 334.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 334.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 334.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 334.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 334.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 334.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(55.58 408.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0"> </tspan><tspan class="cls-10" x="217.8" y="0">W</tspan><tspan x="248.91" y="0">ASH WINDSCREN 500ML</tspan></text>
+    <text class="cls-3" transform="translate(742.5 410.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 410.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 410.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 410.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 410.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 410.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(83.13 484.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> PROTEC</tspan><tspan class="cls-7" x="363.64" y="0">T</tspan><tspan x="382.43" y="0">ANT</tspan></text>
+    <text class="cls-6" transform="translate(537.44 484.86)"><tspan x="0" y="0" xml:space="preserve">    </tspan></text>
+    <text class="cls-6" transform="translate(576.36 484.86)"><tspan x="0" y="0" xml:space="preserve"> 300ML</tspan></text>
+    <text class="cls-3" transform="translate(742.5 486.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 486.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 486.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 486.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 486.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 486.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(90.25 560.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> WIPES CLEAN</tspan></text>
+    <text class="cls-6" transform="translate(551.09 560.86)"><tspan x="0" y="0" xml:space="preserve">    </tspan></text>
+    <text class="cls-6" transform="translate(590.01 560.86)"><tspan x="0" y="0" xml:space="preserve"> 30PK</tspan></text>
+    <text class="cls-3" transform="translate(742.5 562.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 562.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 562.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 562.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 562.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 562.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(90.89 636.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> GLASS WIPES</tspan></text>
+    <text class="cls-6" transform="translate(551.76 636.86)"><tspan x="0" y="0" xml:space="preserve">    </tspan></text>
+    <text class="cls-6" transform="translate(590.68 636.86)"><tspan x="0" y="0" xml:space="preserve"> 30EA</tspan></text>
+    <text class="cls-3" transform="translate(742.5 638.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 638.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 638.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 638.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 638.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 638.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(66.26 712.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> TYRE SHINE XTRM350ML</tspan></text>
+    <text class="cls-3" transform="translate(742.5 714.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 714.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 714.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 714.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 714.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 714.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(159.63 788.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> CAR </tspan><tspan class="cls-9" x="303.35" y="0">W</tspan><tspan x="334.5" y="0">ASH 1L</tspan></text>
+    <text class="cls-3" transform="translate(742.5 790.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 790.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 790.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 790.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 790.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 790.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-6" transform="translate(65.65 864.86)"><tspan x="0" y="0">ARMOR</tspan><tspan class="cls-12" x="132.21" y="0"> </tspan><tspan x="140.67" y="0">AL</tspan><tspan class="cls-8" x="187.33" y="0">L</tspan><tspan x="208.08" y="0" xml:space="preserve"> U</tspan><tspan class="cls-7" x="243.08" y="0">L</tspan><tspan x="261.87" y="0">T SHINE WSH&amp;</tspan><tspan class="cls-11" x="516.59" y="0">W</tspan><tspan x="547.7" y="0">AX 1L</tspan></text>
+    <text class="cls-3" transform="translate(742.5 866.31)"><tspan x="0" y="0"> </tspan></text>
+    <text class="cls-3" transform="translate(784.97 866.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(944.99 866.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1105 866.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1265.02 866.31)"><tspan x="0" y="0">50%</tspan></text>
+    <text class="cls-3" transform="translate(1425.04 866.31)"><tspan x="0" y="0">50%</tspan></text>
+  </g>
+  <text class="cls-5" transform="translate(450.98 51.47)"><tspan x="0" y="0">PROMOTIONS 2026/27</tspan></text>
+</svg>

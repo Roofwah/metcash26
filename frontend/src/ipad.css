@@ -885,8 +885,8 @@
   .order-form { padding-top: 0.95rem; }
 
   .order-summary-container .form-section       { margin-bottom: 0.8rem; }
-  .order-summary-container .form-section label { font-size: 0.88rem; }
-  .order-summary-container .form-select        { padding: 0.42rem 0.58rem; font-size: 0.9rem; }
+  .order-summary-container .form-section label { font-size: 1rem; }
+  .order-summary-container .form-select        { padding: 0.58rem 0.7rem; font-size: 1.05rem; }
   .order-summary-container .form-actions       { margin-top: 0.95rem; }
 
   .order-form input {

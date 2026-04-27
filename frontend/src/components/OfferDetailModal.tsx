@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../api';
+import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
+import { recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { offerCardEditorialHeading } from '../utils/offerMedia';
 import { offerDetailModal } from '../content/modalCopy';
+import {
+  chooseNMaxUnitsForLine,
+  countSelectedChooseNLines,
+  initChooseNLineQuantities,
+  isMixedChooseNOffer,
+} from '../utils/mixedChooseN';
 import './OfferDetailModal.css';
 
 /** Row shape from GET /api/offers/:id (CSV columns + enrichRow extras) */
@@ -14,6 +23,10 @@ interface OfferLineFields {
   'Offer Tier'?: string;
   discount?: string;
   expoPrice?: string;
+  sku?: string;
+  baseQty?: number;
+  cartonQty?: number;
+  lineUnitExpoCost?: number;
   [key: string]: unknown;
 }
 
@@ -28,11 +41,18 @@ interface OfferDetailData {
   logoUrl?: string;
   productImageUrl?: string;
   heroUrl?: string;
+  promoImageUrl?: string;
+  logo?: string | null;
+  hero?: string | null;
+  productImage?: string | null;
+  promoImage?: string | null;
+  showPromos?: boolean;
   category?: string;
   /** From offer-content.json → API */
   modalTitle?: string;
   h1?: string;
   h2?: string;
+  body?: string;
   message?: string;
   other?: string;
   callouts?: string[];
@@ -41,10 +61,39 @@ interface OfferDetailData {
   expoChargeBackCost?: string;
   /** POS supporting copy from backend/pos.csv */
   pos?: { description?: string; callouts?: string[] };
+  rules?: {
+    offerMode?: string;
+    minBundleQty?: number;
+    allowLineIncrease?: boolean;
+    selectionRule?: string;
+    minSelections?: number;
+    maxSelections?: number;
+  };
 }
 
 interface OfferDetailModalProps {
   offerId: string;
+  /** MSO: tag each row so the matrix can route the order to a store. */
+  msoStoreKey?: string;
+  /** When false (e.g. column browse with no store), hide “Add to order”. */
+  allowAddToOrder?: boolean;
+  onAddToCart: (
+    items: {
+      offerId: string;
+      quantity: number;
+      description: string;
+      cost: string;
+      minQuantity?: number;
+      lockQuantity?: boolean;
+      fixedBundle?: boolean;
+      splitBundle?: boolean;
+      chooseNBundle?: boolean;
+      lineDetails?: BundleLineDetail[];
+      chooseNMinSel?: number;
+      dropMonths?: string[];
+      msoStoreKey?: string;
+    }[],
+  ) => void;
   onClose: () => void;
 }
 
@@ -116,10 +165,19 @@ function OfferLineCard({ item }: { item: OfferLineFields }) {
   );
 }
 
-const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose }) => {
+const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
+  offerId,
+  msoStoreKey,
+  allowAddToOrder = true,
+  onAddToCart,
+  onClose,
+}) => {
   const [offerData, setOfferData] = useState<OfferDetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [bundleQuantity, setBundleQuantity] = useState(1);
+  const [lineQuantities, setLineQuantities] = useState<Record<string, number>>({});
+  const [chooseNError, setChooseNError] = useState('');
   useEffect(() => {
     fetchOfferDetails();
   }, [offerId]);
@@ -129,6 +187,22 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
       setLoading(true);
       const response = await axios.get(apiUrl(`/api/offers/${encodeURIComponent(offerId)}`));
       setOfferData(response.data);
+      setChooseNError('');
+      const minBundle = Math.max(1, Number(response.data?.rules?.minBundleQty) || 1);
+      setBundleQuantity(minBundle);
+      const items = (response.data?.items || []) as OfferLineFields[];
+      const rules = response.data?.rules;
+      const nextLineQuantities: Record<string, number> = {};
+      if (isMixedChooseNOffer(rules)) {
+        const minSel = Math.max(0, Number(rules?.minSelections) || 0);
+        Object.assign(nextLineQuantities, initChooseNLineQuantities(items, minSel));
+      } else {
+        items.forEach((item, idx) => {
+          const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+          nextLineQuantities[`line-${idx}`] = base;
+        });
+      }
+      setLineQuantities(nextLineQuantities);
       setError('');
     } catch (err) {
       console.error('Error fetching offer details:', err);
@@ -162,7 +236,12 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
   }
 
   const csvMedia =
-    !!(offerData.heroUrl?.trim() || offerData.logoUrl?.trim() || offerData.productImageUrl?.trim());
+    !!(
+      offerData.heroUrl?.trim() ||
+      offerData.logoUrl?.trim() ||
+      offerData.productImageUrl?.trim() ||
+      (offerData.showPromos && offerData.promoImageUrl?.trim())
+    );
 
   const rawMessage = offerData.message ?? '';
   const rawOther = offerData.other ?? '';
@@ -173,7 +252,10 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
   const showCopyInMainColumn =
     !csvMedia && !!(displayMessage || displayOther || hasEditorialHead || hasCallouts);
 
-  const modalTitle = (offerData.modalTitle ?? offerData.offerGroup).trim() || offerData.offerGroup;
+  const modalTitle =
+    (offerData.modalTitle || '').trim() ||
+    (offerData.h1 || '').trim() ||
+    offerData.offerId;
 
   const editorialCallouts =
     offerData.callouts?.filter((c) => typeof c === 'string' && c.trim()).map((c) => c.trim()) ?? [];
@@ -223,78 +305,6 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
     </section>
   );
 
-  const renderBrandBlocks = () => (
-    <>
-      {!csvMedia &&
-        (offerId.toLowerCase().includes('eveready 1') ||
-          offerId.toLowerCase().includes('eveready 2') ||
-          offerId.toLowerCase().includes('eveready 3')) && (
-          <div className="eveready-brand-card">
-            <div className="eveready-brand-content eveready-brand-content--logo-only">
-              <img src="/products/eready.png" alt="" className="eveready-logo" />
-            </div>
-            <div className="eveready-brand-images">
-              <img src="/products/hd50.png" alt="" className="eveready-product-image" />
-            </div>
-          </div>
-        )}
-
-      {!csvMedia &&
-        (offerId.toLowerCase().includes('energizer 1') ||
-          offerId.toLowerCase().includes('energizer 2') ||
-          offerId.toLowerCase().includes('energizer 3') ||
-          offerId.toLowerCase().includes('energizer 4') ||
-          offerId.toLowerCase().includes('energizer 5') ||
-          offerId.toLowerCase().includes('energizer 6')) && (
-          <div className="energizer-brand-card">
-            <div className="energizer-brand-content energizer-brand-content--logo-only">
-              <img src="/products/energizer.png" alt="" className="energizer-logo" />
-            </div>
-            <div className="energizer-brand-images">
-              {offerId.toLowerCase().includes('energizer 1') ? (
-                <img src="/products/penta.png" alt="" className="energizer-product-image" />
-              ) : offerId.toLowerCase().includes('energizer 2') || offerId.toLowerCase().includes('energizer 3') ? (
-                <img src="/products/3024.png" alt="" className="energizer-product-image" />
-              ) : (
-                <img src="/products/1614.png" alt="" className="energizer-product-image" />
-              )}
-            </div>
-          </div>
-        )}
-
-      {!csvMedia &&
-        (offerId.toLowerCase().includes('armorall 1') ||
-          offerId.toLowerCase().includes('armorall 2') ||
-          offerId.toLowerCase().includes('armorall 3')) && (
-          <div className="armorall-brand-card">
-            <div className="armorall-brand-content armorall-brand-content--logo-only">
-              <img src="/products/aall.png" alt="" className="armorall-logo" />
-            </div>
-            <div className="armorall-brand-images">
-              <img src="/products/wash.png" alt="" className="armorall-product-image" />
-            </div>
-          </div>
-        )}
-
-      {!csvMedia &&
-        (() => {
-          const offerKey = offerId.toLowerCase();
-          let productImage: string | null = null;
-          if (offerKey === 'energizer 7') productImage = '/products/maxmod.png';
-          else if (offerKey === 'energizer 8') productImage = '/products/hl.png';
-          else if (offerKey === 'energizer 9') productImage = '/products/torch.png';
-          else if (offerKey === 'armorall 4') productImage = '/products/slr.png';
-          else if (offerKey === 'armorall 5') productImage = '/products/fragrances.png';
-          if (!productImage) return null;
-          return (
-            <div className="modal-product-image-section">
-              <img src={productImage} alt="" className="modal-product-image" />
-            </div>
-          );
-        })()}
-    </>
-  );
-
   const renderLineItems = () => {
     if (offerData.hasTiers && offerData.tiers) {
       return (
@@ -313,11 +323,138 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
       );
     }
     if (offerData.items?.length) {
+      const mode = String(offerData.rules?.offerMode || '').toUpperCase();
+      const allowLineIncrease = !!offerData.rules?.allowLineIncrease;
+      const isFixedLike = mode === 'FIXED' || (mode === 'SPLIT' && !allowLineIncrease);
+      const isSplit = mode === 'SPLIT' && allowLineIncrease;
+      const isChooseN = isMixedChooseNOffer(offerData.rules);
+      const minSel = Math.max(0, Number(offerData.rules?.minSelections) || 0);
+      const maxSel = Math.max(0, Number(offerData.rules?.maxSelections) || 0);
+      const itemCount = offerData.items.length;
+
       return (
         <div className="offer-line-card-list">
-          {offerData.items.map((item, idx) => (
-            <OfferLineCard key={idx} item={item} />
-          ))}
+          {offerData.items.map((item, idx) => {
+            const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+            const key = `line-${idx}`;
+            const maxUnits = chooseNMaxUnitsForLine(item);
+            const qty = isFixedLike
+              ? base * bundleQuantity
+              : isSplit
+                ? Math.max(base, Number(lineQuantities[key] ?? base))
+                : isChooseN
+                  ? Math.max(0, Number(lineQuantities[key] ?? 0))
+                  : Math.max(1, Number(item.Qty ?? 1) || 1);
+
+            return (
+              <div key={idx} className="modal-line-wrap">
+                <OfferLineCard item={{ ...item, Qty: String(qty) }} />
+                {isSplit && (
+                  <div className="modal-line-qty-row">
+                    <span className="modal-line-qty-label">Line qty</span>
+                    <div className="quantity-controls">
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => setLineQuantities((prev) => ({ ...prev, [key]: Math.max(base, (Number(prev[key] ?? base) - 1)) }))}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        className="qty-input"
+                        min={base}
+                        value={Number(lineQuantities[key] ?? base)}
+                        onChange={(e) =>
+                          setLineQuantities((prev) => ({ ...prev, [key]: Math.max(base, parseInt(e.target.value) || base) }))
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => setLineQuantities((prev) => ({ ...prev, [key]: Number(prev[key] ?? base) + 1 }))}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+                {isChooseN && (
+                  <div className="modal-line-qty-row">
+                    <span className="modal-line-qty-label">Line qty</span>
+                    <div className="quantity-controls">
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => {
+                          setChooseNError('');
+                          setLineQuantities((prev) => {
+                            const cur = Number(prev[key] ?? 0);
+                            if (cur <= 0) return prev;
+                            const nextVal = cur - 1;
+                            const newVal = nextVal < base ? 0 : nextVal;
+                            if (newVal === 0) {
+                              const test = { ...prev, [key]: 0 };
+                              if (countSelectedChooseNLines(test, itemCount) < minSel) return prev;
+                            }
+                            return { ...prev, [key]: newVal };
+                          });
+                        }}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        className="qty-input"
+                        min={0}
+                        max={maxUnits}
+                        value={Number(lineQuantities[key] ?? 0)}
+                        onChange={(e) => {
+                          setChooseNError('');
+                          const raw = parseInt(e.target.value, 10);
+                          const v = Number.isFinite(raw) ? raw : 0;
+                          setLineQuantities((prev) => {
+                            let next = Math.min(maxUnits, Math.max(0, v));
+                            if (next > 0 && next < base) next = base;
+                            if (next === 0) {
+                              const test = { ...prev, [key]: 0 };
+                              if (countSelectedChooseNLines(test, itemCount) < minSel) return prev;
+                            }
+                            if (next > 0) {
+                              const test = { ...prev, [key]: next };
+                              const prevSel = countSelectedChooseNLines(prev, itemCount);
+                              const wasOff = (Number(prev[key]) || 0) === 0;
+                              if (wasOff && prevSel >= maxSel) return prev;
+                              if (countSelectedChooseNLines(test, itemCount) > maxSel) return prev;
+                            }
+                            return { ...prev, [key]: next };
+                          });
+                        }}
+                      />
+                      <button
+                        type="button"
+                        className="qty-btn"
+                        onClick={() => {
+                          setChooseNError('');
+                          setLineQuantities((prev) => {
+                            const cur = Number(prev[key] ?? 0);
+                            if (cur >= maxUnits) return prev;
+                            if (cur === 0) {
+                              if (countSelectedChooseNLines(prev, itemCount) >= maxSel) return prev;
+                              return { ...prev, [key]: base };
+                            }
+                            return { ...prev, [key]: cur + 1 };
+                          });
+                        }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       );
     }
@@ -359,6 +496,9 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
                   {!offerData.heroUrl?.trim() && offerData.productImageUrl?.trim() && (
                     <img src={offerData.productImageUrl} alt="" className="modal-csv-product" />
                   )}
+                  {offerData.showPromos && offerData.promoImageUrl?.trim() && (
+                    <img src={offerData.promoImageUrl} alt="" className="modal-csv-promo" />
+                  )}
                   {renderEditorialProse('modal-csv-message', 'modal-csv-other')}
                   {csvMedia && hasPos ? renderPosSection('split') : null}
                 </div>
@@ -366,13 +506,241 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({ offerId, onClose })
             )}
 
             <div className="modal-main-column">
+              {(() => {
+                const mode = String(offerData.rules?.offerMode || '').toUpperCase();
+                const allowLineIncrease = !!offerData.rules?.allowLineIncrease;
+                const isFixedLike = mode === 'FIXED' || (mode === 'SPLIT' && !allowLineIncrease);
+                const isSplit = mode === 'SPLIT' && allowLineIncrease;
+                const isChooseN = isMixedChooseNOffer(offerData.rules);
+                const minSel = Math.max(0, Number(offerData.rules?.minSelections) || 0);
+                const maxSel = Math.max(0, Number(offerData.rules?.maxSelections) || 0);
+                const minBundleQty = Math.max(1, Number(offerData.rules?.minBundleQty) || 1);
+                if (!offerData.items?.length) return null;
+                return (
+                  <div className="modal-order-controls">
+                    {isFixedLike && (
+                      <>
+                        <p className="modal-order-helper-title">Bundle quantity</p>
+                        <p className="modal-order-helper">This offer is sold as a fixed bundle.</p>
+                        <div className="quantity-controls">
+                          <button type="button" className="qty-btn" onClick={() => setBundleQuantity((q) => Math.max(minBundleQty, q - 1))}>-</button>
+                          <input
+                            type="number"
+                            className="qty-input"
+                            min={minBundleQty}
+                            value={bundleQuantity}
+                            onChange={(e) => setBundleQuantity(Math.max(minBundleQty, parseInt(e.target.value) || minBundleQty))}
+                          />
+                          <button type="button" className="qty-btn" onClick={() => setBundleQuantity((q) => q + 1)}>+</button>
+                        </div>
+                      </>
+                    )}
+                    {isSplit && (
+                      <>
+                        <p className="modal-order-helper-title">Adjust carton quantities</p>
+                        <p className="modal-order-helper">Minimum quantities are pre-loaded. You can increase individual lines.</p>
+                      </>
+                    )}
+                    {isChooseN && (
+                      <>
+                        <p className="modal-order-helper-title">Mix-and-match torches</p>
+                        <p className="modal-order-helper">
+                          Select at least {minSel} and at most {maxSel} torch lines. Each selected line must be at least 1 unit (up to the carton max per line).
+                        </p>
+                      </>
+                    )}
+                    {chooseNError ? <p className="modal-order-error" role="alert">{chooseNError}</p> : null}
+                    {!allowAddToOrder ? (
+                      <p className="modal-order-helper modal-order-helper--mso-browse">
+                        Use <strong>Configure</strong> on a store row in the MSO matrix to add this offer for that store.
+                      </p>
+                    ) : null}
+                    {allowAddToOrder ? (
+                    <button
+                      type="button"
+                      className="offer-action-primary"
+                      onClick={() => {
+                        const items = offerData.items || [];
+                        let cartRows: {
+                          offerId: string;
+                          quantity: number;
+                          description: string;
+                          cost: string;
+                          minQuantity?: number;
+                          lockQuantity?: boolean;
+                          fixedBundle?: boolean;
+                          splitBundle?: boolean;
+                          chooseNBundle?: boolean;
+                          lineDetails?: BundleLineDetail[];
+                          chooseNMinSel?: number;
+                          dropMonths?: string[];
+                        }[];
+
+                        if (isFixedLike) {
+                          const safeQty = Math.max(minBundleQty, bundleQuantity);
+                          let totalExpo = 0;
+                          for (const item of items) {
+                            const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+                            if (base <= 0) continue;
+                            totalExpo += parseNum(item['Expo Total Cost']);
+                          }
+                          const perBundle =
+                            safeQty > 0 && totalExpo > 0
+                              ? totalExpo / safeQty
+                              : parseNum(offerData.expoChargeBackCost);
+                          const label =
+                            offerCardEditorialHeading({
+                              modalTitle: offerData.modalTitle,
+                              h1: offerData.h1,
+                            }) || offerData.offerGroup;
+                          cartRows = [
+                            {
+                              offerId: offerData.offerId,
+                              quantity: safeQty,
+                              description: label,
+                              cost: perBundle.toFixed(2),
+                              minQuantity: minBundleQty,
+                              lockQuantity: true,
+                              fixedBundle: true,
+                            },
+                          ];
+                        } else if (isSplit) {
+                          const lineDetails: BundleLineDetail[] = [];
+                          items.forEach((item, idx) => {
+                            const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+                            const quantity = Math.max(base, Number(lineQuantities[`line-${idx}`] ?? base));
+                            if (quantity <= 0) return;
+                            const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
+                            const expoTotal = parseNum(item['Expo Total Cost']);
+                            const unitCost =
+                              unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
+                            lineDetails.push({
+                              description: `${item.Description || 'SKU'} (${item.sku || idx + 1})`,
+                              quantity,
+                              cost: unitCost.toFixed(2),
+                              baseQty: base,
+                              sku: String(item.sku || '').trim() || undefined,
+                            });
+                          });
+                          const W = recomputeSplitBundleW(lineDetails);
+                          const sum = lineDetails.reduce((s, l) => s + parseFloat(l.cost) * l.quantity, 0);
+                          const perW = W > 0 ? sum / W : 0;
+                          const label =
+                            offerCardEditorialHeading({
+                              modalTitle: offerData.modalTitle,
+                              h1: offerData.h1,
+                            }) || offerData.offerGroup;
+                          cartRows =
+                            lineDetails.length > 0
+                              ? [
+                                  {
+                                    offerId: offerData.offerId,
+                                    quantity: W,
+                                    description: label,
+                                    cost: perW.toFixed(2),
+                                    minQuantity: 1,
+                                    lockQuantity: false,
+                                    splitBundle: true,
+                                    lineDetails,
+                                    dropMonths: Array.from({ length: W }, () => DEFAULT_DROP_MONTH),
+                                  },
+                                ]
+                              : [];
+                        } else if (isChooseN) {
+                          const lineDetails: BundleLineDetail[] = [];
+                          let sum = 0;
+                          items.forEach((item, idx) => {
+                            const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+                            const quantity = Math.max(0, Number(lineQuantities[`line-${idx}`] ?? 0));
+                            if (quantity <= 0) return;
+                            const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
+                            const expoTotal = parseNum(item['Expo Total Cost']);
+                            const unitCost =
+                              unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
+                            sum += unitCost * quantity;
+                            lineDetails.push({
+                              description: `${item.Description || 'SKU'} (${item.sku || idx + 1})`,
+                              quantity,
+                              cost: unitCost.toFixed(2),
+                              baseQty: base,
+                              sku: String(item.sku || '').trim() || undefined,
+                            });
+                          });
+                          const label =
+                            offerCardEditorialHeading({
+                              modalTitle: offerData.modalTitle,
+                              h1: offerData.h1,
+                            }) || offerData.offerGroup;
+                          cartRows =
+                            lineDetails.length > 0
+                              ? [
+                                  {
+                                    offerId: offerData.offerId,
+                                    quantity: 1,
+                                    description: label,
+                                    cost: sum.toFixed(2),
+                                    minQuantity: 1,
+                                    lockQuantity: true,
+                                    chooseNBundle: true,
+                                    chooseNMinSel: minSel,
+                                    lineDetails,
+                                    dropMonths: [DEFAULT_DROP_MONTH],
+                                  },
+                                ]
+                              : [];
+                        } else {
+                          cartRows = items
+                            .map((item, idx) => {
+                              const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
+                              const quantity = Math.max(1, Number(item.Qty ?? 1) || 1);
+                              const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
+                              const expoTotal = parseNum(item['Expo Total Cost']);
+                              const unitCost =
+                                unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
+                              return {
+                                offerId: offerData.offerId,
+                                quantity,
+                                description: `${item.Description || 'SKU'} (${item.sku || idx + 1})`,
+                                cost: unitCost.toFixed(2),
+                                minQuantity: 0,
+                                lockQuantity: false,
+                              };
+                            })
+                            .filter((x) => x.quantity > 0);
+                        }
+                        if (cartRows.length === 0) return;
+                        if (isChooseN) {
+                          if (!cartRows[0]?.lineDetails || cartRows[0].lineDetails.length < minSel || cartRows[0].lineDetails.length > maxSel) {
+                            setChooseNError(`Select between ${minSel} and ${maxSel} torch lines (each with at least 1 unit).`);
+                            return;
+                          }
+                          for (let i = 0; i < items.length; i++) {
+                            const base = Math.max(0, Number(items[i].baseQty ?? items[i].Qty ?? 0) || 0);
+                            const q = Math.max(0, Number(lineQuantities[`line-${i}`] ?? 0));
+                            if (q > 0 && q < base) {
+                              setChooseNError('Each selected torch line must be at least 1 unit.');
+                              return;
+                            }
+                          }
+                        }
+                        setChooseNError('');
+                        const rows = msoStoreKey ? cartRows.map((r) => ({ ...r, msoStoreKey })) : cartRows;
+                        onAddToCart(rows);
+                        onClose();
+                      }}
+                    >
+                      ADD TO ORDER
+                    </button>
+                    ) : null}
+                  </div>
+                );
+              })()}
               {showCopyInMainColumn && (
                 <div className="modal-offer-copy">
                   {renderEditorialProse('modal-offer-copy__message', 'modal-offer-copy__other')}
                 </div>
               )}
               {showPosInMainColumn ? renderPosSection('main') : null}
-              {!csvMedia && renderBrandBlocks()}
 
               {offerData.expoChargeBackCost != null && String(offerData.expoChargeBackCost).trim() !== '' && (
                 <p className="offer-modal-footnote">
