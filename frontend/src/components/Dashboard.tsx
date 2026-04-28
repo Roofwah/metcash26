@@ -122,6 +122,7 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
   const [loading, setLoading] = useState(true);
   const [compareLoading, setCompareLoading] = useState(false);
   const [error, setError] = useState('');
+  const [csvBlockedFeedback, setCsvBlockedFeedback] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -150,6 +151,10 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
   }, [view]);
 
   const maxValue = Math.max(...orders.map(o => o.total_value), 1);
+  const handleBlockedCsvClick = () => {
+    setCsvBlockedFeedback(true);
+    window.setTimeout(() => setCsvBlockedFeedback(false), 500);
+  };
 
   return (
     <div className="dashboard-overlay" onClick={onClose}>
@@ -196,8 +201,15 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
             >FY25 vs orders</button>
           </div>
 
-          <button className="dashboard-csv-btn" onClick={() => window.open(apiUrl('/api/dashboard/csv'), '_blank')}>
+          <button
+            type="button"
+            className={`dashboard-csv-btn dashboard-csv-btn--disabled ${csvBlockedFeedback ? 'dashboard-csv-btn--blocked' : ''}`}
+            onClick={handleBlockedCsvClick}
+            aria-disabled="true"
+            title="CSV export is temporarily disabled"
+          >
             ↓ Download CSV
+            <span className="dashboard-csv-denied" aria-hidden="true">×</span>
           </button>
         </div>
 

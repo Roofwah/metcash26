@@ -762,9 +762,11 @@ const OffersListing: React.FC<OffersListingProps> = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               if (!entry) return;
-                              const linesInCart = cartItems.filter((c) => c.offerId === offer.offerId && c.quantity > 0);
+                              const selectedTorchLinesCount = (chooseBundle?.lineDetails || []).filter(
+                                (l) => (l.quantity || 0) > 0,
+                              ).length;
                               if (entry.quantity <= baseQty) {
-                                if (linesInCart.length <= minSelTorch) return;
+                                if (selectedTorchLinesCount <= minSelTorch) return;
                                 onRemoveCartLine?.(offer.offerId, entry.description);
                                 return;
                               }

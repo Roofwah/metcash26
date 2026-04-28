@@ -8,6 +8,8 @@ interface FooterProps {
   hideStatusOrb?: boolean;
 }
 
+const FOOTER_COMMIT_STAMP = '6a41c44  ·  2026-04-28 09:59';
+
 const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
   const [backendConnected, setBackendConnected] = useState(false);
 
@@ -53,6 +55,10 @@ const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
               />
             </div>
           )}
+        </div>
+
+        <div className="footer-commit-stamp" aria-label="Build commit reference">
+          {FOOTER_COMMIT_STAMP}
         </div>
       </div>
     </footer>

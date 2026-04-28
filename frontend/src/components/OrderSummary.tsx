@@ -523,15 +523,15 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                 onChange={(e) => setIncludePO(e.target.checked)}
                 className="checkbox-input"
               />
-              Include Purchase Order Number
+              Add Notes or Purchase Order Number
             </label>
             {includePO && (
-              <input
-                type="text"
+              <textarea
                 value={purchaseOrder}
                 onChange={(e) => setPurchaseOrder(e.target.value)}
-                placeholder="Enter purchase order number"
+                placeholder="Enter notes or purchase order number"
                 className="form-input purchase-order-input"
+                rows={2}
               />
             )}
           </div>

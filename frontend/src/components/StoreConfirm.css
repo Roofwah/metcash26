@@ -226,3 +226,175 @@
 .store-confirm-continue:hover {
   background: #5a6fd6;
 }
+
+.store-confirm-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1300;
+  background: rgba(15, 23, 42, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.store-confirm-modal-panel {
+  width: min(760px, 100%);
+  max-height: min(84vh, 760px);
+  overflow: auto;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+  padding: 14px 16px 16px;
+}
+
+.store-confirm-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.store-confirm-modal-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #111827;
+}
+
+.store-confirm-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  color: #374151;
+  cursor: pointer;
+}
+
+.store-confirm-modal-summary {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  color: #374151;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.store-confirm-modal-list {
+  margin-top: 12px;
+  display: grid;
+  gap: 8px;
+}
+
+.store-confirm-modal-row {
+  display: grid;
+  gap: 6px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 8px 10px;
+  color: #1f2937;
+  font-size: 0.86rem;
+}
+
+.store-confirm-modal-row-head {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.store-confirm-modal-row-value {
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+.store-confirm-modal-items {
+  display: grid;
+  gap: 4px;
+}
+
+.store-confirm-modal-item-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 8px;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 4px;
+}
+
+.store-confirm-modal-item-name {
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.store-confirm-modal-item-drop {
+  color: #1d4ed8;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.store-confirm-modal-item-qty {
+  color: #374151;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.store-confirm-modal-item-row--grouped {
+  grid-template-columns: 1fr auto;
+}
+
+.store-confirm-modal-item-total {
+  color: #111827;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.store-confirm-modal-item-drops {
+  display: grid;
+  gap: 4px;
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 6px;
+  width: min(100%, 260px);
+  margin-left: auto;
+}
+
+.store-confirm-modal-item-drop-head {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.74rem;
+  color: #1d4ed8;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.store-confirm-modal-item-drop-line {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #1d4ed8;
+}
+
+.store-confirm-modal-item-drop-label {
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
+.store-confirm-modal-item-drop-value {
+  color: #1e40af;
+  font-weight: 800;
+}
+
+.store-confirm-modal-items-empty {
+  color: #6b7280;
+  font-size: 0.8rem;
+}
+
+.store-confirm-modal-order-date {
+  margin-top: 4px;
+  color: #4b5563;
+  font-size: 0.78rem;
+  font-weight: 600;
+}

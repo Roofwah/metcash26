@@ -92,6 +92,7 @@ function App() {
   /** MSO path: store picker → matrix → split orders (skips store confirm + presentation) */
   const [sessionFlow, setSessionFlow] = useState<'retail' | 'mso'>('retail');
   const [msoStores, setMsoStores] = useState<StoreData[]>([]);
+  const [msoMatrixDraftItems, setMsoMatrixDraftItems] = useState<MsoMatrixCartItem[]>([]);
 
   // Extract rep name from energizer-style email: sarah.cussen@energizer.com → "Sarah Cussen"
   const repName = sessionEmail
@@ -145,6 +146,7 @@ function App() {
     setSessionEmail(null);
     setSessionFlow('retail');
     setMsoStores([]);
+    setMsoMatrixDraftItems([]);
     setCurrentStep('login');
     setShowPostSpinThankYou(false);
   };
@@ -171,6 +173,7 @@ function App() {
     setStoreData(payload.stores[0] ?? null);
     setShowPresentation(false);
     setCartItems([]);
+    setMsoMatrixDraftItems([]);
     setSelectedOfferId(null);
     setCurrentStep('mso-matrix');
   };
@@ -259,8 +262,42 @@ function App() {
           continue;
         }
 
+        const fixedMergeIdx = next.findIndex(
+          (x) =>
+            incoming.fixedBundle &&
+            x.fixedBundle &&
+            x.offerId === incoming.offerId &&
+            (x.offerTier || '') === (incoming.offerTier || '') &&
+            (x.msoStoreKey || '') === (incoming.msoStoreKey || ''),
+        );
+        if (fixedMergeIdx >= 0) {
+          const existing = next[fixedMergeIdx];
+          const nextQty = existing.quantity + incoming.quantity;
+          const existingPer = parseFloat(existing.cost || '0') || 0;
+          const incomingPer = parseFloat(incoming.cost || '0') || 0;
+          const blendedPer =
+            nextQty > 0
+              ? ((existingPer * existing.quantity + incomingPer * incoming.quantity) / nextQty).toFixed(2)
+              : incoming.cost;
+          next[fixedMergeIdx] = {
+            ...existing,
+            quantity: nextQty,
+            cost: blendedPer,
+            dropMonths: padBundleDropMonths(
+              [...(existing.dropMonths || []), ...(incoming.dropMonths || [])],
+              nextQty,
+            ),
+            minQuantity: Math.max(existing.minQuantity ?? 0, incoming.minQuantity ?? 0),
+            lockQuantity: !!(existing.lockQuantity || incoming.lockQuantity),
+            fixedBundle: true,
+          };
+          continue;
+        }
+
         const idx = next.findIndex(
           (x) =>
+            !x.fixedBundle &&
+            !incoming.fixedBundle &&
             x.offerId === incoming.offerId &&
             (x.offerTier || '') === (incoming.offerTier || '') &&
             x.description === incoming.description &&
@@ -602,6 +639,7 @@ function App() {
     setPrintData(null);
     setSessionFlow('retail');
     setMsoStores([]);
+    setMsoMatrixDraftItems([]);
     setCurrentStep('form');
     setShowPostSpinThankYou(false);
   };
@@ -621,6 +659,7 @@ function App() {
     setCurrentStep('form');
     setMsoStores([]);
     setCartItems([]);
+    setMsoMatrixDraftItems([]);
     setSessionFlow('retail');
   };
 
@@ -641,6 +680,7 @@ function App() {
       return { ...item, dropMonths };
     });
     setCartItems(itemsWithDropMonths as CartItem[]);
+    setMsoMatrixDraftItems(itemsWithDropMonths);
     setCurrentStep('order-summary');
   };
 
@@ -744,7 +784,7 @@ function App() {
           initialFullName={userData?.fullName ?? ''}
           onSubmit={handleFormSubmit}
           onMsoStoresSubmit={handleMsoStoresSubmit}
-          onBackChange={(h) => setFormBackHandler(h ? () => h : null)}
+          onBackChange={(h) => setFormBackHandler(() => h ?? null)}
         />
       )}
 
@@ -784,6 +824,12 @@ function App() {
         <MsoOfferMatrix
           msoGroup={storeData.msoGroup}
           stores={msoStores}
+          initialItems={
+            ((cartItems.filter((item) => !!item.msoStoreKey) as MsoMatrixCartItem[]).length > 0
+              ? (cartItems.filter((item) => !!item.msoStoreKey) as MsoMatrixCartItem[])
+              : msoMatrixDraftItems)
+          }
+          onDraftChange={setMsoMatrixDraftItems}
           onProceedToCheckout={handleMsoMatrixCheckout}
         />
       )}

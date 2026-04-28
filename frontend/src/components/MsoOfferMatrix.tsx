@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import axios from 'axios';
 import { apiUrl, StoreData } from '../api';
 import OfferDetailModal from './OfferDetailModal';
@@ -44,6 +44,7 @@ function msoCommittedExpoForCell(
 }
 
 type MsoModalCtx = { offerId: string; storeKey?: string; storeName?: string };
+type SplitSheetCtx = { offerId: string; storeKey: string; storeName: string };
 
 interface DescriptionItem {
   description: string;
@@ -95,6 +96,26 @@ const normalizeOffers = (data: unknown): Offer[] => {
     .filter((offer: Offer) => offer.offerId.length > 0);
 };
 
+function msoMatrixItemsSignature(items: MsoMatrixCartItem[]): string {
+  return items
+    .map((item) => ({
+      sk: String(item.msoStoreKey || ''),
+      oid: String(item.offerId || ''),
+      q: Number(item.quantity) || 0,
+      fixed: !!item.fixedBundle,
+      split: !!item.splitBundle,
+      chooseN: !!item.chooseNBundle,
+      lines: (item.lineDetails || []).map((line) => ({
+        d: String(line.description || ''),
+        q: Number(line.quantity) || 0,
+        c: String(line.cost || ''),
+      })),
+    }))
+    .sort((a, b) => (a.sk === b.sk ? a.oid.localeCompare(b.oid) : a.sk.localeCompare(b.sk)))
+    .map((entry) => JSON.stringify(entry))
+    .join('|');
+}
+
 /** Stable key for MSO cart / grouping — matches App msoStoreKey */
 export function msoStoreKey(s: StoreData): string {
   return `${(s.storeId || '').trim()}|${s.storeName}`;
@@ -103,6 +124,8 @@ export function msoStoreKey(s: StoreData): string {
 interface MsoOfferMatrixProps {
   msoGroup: string;
   stores: StoreData[];
+  initialItems?: MsoMatrixCartItem[];
+  onDraftChange?: (items: MsoMatrixCartItem[]) => void;
   onProceedToCheckout: (items: MsoMatrixCartItem[]) => void;
 }
 
@@ -112,9 +135,30 @@ interface StoreSuggestOffer {
   suggest: number;
 }
 
-const MAX_QTY = 99;
+interface StoreSalesItem {
+  name: string;
+  value: number;
+  qty: number;
+}
 
-const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onProceedToCheckout }) => {
+interface StoreSalesPayload {
+  hasData: boolean;
+  storeName?: string;
+  storeId?: string;
+  totalSales?: number;
+  items?: StoreSalesItem[];
+}
+
+const MAX_QTY = 99;
+const SPLIT_SHEET_OFFER_IDS = new Set(['ENERGIZER_4', 'ARMORALL_2', 'TORCH_1']);
+
+const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({
+  msoGroup,
+  stores,
+  initialItems = [],
+  onDraftChange,
+  onProceedToCheckout,
+}) => {
   const [offers, setOffers] = useState<Offer[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -124,9 +168,17 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
   const [storeSuggestByKey, setStoreSuggestByKey] = useState<
     Record<string, Record<string, StoreSuggestOffer> | null>
   >({});
+  const [storeSalesByKey, setStoreSalesByKey] = useState<Record<string, StoreSalesPayload | null>>({});
   /** Per-cell cart row when modal or inline split edits override proportional matrix qty. */
   const [cellBundles, setCellBundles] = useState<CellBundleMap>({});
   const [modalCtx, setModalCtx] = useState<MsoModalCtx | null>(null);
+  const [splitSheetCtx, setSplitSheetCtx] = useState<SplitSheetCtx | null>(null);
+  const [showMsoFy25Modal, setShowMsoFy25Modal] = useState(false);
+  const lastAppliedInitialSigRef = useRef<string>('');
+
+  const isSplitSheetOffer = useCallback((offerId: string) => {
+    return SPLIT_SHEET_OFFER_IDS.has(String(offerId || '').toUpperCase());
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -205,6 +257,94 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
     };
   }, [stores]);
 
+  /** Load sales25.csv mapped values per store (GET /api/store-sales/:storeId) for FY25 modal. */
+  useEffect(() => {
+    if (stores.length === 0) {
+      setStoreSalesByKey({});
+      return;
+    }
+    let cancelled = false;
+
+    const resolveStoreId = async (store: StoreData): Promise<string> => {
+      let sid = (store.storeId || '').trim();
+      if (sid) return sid;
+      try {
+        const r = await axios.get(apiUrl('/api/mcash-store-id'), {
+          params: { name: (store.storeName || '').trim(), storeNo: (store.storeNo || '').trim() },
+        });
+        sid = String(r.data?.storeId || '').trim();
+      } catch {
+        sid = '';
+      }
+      return sid;
+    };
+
+    (async () => {
+      const pairs = await Promise.all(
+        stores.map(async (store) => {
+          const sk = msoStoreKey(store);
+          const sid = await resolveStoreId(store);
+          if (!sid) return [sk, null] as const;
+          try {
+            const res = await axios.get(apiUrl(`/api/store-sales/${encodeURIComponent(sid)}`));
+            if (!res.data || typeof res.data !== 'object') return [sk, null] as const;
+            return [sk, res.data as StoreSalesPayload] as const;
+          } catch {
+            return [sk, null] as const;
+          }
+        })
+      );
+      if (cancelled) return;
+      setStoreSalesByKey(Object.fromEntries(pairs) as Record<string, StoreSalesPayload | null>);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [stores]);
+
+  /** Rehydrate matrix from App-level MSO cart when returning from checkout. */
+  useEffect(() => {
+    if (stores.length === 0 || offers.length === 0) {
+      setQty({});
+      setCellBundles({});
+      return;
+    }
+
+    const incomingSig = msoMatrixItemsSignature(initialItems);
+    if (incomingSig === lastAppliedInitialSigRef.current) return;
+
+    if (!Array.isArray(initialItems) || initialItems.length === 0) {
+      setQty({});
+      setCellBundles({});
+      lastAppliedInitialSigRef.current = incomingSig;
+      return;
+    }
+
+    const offerById = new Map(offers.map((o) => [o.offerId, o]));
+    const nextQty: Record<string, Record<string, number>> = {};
+    const nextBundles: CellBundleMap = {};
+
+    for (const row of initialItems) {
+      const sk = String(row.msoStoreKey || '').trim();
+      const oid = String(row.offerId || '').trim();
+      if (!sk || !oid || row.quantity <= 0) continue;
+      const offer = offerById.get(oid);
+      const minB = Math.max(1, Number(offer?.rules?.minBundleQty) || 1);
+      const displayQ = row.chooseNBundle
+        ? 1
+        : row.fixedBundle
+          ? Math.max(1, Math.ceil(row.quantity / minB) || row.quantity)
+          : row.quantity;
+      nextQty[sk] = { ...(nextQty[sk] || {}), [oid]: displayQ };
+      nextBundles[sk] = { ...(nextBundles[sk] || {}), [oid]: row };
+    }
+
+    setQty(nextQty);
+    setCellBundles(nextBundles);
+    lastAppliedInitialSigRef.current = incomingSig;
+  }, [initialItems, offers, stores]);
+
   const fmtAud = useCallback((value: number) => `$${value.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`, []);
 
   const storeCommittedValueByKey = useMemo(() => {
@@ -233,6 +373,28 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
   }, [stores, offers, qty, cellBundles]);
 
   const overallCommittedValue = Object.values(storeCommittedValueByKey).reduce((sum, n) => sum + n, 0);
+  const fmtQty = useCallback(
+    (value: number) => value.toLocaleString('en-AU', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    [],
+  );
+  const msoFy25StoreRows = useMemo(() => {
+    return stores.map((store) => {
+      const sk = msoStoreKey(store);
+      const payload = storeSalesByKey[sk];
+      return {
+        sk,
+        storeName: store.storeName || payload?.storeName || 'Unknown store',
+        storeId: (store.storeId || '').trim() || String(payload?.storeId || '').trim(),
+        totalSales: Number(payload?.totalSales) || 0,
+        items: Array.isArray(payload?.items) ? payload?.items : [],
+      };
+    });
+  }, [stores, storeSalesByKey]);
+  const msoFy25HasData = msoFy25StoreRows.some((row) => (row.items || []).length > 0);
+  const msoFy25GroupTotalSales = useMemo(
+    () => msoFy25StoreRows.reduce((sum, row) => sum + row.totalSales, 0),
+    [msoFy25StoreRows],
+  );
 
   const bumpCell = useCallback((storeKey: string, offerId: string, delta: number) => {
     setQty((prev) => {
@@ -401,6 +563,11 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
     return out;
   }, [stores, offers, qty, cellBundles]);
 
+  useEffect(() => {
+    if (!onDraftChange || offers.length === 0 || stores.length === 0) return;
+    onDraftChange(buildCartItems());
+  }, [onDraftChange, offers.length, stores.length, buildCartItems]);
+
   const handleCheckout = () => {
     const items = buildCartItems();
     if (items.length === 0) {
@@ -410,6 +577,15 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
     setError('');
     onProceedToCheckout(items);
   };
+
+  useEffect(() => {
+    if (!splitSheetCtx) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setSplitSheetCtx(null);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [splitSheetCtx]);
 
   return (
     <>
@@ -422,6 +598,13 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
             <strong>Configure</strong> (or open the column header to preview).
           </p>
         </div>
+        <button
+          type="button"
+          className="mso-matrix-fy25-btn"
+          onClick={() => setShowMsoFy25Modal(true)}
+        >
+          View FY25 Group Sales
+        </button>
       </div>
 
       {loading && <div className="mso-matrix-loading">Loading offers…</div>}
@@ -509,6 +692,7 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
                         customCell && customCell.quantity > 0 && customCell.splitBundle
                           ? customCell
                           : splitBuilt;
+                      const canOpenSplitSheet = needsConfigure && isSplitSheetOffer(o.offerId);
                       return (
                         <td key={o.offerId} className="mso-matrix-cell">
                           <div className="mso-matrix-cell-stack">
@@ -556,11 +740,31 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
                               <div className="mso-matrix-split-lines" aria-label={`${labelBase}: line quantities`}>
                                 {splitRow.lineDetails.map((ld) => (
                                   <div key={ld.description} className="mso-matrix-split-line">
-                                    <span className="mso-matrix-split-line-label" title={ld.description}>
-                                      {ld.description.length > 28
-                                        ? `${ld.description.slice(0, 26)}…`
-                                        : ld.description}
-                                    </span>
+                                    {canOpenSplitSheet ? (
+                                      <button
+                                        type="button"
+                                        className="mso-matrix-split-line-label-btn"
+                                        title={ld.description}
+                                        onClick={() =>
+                                          setSplitSheetCtx({
+                                            offerId: o.offerId,
+                                            storeKey: sk,
+                                            storeName: store.storeName || '',
+                                          })
+                                        }
+                                        aria-label={`Open full line details for ${labelBase}`}
+                                      >
+                                        {ld.description.length > 28
+                                          ? `${ld.description.slice(0, 26)}…`
+                                          : ld.description}
+                                      </button>
+                                    ) : (
+                                      <span className="mso-matrix-split-line-label" title={ld.description}>
+                                        {ld.description.length > 28
+                                          ? `${ld.description.slice(0, 26)}…`
+                                          : ld.description}
+                                      </span>
+                                    )}
                                     <span className="mso-matrix-split-line-qty">
                                       <button
                                         type="button"
@@ -616,9 +820,27 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
                                     lineTitle.length > 26 ? `${lineTitle.slice(0, 24)}…` : lineTitle;
                                   return (
                                     <div key={desc} className="mso-matrix-split-line mso-matrix-choose-n-line">
-                                      <span className="mso-matrix-split-line-label" title={lineTitle}>
-                                        {shortLabel}
-                                      </span>
+                                      {canOpenSplitSheet ? (
+                                        <button
+                                          type="button"
+                                          className="mso-matrix-split-line-label-btn"
+                                          title={lineTitle}
+                                          onClick={() =>
+                                            setSplitSheetCtx({
+                                              offerId: o.offerId,
+                                              storeKey: sk,
+                                              storeName: store.storeName || '',
+                                            })
+                                          }
+                                          aria-label={`Open full line details for ${labelBase}`}
+                                        >
+                                          {shortLabel}
+                                        </button>
+                                      ) : (
+                                        <span className="mso-matrix-split-line-label" title={lineTitle}>
+                                          {shortLabel}
+                                        </span>
+                                      )}
                                       <span className="mso-matrix-split-line-qty">
                                         {showInline ? (
                                           <>
@@ -721,9 +943,211 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({ msoGroup, stores, onPro
         offerId={modalCtx.offerId}
         msoStoreKey={modalCtx.storeKey}
         allowAddToOrder={!!modalCtx.storeKey}
+        initialMsoSelection={
+          modalCtx.storeKey ? (cellBundles[modalCtx.storeKey]?.[modalCtx.offerId] ?? null) : null
+        }
         onAddToCart={(items) => handleMsoModalAdd(items, modalCtx)}
         onClose={() => setModalCtx(null)}
       />
+    ) : null}
+    {splitSheetCtx ? (
+      (() => {
+        const store = stores.find((s) => msoStoreKey(s) === splitSheetCtx.storeKey);
+        const offer = offers.find((o) => o.offerId === splitSheetCtx.offerId);
+        if (!store || !offer) return null;
+        const rowQ = qty[splitSheetCtx.storeKey] || {};
+        const cellQ = rowQ[offer.offerId] ?? 0;
+        const customCell = cellBundles[splitSheetCtx.storeKey]?.[offer.offerId];
+        const splitBuilt =
+          isMsoSplitLineIncreaseOffer(offer) && cellQ > 0
+            ? buildMsoMatrixCartItemFromCell(offer, store, cellQ, splitSheetCtx.storeKey)
+            : null;
+        const splitRow =
+          customCell && customCell.quantity > 0 && customCell.splitBundle
+            ? customCell
+            : splitBuilt;
+        const chooseNRow = getEffectiveChooseNMatrixRow(offer, store, cellQ, splitSheetCtx.storeKey, customCell);
+        return (
+          <div
+            className="mso-matrix-split-sheet-overlay"
+            role="presentation"
+            onClick={() => setSplitSheetCtx(null)}
+          >
+            <div
+              className="mso-matrix-split-sheet"
+              role="dialog"
+              aria-modal="true"
+              aria-label={`Line details for ${offerCardEditorialHeading(offer) || offer.offerId}`}
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mso-matrix-split-sheet-head">
+                <div className="mso-matrix-split-sheet-title-wrap">
+                  <h3 className="mso-matrix-split-sheet-title">{offerCardEditorialHeading(offer) || offer.offerId}</h3>
+                  <p className="mso-matrix-split-sheet-subtitle">{splitSheetCtx.storeName}</p>
+                </div>
+                <button
+                  type="button"
+                  className="mso-matrix-split-sheet-close"
+                  onClick={() => setSplitSheetCtx(null)}
+                  aria-label="Close line details"
+                >
+                  Close
+                </button>
+              </div>
+              {isMsoSplitLineIncreaseOffer(offer) ? (
+                splitRow?.lineDetails?.length ? (
+                  <div className="mso-matrix-split-sheet-list">
+                    {splitRow.lineDetails.map((ld) => (
+                      <div key={ld.description} className="mso-matrix-split-sheet-line">
+                        <span className="mso-matrix-split-sheet-line-label">{ld.description}</span>
+                        <span className="mso-matrix-split-sheet-line-qty">
+                          <button
+                            type="button"
+                            className="mso-matrix-split-step"
+                            onClick={() =>
+                              handleSplitLineDelta(splitSheetCtx.storeKey, offer, store, cellQ, ld.description, -1)
+                            }
+                            disabled={cellQ <= 0}
+                            aria-label={`Decrease ${ld.description}`}
+                          >
+                            −
+                          </button>
+                          <span className="mso-matrix-split-line-num">{ld.quantity}</span>
+                          <button
+                            type="button"
+                            className="mso-matrix-split-step"
+                            onClick={() =>
+                              handleSplitLineDelta(splitSheetCtx.storeKey, offer, store, cellQ, ld.description, 1)
+                            }
+                            disabled={cellQ <= 0}
+                            aria-label={`Increase ${ld.description}`}
+                          >
+                            +
+                          </button>
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mso-matrix-split-sheet-note">Add bundle quantity first, then configure split lines here.</p>
+                )
+              ) : null}
+              {isMixedChooseNOffer(offer.rules) ? (
+                <div className="mso-matrix-split-sheet-list">
+                  {(offer.items || []).map((line, idx) => {
+                    const desc = chooseNMatrixLineDescription(line, idx);
+                    const lineTitle = String(line.description || desc).trim() || desc;
+                    const ld = chooseNRow?.lineDetails?.find((d) => d.description === desc);
+                    const curQty = ld?.quantity ?? 0;
+                    const baseQty = Math.max(0, Number(line.baseQty) || 0);
+                    const minSelTorch = Math.max(0, Number(offer.rules?.minSelections) || 0);
+                    const activeSel = (chooseNRow?.lineDetails || []).filter((d) => (d.quantity || 0) > 0).length;
+                    const disableMinusAtBase = curQty <= baseQty && activeSel <= minSelTorch;
+                    const maxPer = chooseNMaxUnitsForLine(line);
+                    return (
+                      <div key={desc} className="mso-matrix-split-sheet-line">
+                        <span className="mso-matrix-split-sheet-line-label">{lineTitle}</span>
+                        <span className="mso-matrix-split-sheet-line-qty">
+                          <button
+                            type="button"
+                            className="mso-matrix-split-step"
+                            onClick={() => handleChooseNCellMinus(splitSheetCtx.storeKey, offer, store, cellQ, idx)}
+                            disabled={cellQ <= 0 || curQty <= 0 || disableMinusAtBase}
+                            aria-label={`Decrease ${lineTitle}`}
+                          >
+                            −
+                          </button>
+                          <span className="mso-matrix-split-line-num">{curQty}</span>
+                          <button
+                            type="button"
+                            className="mso-matrix-split-step"
+                            onClick={() => handleChooseNCellPlus(splitSheetCtx.storeKey, offer, store, cellQ, idx)}
+                            disabled={cellQ <= 0 || curQty >= maxPer}
+                            aria-label={`Increase ${lineTitle}`}
+                          >
+                            +
+                          </button>
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+              <p className="mso-matrix-split-sheet-note">Tap outside the sheet or press Esc to close.</p>
+            </div>
+          </div>
+        );
+      })()
+    ) : null}
+    {showMsoFy25Modal ? (
+      <div className="mso-fy25-modal-overlay" role="presentation" onClick={() => setShowMsoFy25Modal(false)}>
+        <div
+          className="mso-fy25-modal-panel"
+          role="dialog"
+          aria-modal="true"
+          aria-label={`FY25 sales for ${msoGroup}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <div className="mso-fy25-modal-header">
+            <div>
+              <h3 className="mso-fy25-modal-title">FY25 Snapshot · {msoGroup}</h3>
+              <p className="mso-fy25-modal-subtitle">
+                FY25 sales25 snapshot for {stores.length} store{stores.length === 1 ? '' : 's'}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="mso-fy25-modal-close"
+              onClick={() => setShowMsoFy25Modal(false)}
+              aria-label="Close FY25 group sales"
+            >
+              Close
+            </button>
+          </div>
+          {msoFy25HasData ? (
+            <>
+              <div className="mso-fy25-modal-totals">
+                <span>Group total FY25 value: {fmtAud(msoFy25GroupTotalSales)}</span>
+              </div>
+              {msoFy25StoreRows.map((row) => (
+                <div key={row.sk} className="mso-fy25-store-section">
+                  <div className="mso-fy25-store-head">
+                    <h4 className="mso-fy25-store-title">{row.storeName}</h4>
+                    <span className="mso-fy25-store-total">{fmtAud(row.totalSales)}</span>
+                  </div>
+                  {row.storeId ? <p className="mso-fy25-store-meta">Store ID {row.storeId}</p> : null}
+                  {(row.items || []).length > 0 ? (
+                    <div className="mso-fy25-modal-table-wrap">
+                      <table className="mso-fy25-modal-table">
+                        <thead>
+                          <tr>
+                            <th scope="col">Item</th>
+                            <th scope="col" className="num">Qty</th>
+                            <th scope="col" className="num">Value</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(row.items || []).map((item) => (
+                            <tr key={`${row.sk}-${item.name}`}>
+                              <td>{item.name}</td>
+                              <td className="num">{fmtQty(Number(item.qty) || 0)}</td>
+                              <td className="num">{fmtAud(Number(item.value) || 0)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : (
+                    <p className="mso-fy25-modal-empty">No FY25 sales rows found for this store.</p>
+                  )}
+                </div>
+              ))}
+            </>
+          ) : (
+            <p className="mso-fy25-modal-empty">No FY25 sales25 data was found for this MSO group.</p>
+          )}
+        </div>
+      </div>
     ) : null}
     </>
   );

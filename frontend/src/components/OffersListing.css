@@ -753,24 +753,31 @@
   margin-bottom: 0.5rem;
   font-size: 0.85rem;
   border: none;
+  padding-left: 0.35rem;
 }
 
 .offer-descriptions-table thead th {
   text-align: left;
-  font-size: 0.68rem;
+  font-size: 0.82rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
-  color: #6b7280;
-  font-weight: 800;
-  padding: 0.15rem 0.3rem 0.3rem 0;
+  color: #1f2937;
+  font-weight: 900;
+  padding: 0.15rem 0.3rem 0.3rem 0.35rem;
   border-bottom: 1px solid #e5e7eb;
 }
 
 .offer-descriptions-table td {
-  padding: 0.3rem 0.3rem 0.3rem 0;
-  color: #333;
+  padding: 0.3rem 0.3rem 0.3rem 0.35rem;
+  color: #111827;
   border: none;
-  line-height: 1.3;
+  line-height: 1.35;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.offer-descriptions-table td:first-child {
+  text-align: left;
 }
 
 .line-qty-inline-controls {

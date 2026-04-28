@@ -20,6 +20,18 @@
   padding: 0 12px;
 }
 
+.footer-commit-stamp {
+  position: absolute;
+  right: 10px;
+  bottom: 3px;
+  font-size: 0.68rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.3);
+  user-select: none;
+  pointer-events: none;
+}
+
 /* ── Left: back button (absolute so centre stays centred) ── */
 .footer-left {
   position: absolute;
@@ -122,5 +134,11 @@
 
   .footer-wordmark {
     font-size: 0.72rem;
+  }
+
+  .footer-commit-stamp {
+    font-size: 0.66rem;
+    right: 12px;
+    bottom: 2px;
   }
 }

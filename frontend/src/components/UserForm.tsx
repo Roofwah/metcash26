@@ -43,6 +43,7 @@ const STEP_SUBURB = 3;
 const STEP_BANNER = 4;
 const STEP_MSO_GROUPS = 5;
 const STEP_MSO_STORES = 6;
+const AU_STATES = ['ACT', 'NSW', 'NT', 'QLD', 'SA', 'TAS', 'VIC', 'WA'] as const;
 
 const UserForm: React.FC<UserFormProps> = ({
   onSubmit,
@@ -68,6 +69,17 @@ const UserForm: React.FC<UserFormProps> = ({
   const [selectedMsoGroup, setSelectedMsoGroup] = useState('');
   const [storesInMsoGroup, setStoresInMsoGroup] = useState<McashStore[]>([]);
   const [selectedMsoStoreIds, setSelectedMsoStoreIds] = useState<Set<number>>(new Set());
+  const [showAddMissingStoreModal, setShowAddMissingStoreModal] = useState(false);
+  const [showAddTempStoreForm, setShowAddTempStoreForm] = useState(false);
+  const [missingStoreQuery, setMissingStoreQuery] = useState('');
+  const [missingStoreResults, setMissingStoreResults] = useState<McashStore[]>([]);
+  const [missingStoreSearchTried, setMissingStoreSearchTried] = useState(false);
+  const [missingStoreModalError, setMissingStoreModalError] = useState('');
+  const [missingStoreName, setMissingStoreName] = useState('');
+  const [missingStoreNumber, setMissingStoreNumber] = useState('');
+  const [missingStoreState, setMissingStoreState] = useState('');
+  const [missingStoreSuburb, setMissingStoreSuburb] = useState('');
+  const [missingStorePcode, setMissingStorePcode] = useState('');
 
   useEffect(() => {
     if (initialFullName) setFullName(initialFullName);
@@ -122,7 +134,7 @@ const UserForm: React.FC<UserFormProps> = ({
     if (currentStep === STEP_HOME) {
       onBackChange(null);
     } else {
-      onBackChange(() => handleBack);
+      onBackChange(handleBack);
     }
   }, [currentStep]); // eslint-disable-line
 
@@ -148,6 +160,84 @@ const UserForm: React.FC<UserFormProps> = ({
       { fullName: formatName(fullName.trim()), storeNo: store.name, position: '' },
       storeData
     );
+  };
+
+  const handleAddMissingStore = () => {
+    const name = missingStoreName.trim();
+    const storeNo = missingStoreNumber.trim();
+    const state = missingStoreState.trim().toUpperCase();
+    const suburb = missingStoreSuburb.trim();
+    const pcode = missingStorePcode.trim();
+    if (!name || !storeNo || !state || !suburb || !pcode) {
+      setMissingStoreModalError('Enter store name, store number, state, suburb and postcode.');
+      return;
+    }
+    if (!AU_STATES.includes(state as (typeof AU_STATES)[number])) {
+      setMissingStoreModalError('Select a valid Australian state.');
+      return;
+    }
+    if (!/^\d{4}$/.test(pcode)) {
+      setMissingStoreModalError('Postcode must be exactly 4 digits.');
+      return;
+    }
+    const tempId = `TEMP-${Date.now()}`;
+    const tempName = `TEMP - ${name}`;
+    const storeData: StoreData = {
+      storeNo: storeNo,
+      storeName: tempName,
+      storeId: tempId,
+      storeRank: null,
+      ownerGroup: 'TEMP',
+      banner: 'TEMP',
+      overall: '',
+      automotive: '',
+      energyStorage: '',
+      lighting: '',
+      specialOrderHardware: '',
+      address: '',
+      suburb,
+      state,
+      pcode,
+    };
+    setError('');
+    setMissingStoreModalError('');
+    setShowAddMissingStoreModal(false);
+    onSubmit(
+      { fullName: formatName(fullName.trim()), storeNo: tempName, position: '' },
+      storeData
+    );
+  };
+
+  const handleOpenTempStoreForm = () => {
+    setShowAddTempStoreForm(true);
+    setMissingStoreResults([]);
+    setMissingStoreSearchTried(false);
+    setMissingStoreModalError('');
+  };
+
+  const handleSearchMissingStore = async () => {
+    const q = missingStoreQuery.trim();
+    if (!q) {
+      setMissingStoreModalError('Enter store name or store id to search.');
+      return;
+    }
+    setMissingStoreModalError('');
+    setLoading(true);
+    try {
+      const res = await axios.get(apiUrl('/api/mcash-store-search'), { params: { q } });
+      const list = Array.isArray(res.data) ? (res.data as McashStore[]) : [];
+      setMissingStoreResults(list);
+      setMissingStoreSearchTried(true);
+      if (list.length === 0) {
+        setShowAddTempStoreForm(false);
+      }
+    } catch {
+      setMissingStoreResults([]);
+      setMissingStoreSearchTried(true);
+      setMissingStoreModalError('Store search failed. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const mcashStoreToStoreData = (store: McashStore, groupName: string): StoreData => ({
@@ -340,6 +430,27 @@ const UserForm: React.FC<UserFormProps> = ({
                   <button type="button" className="choice-btn" onClick={handleMsoEntry}>
                     MSO
                   </button>
+                  <button
+                    type="button"
+                    className="choice-btn add-missing-store-btn"
+                    onClick={() => {
+                      setMissingStoreQuery('');
+                      setMissingStoreResults([]);
+                      setMissingStoreSearchTried(false);
+                      setShowAddTempStoreForm(false);
+                      setMissingStoreName('');
+                      setMissingStoreNumber('');
+                      setMissingStoreState('');
+                      setMissingStoreSuburb('');
+                      setMissingStorePcode('');
+                      setMissingStoreModalError('');
+                      setShowAddMissingStoreModal(true);
+                      setError('');
+                    }}
+                    aria-label="Add missing store"
+                  >
+                    +
+                  </button>
                 </div>
               </>
             )}
@@ -505,6 +616,110 @@ const UserForm: React.FC<UserFormProps> = ({
           </form>
         </div>
       )}
+      {showAddMissingStoreModal ? (
+        <div className="missing-store-modal-overlay" role="presentation" onClick={() => setShowAddMissingStoreModal(false)}>
+          <div className="missing-store-modal" role="dialog" aria-modal="true" aria-label="Add missing store" onClick={(e) => e.stopPropagation()}>
+            <div className="missing-store-modal-header">
+              <h3>Store Lookup</h3>
+              <button type="button" className="missing-store-modal-close" onClick={() => setShowAddMissingStoreModal(false)} aria-label="Close add missing store">
+                ×
+              </button>
+            </div>
+            <div className="missing-store-modal-body">
+              {!showAddTempStoreForm ? (
+                <>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Search store name or store id"
+                    value={missingStoreQuery}
+                    onChange={(e) => setMissingStoreQuery(e.target.value)}
+                  />
+                  <div className="missing-store-search-actions">
+                    <button type="button" className="nav-btn next-btn" onClick={handleSearchMissingStore} disabled={loading}>
+                      {loading ? 'Searching...' : 'Search'}
+                    </button>
+                  </div>
+                  <div className="missing-store-search-actions missing-store-search-actions--secondary">
+                    <button type="button" className="choice-btn add-missing-store-btn" onClick={handleOpenTempStoreForm}>
+                      + Add TEMP Store
+                    </button>
+                  </div>
+                  {missingStoreModalError ? <div className="error-message">{missingStoreModalError}</div> : null}
+                  {missingStoreResults.length > 0 ? (
+                    <div className="missing-store-results">
+                      {missingStoreResults.map((store) => (
+                        <div key={`${store.id}-${store.storeId || store.name}`} className="missing-store-result-card">
+                          <strong>{store.name}</strong>
+                          <span>{store.banner || '-'}</span>
+                          <span>{store.suburb}, {store.state} {store.pcode}</span>
+                          <span>Store ID: {store.storeId || '-'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  {missingStoreSearchTried && missingStoreResults.length === 0 ? (
+                    <div className="missing-store-no-results">
+                      <p>No matching store found in mcash26.</p>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              {showAddTempStoreForm ? (
+                <div className="missing-store-temp-form">
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Store name *"
+                    value={missingStoreName}
+                    onChange={(e) => setMissingStoreName(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Store number *"
+                    value={missingStoreNumber}
+                    onChange={(e) => setMissingStoreNumber(e.target.value)}
+                  />
+                  <select
+                    className="form-select"
+                    value={missingStoreState}
+                    onChange={(e) => setMissingStoreState(e.target.value)}
+                  >
+                    <option value="">Select state *</option>
+                    {AU_STATES.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Suburb *"
+                    value={missingStoreSuburb}
+                    onChange={(e) => setMissingStoreSuburb(e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    className="form-input"
+                    placeholder="Postcode *"
+                    value={missingStorePcode}
+                    maxLength={4}
+                    inputMode="numeric"
+                    pattern="[0-9]{4}"
+                    onChange={(e) => setMissingStorePcode(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                  />
+                </div>
+              ) : null}
+            </div>
+            <div className="missing-store-modal-actions">
+              <button type="button" className="nav-btn prev-btn missing-store-cancel-btn" onClick={() => setShowAddMissingStoreModal(false)}>Cancel</button>
+              {showAddTempStoreForm ? (
+                <button type="button" className="nav-btn next-btn" onClick={handleAddMissingStore}>Continue</button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 };

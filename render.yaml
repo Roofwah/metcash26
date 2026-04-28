@@ -1,3 +1,13 @@
+# Render Blueprint — https://render.com/docs/blueprint-spec
+#
+# REQUIRED for the API: Postgres connection on the WEB service (not only on the DB).
+# Dashboard → your Web Service → Environment → add:
+#   DATABASE_URL = (from your Render Postgres → Connect → "Internal Database URL")
+# Same region = use internal URL. After saving, redeploy.
+#
+# Optional: define a `databases:` resource here and wire DATABASE_URL with
+#   fromDatabase: { name: <db-name>, property: connectionString }
+
 services:
   - type: web
     name: metcash26-app
@@ -7,6 +17,4 @@ services:
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
-        value: 20
-      - key: DB_SSL
-        value: false
+        value: "20"

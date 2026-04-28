@@ -77,6 +77,14 @@ interface OfferDetailModalProps {
   msoStoreKey?: string;
   /** When false (e.g. column browse with no store), hide “Add to order”. */
   allowAddToOrder?: boolean;
+  /** MSO re-open path: previous configured row for this store/offer. */
+  initialMsoSelection?: {
+    quantity?: number;
+    fixedBundle?: boolean;
+    splitBundle?: boolean;
+    chooseNBundle?: boolean;
+    lineDetails?: BundleLineDetail[];
+  } | null;
   onAddToCart: (
     items: {
       offerId: string;
@@ -169,6 +177,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
   offerId,
   msoStoreKey,
   allowAddToOrder = true,
+  initialMsoSelection,
   onAddToCart,
   onClose,
 }) => {
@@ -178,9 +187,36 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
   const [bundleQuantity, setBundleQuantity] = useState(1);
   const [lineQuantities, setLineQuantities] = useState<Record<string, number>>({});
   const [chooseNError, setChooseNError] = useState('');
+
+  const lineSkuFromDescription = (description: string): string => {
+    const m = String(description || '').match(/\(([^)]+)\)\s*$/);
+    return m?.[1]?.trim() || '';
+  };
+
+  const findExistingLineQty = (
+    existingLines: BundleLineDetail[] | undefined,
+    item: OfferLineFields,
+    idx: number,
+  ): number | undefined => {
+    if (!existingLines?.length) return undefined;
+    const itemSku = String(item.sku || '').trim();
+    if (itemSku) {
+      const bySku = existingLines.find((ld) => {
+        const ldSku = String(ld.sku || '').trim();
+        if (ldSku && ldSku === itemSku) return true;
+        return lineSkuFromDescription(String(ld.description || '')) === itemSku;
+      });
+      if (bySku) return Number(bySku.quantity) || 0;
+    }
+    const label = `${item.Description || 'SKU'} (${item.sku || idx + 1})`;
+    const byDesc = existingLines.find((ld) => String(ld.description || '').trim() === label);
+    if (byDesc) return Number(byDesc.quantity) || 0;
+    return undefined;
+  };
+
   useEffect(() => {
     fetchOfferDetails();
-  }, [offerId]);
+  }, [offerId, initialMsoSelection]);
 
   const fetchOfferDetails = async () => {
     try {
@@ -189,17 +225,34 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
       setOfferData(response.data);
       setChooseNError('');
       const minBundle = Math.max(1, Number(response.data?.rules?.minBundleQty) || 1);
-      setBundleQuantity(minBundle);
+      const existingQty = Math.max(0, Number(initialMsoSelection?.quantity) || 0);
+      setBundleQuantity(existingQty > 0 ? Math.max(minBundle, existingQty) : minBundle);
       const items = (response.data?.items || []) as OfferLineFields[];
       const rules = response.data?.rules;
       const nextLineQuantities: Record<string, number> = {};
       if (isMixedChooseNOffer(rules)) {
         const minSel = Math.max(0, Number(rules?.minSelections) || 0);
         Object.assign(nextLineQuantities, initChooseNLineQuantities(items, minSel));
+        if (initialMsoSelection?.chooseNBundle && initialMsoSelection.lineDetails?.length) {
+          items.forEach((item, idx) => {
+            const key = `line-${idx}`;
+            const existing = findExistingLineQty(initialMsoSelection.lineDetails, item, idx);
+            if (existing !== undefined) {
+              nextLineQuantities[key] = Math.max(0, existing);
+            }
+          });
+        }
       } else {
+        const isSplit = String(rules?.offerMode || '').toUpperCase() === 'SPLIT' && !!rules?.allowLineIncrease;
         items.forEach((item, idx) => {
           const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
-          nextLineQuantities[`line-${idx}`] = base;
+          const key = `line-${idx}`;
+          const existing = findExistingLineQty(initialMsoSelection?.lineDetails, item, idx);
+          if (isSplit && initialMsoSelection?.splitBundle && existing !== undefined) {
+            nextLineQuantities[key] = Math.max(base, existing);
+          } else {
+            nextLineQuantities[key] = base;
+          }
         });
       }
       setLineQuantities(nextLineQuantities);

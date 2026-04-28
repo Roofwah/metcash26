@@ -1714,6 +1714,47 @@ app.get('/api/mcash-stores-by-group', async (req, res) => {
   }
 });
 
+// ---------------------------------------------------------------------------
+// API – lightweight store search (name / id) for fallback add-store UX
+// ---------------------------------------------------------------------------
+app.get('/api/mcash-store-search', async (req, res) => {
+  const q = String(req.query.q || '').trim();
+  if (!q) return res.json([]);
+  const qLower = q.toLowerCase();
+  try {
+    const { rows } = await pool.query(
+      `SELECT id, name, address, suburb, state, pcode, banner, store_id, store_rank, owner_group
+       FROM mcash_stores
+       WHERE LOWER(name) LIKE LOWER($1)
+          OR LOWER(COALESCE(store_id, '')) LIKE LOWER($1)
+       ORDER BY store_rank NULLS LAST, name
+       LIMIT 20`,
+      [`%${q}%`],
+    );
+    if (rows.length > 0) {
+      return res.json(rows.map((r) => mapMcashStoreRowToApi(r, r.id)));
+    }
+  } catch (_err) {
+    // Fallback search below.
+  }
+  const fallbackRows = await loadFallbackMcashStores();
+  const out = fallbackRows
+    .filter((r) => {
+      const name = String(r.name || '').toLowerCase();
+      const sid = String(r.storeId || '').toLowerCase();
+      return name.includes(qLower) || sid.includes(qLower);
+    })
+    .sort((a, b) => {
+      const ar = a.storeRank != null ? a.storeRank : 9999999;
+      const br = b.storeRank != null ? b.storeRank : 9999999;
+      if (ar !== br) return ar - br;
+      return String(a.name || '').localeCompare(String(b.name || ''));
+    })
+    .slice(0, 20)
+    .map((r, idx) => mapMcashStoreRowToApi(r, idx + 1));
+  res.json(out);
+});
+
 // Warm fallback cache at startup so first request is fast
 loadFallbackMcashStores().catch(() => {});
 loadFallbackOffersRows().catch(() => {});
@@ -2007,6 +2048,156 @@ app.get('/api/orders-stats', async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ count: 0, totalValue: '0.00' });
+  }
+});
+
+app.get('/api/orders-by-store-summary', async (req, res) => {
+  try {
+    const storeId = String(req.query.storeId || '').trim();
+    const storeName = String(req.query.storeName || '').trim();
+    if (!storeId && !storeName) {
+      return res.status(400).json({ error: 'storeId or storeName required' });
+    }
+    const useStoreId = !!storeId;
+    const whereSql = useStoreId
+      ? `NULLIF(TRIM(COALESCE(store_code, '')), '') = $1`
+      : `LOWER(TRIM(COALESCE(store_name, ''))) = LOWER(TRIM($1))`;
+    const needle = useStoreId ? storeId : storeName;
+
+    const { rows: summaryRows } = await pool.query(
+      `SELECT
+         COUNT(*)::int AS order_count,
+         COALESCE(SUM(total_value), 0)::numeric::float8 AS total_value,
+         MAX(created_at) AS last_order_at
+       FROM orders
+       WHERE ${whereSql}`,
+      [needle],
+    );
+    const summary = summaryRows[0] || { order_count: 0, total_value: 0, last_order_at: null };
+    const orderCount = Number(summary.order_count) || 0;
+    if (orderCount <= 0) {
+      return res.json({
+        hasOrders: false,
+        orderCount: 0,
+        totalValue: 0,
+        lastOrderAt: null,
+        lineSummary: [],
+        recent: [],
+      });
+    }
+
+    const { rows: recentRows } = await pool.query(
+      `SELECT id, store_name, user_name, total_value::numeric::float8 AS total_value, created_at
+       FROM orders
+       WHERE ${whereSql}
+       ORDER BY created_at DESC
+       LIMIT 10`,
+      [needle],
+    );
+
+    const orderIds = recentRows.map((r) => Number(r.id)).filter((n) => Number.isFinite(n));
+    let itemsByOrder = new Map();
+    const itemGroupMap = new Map();
+    if (orderIds.length > 0) {
+      const { rows: itemRows } = await pool.query(
+        `SELECT order_id, description, drop_month
+         FROM order_items
+         WHERE order_id = ANY($1::int[])
+         ORDER BY order_id DESC, id ASC`,
+        [orderIds],
+      );
+      const cleanDesc = (raw) => {
+        const s = String(raw || '').trim();
+        if (!s) return s;
+        const norm = (v) =>
+          String(v || '')
+            .normalize('NFKC')
+            .toLowerCase()
+            .replace(/[\u2013\u2014]/g, '-')
+            .replace(/[^a-z0-9]/g, '');
+        const nStore = String(storeName || '').trim().toLowerCase();
+        if (nStore) {
+          const m = s.match(/^(.*?)(?:\s+[—–-]\s+)(.+)$/u);
+          if (m && norm(m[2]) === norm(nStore)) {
+            return String(m[1] || '').trim();
+          }
+        }
+        return s.replace(/\s+[—–-]\s+.+$/u, '').trim();
+      };
+      itemsByOrder = itemRows.reduce((acc, row) => {
+        const oid = Number(row.order_id);
+        const arr = acc.get(oid) || [];
+        const description = cleanDesc(row.description);
+        const dropMonth = String(row.drop_month || '').trim();
+        const existing = arr.find((x) => x.description === description && x.dropMonth === dropMonth);
+        if (existing) {
+          existing.quantity += 1;
+        } else {
+          arr.push({
+            description,
+            dropMonth,
+            quantity: 1,
+          });
+        }
+        acc.set(oid, arr);
+        const byItem = itemGroupMap.get(description) || {
+          description,
+          totalQuantity: 0,
+          drops: new Map(),
+        };
+        byItem.totalQuantity += 1;
+        const curDropQty = Number(byItem.drops.get(dropMonth) || 0);
+        byItem.drops.set(dropMonth, curDropQty + 1);
+        itemGroupMap.set(description, byItem);
+        return acc;
+      }, new Map());
+    }
+
+    const monthOrder = new Map([
+      ['january', 1],
+      ['february', 2],
+      ['march', 3],
+      ['april', 4],
+      ['may', 5],
+      ['june', 6],
+      ['july', 7],
+      ['august', 8],
+      ['september', 9],
+      ['october', 10],
+      ['november', 11],
+      ['december', 12],
+    ]);
+    const monthRank = (m) => monthOrder.get(String(m || '').trim().toLowerCase()) || 99;
+
+    const lineSummary = Array.from(itemGroupMap.values())
+      .map((group) => ({
+        description: group.description,
+        totalQuantity: group.totalQuantity,
+        drops: Array.from(group.drops.entries())
+          .map(([dropMonth, quantity]) => ({ dropMonth, quantity }))
+          .sort((a, b) => {
+            const ar = monthRank(a.dropMonth);
+            const br = monthRank(b.dropMonth);
+            if (ar !== br) return ar - br;
+            return String(a.dropMonth).localeCompare(String(b.dropMonth));
+          }),
+      }))
+      .sort((a, b) => a.description.localeCompare(b.description));
+
+    return res.json({
+      hasOrders: true,
+      orderCount,
+      totalValue: Number(summary.total_value) || 0,
+      lastOrderAt: summary.last_order_at || null,
+      lineSummary,
+      recent: recentRows.map((row) => ({
+        ...row,
+        items: itemsByOrder.get(Number(row.id)) || [],
+      })),
+    });
+  } catch (err) {
+    console.error('GET /api/orders-by-store-summary:', err.message || err);
+    return res.status(500).json({ error: 'Failed to load store order summary' });
   }
 });
 

@@ -118,6 +118,7 @@ const InsightsNavigation: React.FC<InsightsNavigationProps> = ({
                 type="button"
                 className={`insights-card insights-card--${card.kind}`}
                 onClick={() => handleCardClick(card)}
+                style={{ '--insight-card-bg': `url(/products/pos${idx + 1}.jpg)` } as React.CSSProperties}
               >
                 <span className="insights-card-index">Position {idx + 1}</span>
                 <span className="insights-card-title">{card.title}</span>
