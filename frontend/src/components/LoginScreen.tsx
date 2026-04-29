@@ -9,6 +9,8 @@ interface LoginScreenProps {
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
+  const [otpCode, setOtpCode] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [error, setError] = useState('');
@@ -17,42 +19,10 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const normalizedEmail = email.trim().toLowerCase();
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const token = (params.get('magic') || '').trim();
-    if (!token) return;
-    setVerifying(true);
     setError('');
-    setInfo('Verifying your sign-in link...');
-    axios
-      .post(
-        apiUrl('/api/auth/verify-link'),
-        { token },
-        { withCredentials: true },
-      )
-      .then((res) => {
-        const userEmail = String(res.data?.email || '').trim().toLowerCase();
-        if (userEmail) {
-          onSuccess(userEmail);
-          params.delete('magic');
-          const next = params.toString();
-          const nextUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
-          window.history.replaceState({}, '', nextUrl);
-        } else {
-          setError('Could not complete sign-in. Please request a new link.');
-          setInfo('');
-        }
-      })
-      .catch(() => {
-        setError('This sign-in link is invalid or expired. Please request a new one.');
-        setInfo('');
-      })
-      .finally(() => {
-        setVerifying(false);
-      });
-  }, [onSuccess]);
+  }, [otpCode, email]);
 
-  const handleSendLink = (e: React.FormEvent) => {
-    e.preventDefault();
+  const requestCode = () => {
     setError('');
     setInfo('');
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
@@ -62,13 +32,52 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
     setSending(true);
     axios
       .post(apiUrl('/api/auth/request-link'), { email: normalizedEmail })
-      .then(() => {
-        setInfo('If your email is approved, we have sent a magic link.');
+      .then((res) => {
+        setOtpSent(true);
+        setInfo('If your email is approved, we have sent a 6-digit sign-in code.');
       })
       .catch((err) => {
-        setError(err?.response?.data?.error || 'Could not send sign-in link. Please try again.');
+        setError(err?.response?.data?.error || 'Could not send sign-in code. Please try again.');
       })
       .finally(() => setSending(false));
+  };
+
+  const handleSendCode = (e: React.FormEvent) => {
+    e.preventDefault();
+    requestCode();
+  };
+
+  const handleVerifyCode = (e?: React.FormEvent | React.MouseEvent) => {
+    e?.preventDefault();
+    setError('');
+    setInfo('');
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      setError('Enter a valid email address.');
+      return;
+    }
+    if (!/^\d{6}$/.test(otpCode.trim())) {
+      setError('Enter the 6-digit code.');
+      return;
+    }
+    setVerifying(true);
+    axios
+      .post(
+        apiUrl('/api/auth/verify-link'),
+        { email: normalizedEmail, code: otpCode.trim() },
+        { withCredentials: true },
+      )
+      .then((res) => {
+        const userEmail = String(res.data?.email || '').trim().toLowerCase();
+        if (userEmail) {
+          onSuccess(userEmail);
+          return;
+        }
+        setError('Could not complete sign-in. Please request a new code.');
+      })
+      .catch((err) => {
+        setError(err?.response?.data?.error || 'Invalid or expired code. Please request a new one.');
+      })
+      .finally(() => setVerifying(false));
   };
 
   return (
@@ -85,9 +94,9 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
         <h1>Sign in</h1>
         <p className="login-lede">
-          Enter your approved email to receive a secure magic sign-in link.
+          Enter your approved email to receive a secure 6-digit sign-in code.
         </p>
-        <form onSubmit={handleSendLink}>
+        <form onSubmit={otpSent ? handleVerifyCode : handleSendCode}>
           {error && <div className="login-error">{error}</div>}
           {!!info && <div className="login-lede"><strong>{info}</strong></div>}
           <div className="login-field">
@@ -102,9 +111,39 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
               disabled={verifying}
             />
           </div>
-          <button type="submit" className="login-primary" disabled={sending || verifying}>
-            {verifying ? 'Verifying…' : sending ? 'Sending…' : 'Send magic link'}
-          </button>
+          {otpSent ? (
+            <>
+              <div className="login-field">
+                <label htmlFor="login-otp">6-digit code</label>
+                <input
+                  id="login-otp"
+                  name="otp"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  value={otpCode}
+                  onChange={(ev) => setOtpCode(ev.target.value.replace(/[^\d]/g, '').slice(0, 6))}
+                  disabled={verifying}
+                />
+              </div>
+              <button type="submit" className="login-primary" disabled={verifying}>
+                {verifying ? 'Verifying…' : 'Verify code'}
+              </button>
+              <button
+                type="button"
+                className="login-secondary"
+                onClick={requestCode}
+                disabled={sending || verifying}
+              >
+                {sending ? 'Sending…' : 'Resend code'}
+              </button>
+            </>
+          ) : (
+            <button type="submit" className="login-primary" disabled={sending || verifying}>
+              {sending ? 'Sending…' : 'Send sign-in code'}
+            </button>
+          )}
         </form>
       </div>
     </div>

@@ -188,8 +188,16 @@ app.use(cookieParser());
 
 const AUTH_SESSION_COOKIE = 'metcash_session';
 const AUTH_SESSION_DAYS = Number(process.env.AUTH_SESSION_DAYS || 10);
-const MAGIC_LINK_MINUTES = Number(process.env.MAGIC_LINK_MINUTES || 15);
+const OTP_CODE_MINUTES = Number(process.env.OTP_CODE_MINUTES || process.env.MAGIC_LINK_MINUTES || 15);
+const OTP_MAX_ATTEMPTS = Math.max(1, Number(process.env.OTP_MAX_ATTEMPTS || 5));
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).trim();
+const AUTH_EMAIL_LOGO_URL = String(process.env.AUTH_EMAIL_LOGO_URL || '').trim();
+const AUTH_EMAIL_LOGO_FALLBACK_URL = 'https://dble.co/metcash26/dble_logo.svg';
+const IS_LOCAL_APP_BASE =
+  /localhost|127\.0\.0\.1/i.test(APP_BASE_URL) || /localhost|127\.0\.0\.1/i.test(String(process.env.CORS_ORIGIN || ''));
+const ALLOW_LOCAL_OTP_PREVIEW =
+  String(process.env.ALLOW_LOCAL_OTP_PREVIEW || (IS_LOCAL_APP_BASE ? 'true' : 'false')).toLowerCase() === 'true' &&
+  process.env.NODE_ENV !== 'production';
 const ALLOWED_LOGIN_EMAILS = new Set(
   String(process.env.ALLOWED_LOGIN_EMAILS || '')
     .split(',')
@@ -211,6 +219,10 @@ function addMinutes(date, minutes) {
 
 function addDays(date, days) {
   return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+function generateOtpCode() {
+  return String(Math.floor(Math.random() * 1000000)).padStart(6, '0');
 }
 
 const smtpHost = String(process.env.SMTP_HOST || '').trim();
@@ -315,17 +327,17 @@ app.post('/api/auth/request-link', async (req, res) => {
       return res.json({ ok: true });
     }
 
-    const token = crypto.randomBytes(32).toString('hex');
-    const tokenHash = sha256Hex(token);
-    const expiresAt = addMinutes(new Date(), MAGIC_LINK_MINUTES);
+    const otpCode = generateOtpCode();
+    const otpHash = sha256Hex(otpCode);
+    const expiresAt = addMinutes(new Date(), OTP_CODE_MINUTES);
+    const legacyTokenHash = sha256Hex(`${crypto.randomBytes(32).toString('hex')}:${email}:${Date.now()}`);
     await pool.query(
-      `INSERT INTO auth_magic_links (email, token_hash, expires_at)
-       VALUES ($1, $2, $3)`,
-      [email, tokenHash, expiresAt.toISOString()],
+      `INSERT INTO auth_magic_links (email, token_hash, expires_at, otp_hash, otp_expires_at, otp_attempts)
+       VALUES ($1, $2, $3, $4, $5, 0)`,
+      [email, legacyTokenHash, expiresAt.toISOString(), otpHash, expiresAt.toISOString()],
     );
 
-    const loginUrl = `${APP_BASE_URL.replace(/\/$/, '')}/?magic=${encodeURIComponent(token)}`;
-    const logoUrl = `${APP_BASE_URL.replace(/\/$/, '')}/dble_logo.svg`;
+    const logoUrl = AUTH_EMAIL_LOGO_URL || AUTH_EMAIL_LOGO_FALLBACK_URL;
     const html = `
       <div style="margin:0;padding:20px;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
         <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;">
@@ -333,33 +345,35 @@ app.post('/api/auth/request-link', async (req, res) => {
             <img src="${logoUrl}" alt="DBLE" style="display:block;width:138px;height:auto;max-width:100%;" />
           </div>
           <p style="margin:0 0 8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;">DBLE Access</p>
-          <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;color:#0f172a;">Your secure sign-in link</h1>
+          <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;color:#0f172a;">Your sign-in code</h1>
           <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#334155;">
-            Use the button below to continue to the Metcash 2026 Expo Sales Tool.
+            Enter this 6-digit one-time code on your device to continue to the Metcash 2026 Expo Sales Tool. Happy selling, Chris - Flow Mktg.
           </p>
           <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#334155;">
-            This link expires in <strong>${MAGIC_LINK_MINUTES} minutes</strong> and can be used once.
+            This code expires in <strong>${OTP_CODE_MINUTES} minutes</strong> and can be used once.
           </p>
-          <p style="margin:0 0 18px;">
-            <a href="${loginUrl}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:11px 16px;border-radius:8px;">
-              Sign In Securely
-            </a>
+          <p style="margin:0 0 18px;font-size:34px;line-height:1;font-weight:800;letter-spacing:8px;color:#0f172a;text-align:center;">
+            ${otpCode}
           </p>
-          <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#64748b;">If the button does not open, use this link:</p>
-          <p style="margin:0 0 14px;font-size:12px;line-height:1.45;word-break:break-all;color:#0f172a;">${loginUrl}</p>
           <p style="margin:0;padding-top:12px;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.5;color:#64748b;">
             If you did not request this sign-in, you can safely ignore this email.
+          </p>
+          <p style="margin:10px 0 0;font-size:12px;line-height:1.4;color:#94a3b8;text-align:center;">
+            dble.co | Flow MKTG © 2026
           </p>
         </div>
       </div>
     `;
     await sendEmailMessage({
       to: email,
-      subject: 'Your Metcash Expo sign-in link',
+      subject: 'Your Metcash Expo sign-in code',
       html,
-      text: `DBLE secure sign-in link\n\nSign in: ${loginUrl}\n\nThis link expires in ${MAGIC_LINK_MINUTES} minutes and can be used once.\nIf you did not request this, you can ignore this email.`,
+      text: `DBLE one-time sign-in code: ${otpCode}\n\nThis code expires in ${OTP_CODE_MINUTES} minutes and can be used once.\nIf you did not request this, you can ignore this email.`,
       from: authEmailFrom,
     });
+    if (ALLOW_LOCAL_OTP_PREVIEW) {
+      return res.json({ ok: true, localOtpCode: otpCode, expiresInMinutes: OTP_CODE_MINUTES });
+    }
     return res.json({ ok: true });
   } catch (err) {
     console.error('POST /api/auth/request-link:', err.message || err);
@@ -371,42 +385,79 @@ app.post('/api/auth/request-link', async (req, res) => {
           'Email provider rejected SMTP credentials. Check SMTP_PASS is a valid Resend API key and SMTP_USER is "resend".',
       });
     }
-    return res.status(500).json({ ok: false, error: 'Could not send sign-in link.' });
+    return res.status(500).json({ ok: false, error: 'Could not send sign-in code.' });
   }
 });
 
 app.post('/api/auth/verify-link', async (req, res) => {
   try {
+    const email = normalizeEmail(req.body?.email);
+    const code = String(req.body?.code || '').trim();
     const token = String(req.body?.token || '').trim();
-    if (!token) return res.status(400).json({ ok: false, error: 'Missing token.' });
-    const tokenHash = sha256Hex(token);
-    const { rows } = await pool.query(
-      `SELECT id, email, expires_at, used_at
-       FROM auth_magic_links
-       WHERE token_hash = $1
-       LIMIT 1`,
-      [tokenHash],
-    );
-    const row = rows[0];
-    if (!row) return res.status(400).json({ ok: false, error: 'Invalid or expired link.' });
-    if (row.used_at) return res.status(400).json({ ok: false, error: 'Link already used.' });
-    if (new Date(row.expires_at).getTime() <= Date.now()) {
-      return res.status(400).json({ ok: false, error: 'Invalid or expired link.' });
+    let verifiedEmail = '';
+
+    // Backward compatibility path (existing magic links still work).
+    if (token) {
+      const tokenHash = sha256Hex(token);
+      const { rows } = await pool.query(
+        `SELECT id, email, expires_at, used_at
+         FROM auth_magic_links
+         WHERE token_hash = $1
+         LIMIT 1`,
+        [tokenHash],
+      );
+      const row = rows[0];
+      if (!row) return res.status(400).json({ ok: false, error: 'Invalid or expired sign-in.' });
+      if (row.used_at) return res.status(400).json({ ok: false, error: 'Sign-in already used.' });
+      if (new Date(row.expires_at).getTime() <= Date.now()) {
+        return res.status(400).json({ ok: false, error: 'Invalid or expired sign-in.' });
+      }
+      await pool.query(`UPDATE auth_magic_links SET used_at = NOW() WHERE id = $1`, [row.id]);
+      verifiedEmail = normalizeEmail(row.email);
+    } else {
+      if (!email || !email.includes('@')) {
+        return res.status(400).json({ ok: false, error: 'Enter a valid email.' });
+      }
+      if (!/^\d{6}$/.test(code)) {
+        return res.status(400).json({ ok: false, error: 'Enter the 6-digit code.' });
+      }
+
+      const submittedHash = sha256Hex(code);
+      const { rows } = await pool.query(
+        `SELECT id, email, otp_hash, otp_expires_at, otp_attempts, used_at
+         FROM auth_magic_links
+         WHERE email = $1
+           AND otp_hash = $2
+           AND used_at IS NULL
+         ORDER BY created_at DESC
+         LIMIT 1`,
+        [email, submittedHash],
+      );
+      const row = rows[0];
+      if (!row) return res.status(400).json({ ok: false, error: 'Invalid or expired code.' });
+
+      const expiresAtMs = new Date(row.otp_expires_at || row.expires_at).getTime();
+      if (!Number.isFinite(expiresAtMs) || expiresAtMs <= Date.now()) {
+        await pool.query(`UPDATE auth_magic_links SET used_at = NOW() WHERE id = $1`, [row.id]);
+        return res.status(400).json({ ok: false, error: 'Invalid or expired code.' });
+      }
+
+      await pool.query(`UPDATE auth_magic_links SET used_at = NOW() WHERE id = $1`, [row.id]);
+      verifiedEmail = normalizeEmail(row.email);
     }
 
-    await pool.query(`UPDATE auth_magic_links SET used_at = NOW() WHERE id = $1`, [row.id]);
     const sessionId = crypto.randomBytes(32).toString('hex');
     const expiresAt = addDays(new Date(), AUTH_SESSION_DAYS);
     await pool.query(
       `INSERT INTO auth_sessions (session_id, email, expires_at)
        VALUES ($1, $2, $3)`,
-      [sessionId, normalizeEmail(row.email), expiresAt.toISOString()],
+      [sessionId, verifiedEmail, expiresAt.toISOString()],
     );
     setSessionCookie(res, sessionId);
-    return res.json({ ok: true, email: normalizeEmail(row.email) });
+    return res.json({ ok: true, email: verifiedEmail });
   } catch (err) {
     console.error('POST /api/auth/verify-link:', err.message || err);
-    return res.status(500).json({ ok: false, error: 'Could not verify magic link.' });
+    return res.status(500).json({ ok: false, error: 'Could not verify sign-in.' });
   }
 });
 
@@ -435,6 +486,22 @@ app.post('/api/auth/logout', async (req, res) => {
     return res.json({ ok: true });
   } catch (err) {
     console.error('POST /api/auth/logout:', err.message || err);
+    clearSessionCookie(res);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+// Convenience alias for browser URL testing on iPad/Safari.
+app.get('/api/auth/logout', async (req, res) => {
+  try {
+    const sid = String(req.cookies?.[AUTH_SESSION_COOKIE] || '').trim();
+    if (sid) {
+      await pool.query(`UPDATE auth_sessions SET revoked_at = NOW() WHERE session_id = $1`, [sid]);
+    }
+    clearSessionCookie(res);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('GET /api/auth/logout:', err.message || err);
     clearSessionCookie(res);
     return res.status(500).json({ ok: false });
   }
@@ -523,10 +590,17 @@ async function initDb() {
       email         TEXT NOT NULL,
       token_hash    TEXT NOT NULL UNIQUE,
       expires_at    TIMESTAMPTZ NOT NULL,
+      otp_hash      TEXT,
+      otp_expires_at TIMESTAMPTZ,
+      otp_attempts  INTEGER NOT NULL DEFAULT 0,
       used_at       TIMESTAMPTZ,
       created_at    TIMESTAMPTZ DEFAULT NOW()
     )
   `);
+  await pool.query(`ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS otp_hash TEXT`);
+  await pool.query(`ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS otp_expires_at TIMESTAMPTZ`);
+  await pool.query(`ALTER TABLE auth_magic_links ADD COLUMN IF NOT EXISTS otp_attempts INTEGER NOT NULL DEFAULT 0`);
+  await pool.query(`UPDATE auth_magic_links SET otp_attempts = 0 WHERE otp_attempts IS NULL`);
   await pool.query(`
     CREATE INDEX IF NOT EXISTS idx_auth_magic_links_email
       ON auth_magic_links(email, created_at DESC)

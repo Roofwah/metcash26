@@ -167,3 +167,26 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+.login-secondary {
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.72rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+}
+
+.login-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.login-secondary:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
