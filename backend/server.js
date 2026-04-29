@@ -3,9 +3,12 @@ require('dotenv').config();
 
 const express = require('express');
 const cors    = require('cors');
+const cookieParser = require('cookie-parser');
 const csv     = require('csv-parser');
 const fs      = require('fs');
 const path    = require('path');
+const crypto  = require('crypto');
+const nodemailer = require('nodemailer');
 const { Readable } = require('stream');
 const { pool } = require('./db');
 
@@ -174,11 +177,298 @@ const app         = express();
 const PORT        = process.env.PORT || 5001;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || '*';
 
-app.use(cors({ origin: CORS_ORIGIN }));
+app.use(
+  cors({
+    origin: CORS_ORIGIN === '*' ? true : CORS_ORIGIN,
+    credentials: true,
+  }),
+);
 app.use(express.json());
+app.use(cookieParser());
+
+const AUTH_SESSION_COOKIE = 'metcash_session';
+const AUTH_SESSION_DAYS = Number(process.env.AUTH_SESSION_DAYS || 10);
+const MAGIC_LINK_MINUTES = Number(process.env.MAGIC_LINK_MINUTES || 15);
+const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).trim();
+const DEV_AUTH_BYPASS = String(process.env.DEV_AUTH_BYPASS || '').trim().toLowerCase() === 'true';
+const DEV_AUTH_BYPASS_EMAIL = normalizeEmail(process.env.DEV_AUTH_BYPASS_EMAIL || '');
+const ALLOWED_LOGIN_EMAILS = new Set(
+  String(process.env.ALLOWED_LOGIN_EMAILS || '')
+    .split(',')
+    .map((x) => x.trim().toLowerCase())
+    .filter(Boolean),
+);
+
+function normalizeEmail(email) {
+  return String(email || '').trim().toLowerCase();
+}
+
+function sha256Hex(input) {
+  return crypto.createHash('sha256').update(String(input || ''), 'utf8').digest('hex');
+}
+
+function addMinutes(date, minutes) {
+  return new Date(date.getTime() + minutes * 60 * 1000);
+}
+
+function addDays(date, days) {
+  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+}
+
+const smtpHost = String(process.env.SMTP_HOST || '').trim();
+const smtpPort = Number(process.env.SMTP_PORT || 587);
+const smtpUser = String(process.env.SMTP_USER || '').trim();
+const smtpPass = String(process.env.SMTP_PASS || '').trim();
+const emailFrom = String(process.env.EMAIL_FROM || '').trim();
+const authEmailFrom = String(process.env.AUTH_EMAIL_FROM || '').trim() || emailFrom;
+const orderEmailFrom = String(process.env.ORDER_EMAIL_FROM || '').trim() || emailFrom;
+const orderReplyTo = String(process.env.ORDER_REPLY_TO || '').trim();
+const defaultFromAddress = emailFrom || authEmailFrom || orderEmailFrom;
+const canSendEmail = !!(smtpHost && smtpUser && smtpPass && defaultFromAddress);
+const mailTransport = canSendEmail
+  ? nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: smtpPort === 465,
+      auth: { user: smtpUser, pass: smtpPass },
+    })
+  : null;
+
+async function sendEmailMessage({ to, subject, html, text, from, replyTo }) {
+  if (!mailTransport) {
+    console.warn('Email transport not configured. Skipping email send.');
+    return { skipped: true };
+  }
+  const payload = {
+    from: from || defaultFromAddress,
+    to,
+    subject,
+    html,
+    text,
+  };
+  if (replyTo) payload.replyTo = replyTo;
+  return mailTransport.sendMail(payload);
+}
 
 app.get('/healthz', (_req, res) => {
   res.status(200).json({ ok: true, dbReady });
+});
+
+function setSessionCookie(res, sessionId) {
+  res.cookie(AUTH_SESSION_COOKIE, sessionId, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    maxAge: AUTH_SESSION_DAYS * 24 * 60 * 60 * 1000,
+    path: '/',
+  });
+}
+
+function clearSessionCookie(res) {
+  res.clearCookie(AUTH_SESSION_COOKIE, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+  });
+}
+
+async function getSessionById(sessionId) {
+  if (!sessionId) return null;
+  const { rows } = await pool.query(
+    `SELECT session_id, email, expires_at, revoked_at
+     FROM auth_sessions
+     WHERE session_id = $1
+     LIMIT 1`,
+    [sessionId],
+  );
+  const row = rows[0];
+  if (!row) return null;
+  if (row.revoked_at) return null;
+  if (new Date(row.expires_at).getTime() <= Date.now()) return null;
+  return row;
+}
+
+async function requireAuth(req, res, next) {
+  try {
+    const sid = String(req.cookies?.[AUTH_SESSION_COOKIE] || '').trim();
+    const session = await getSessionById(sid);
+    if (!session) {
+      clearSessionCookie(res);
+      return res.status(401).json({ error: 'Unauthenticated' });
+    }
+    req.auth = { email: String(session.email || '').trim().toLowerCase() };
+    next();
+  } catch (err) {
+    console.error('requireAuth error:', err.message || err);
+    return res.status(500).json({ error: 'Auth check failed' });
+  }
+}
+
+app.post('/api/auth/request-link', async (req, res) => {
+  try {
+    const email = normalizeEmail(req.body?.email);
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ ok: false, error: 'Enter a valid email.' });
+    }
+
+    // Avoid account enumeration: always return ok.
+    if (ALLOWED_LOGIN_EMAILS.size > 0 && !ALLOWED_LOGIN_EMAILS.has(email)) {
+      return res.json({ ok: true });
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = sha256Hex(token);
+    const expiresAt = addMinutes(new Date(), MAGIC_LINK_MINUTES);
+    await pool.query(
+      `INSERT INTO auth_magic_links (email, token_hash, expires_at)
+       VALUES ($1, $2, $3)`,
+      [email, tokenHash, expiresAt.toISOString()],
+    );
+
+    const loginUrl = `${APP_BASE_URL.replace(/\/$/, '')}/?magic=${encodeURIComponent(token)}`;
+    const logoUrl = `${APP_BASE_URL.replace(/\/$/, '')}/dble_logo.svg`;
+    const html = `
+      <div style="margin:0;padding:20px;background:#f8fafc;font-family:Arial,sans-serif;color:#0f172a;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:22px;">
+          <div style="margin:0 0 14px;">
+            <img src="${logoUrl}" alt="DBLE" style="display:block;width:138px;height:auto;max-width:100%;" />
+          </div>
+          <p style="margin:0 0 8px;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#64748b;">DBLE Access</p>
+          <h1 style="margin:0 0 10px;font-size:24px;line-height:1.3;color:#0f172a;">Your secure sign-in link</h1>
+          <p style="margin:0 0 14px;font-size:14px;line-height:1.6;color:#334155;">
+            Use the button below to continue to the Metcash 2026 Expo Sales Tool.
+          </p>
+          <p style="margin:0 0 18px;font-size:14px;line-height:1.6;color:#334155;">
+            This link expires in <strong>${MAGIC_LINK_MINUTES} minutes</strong> and can be used once.
+          </p>
+          <p style="margin:0 0 18px;">
+            <a href="${loginUrl}" style="display:inline-block;background:#0f766e;color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;padding:11px 16px;border-radius:8px;">
+              Sign In Securely
+            </a>
+          </p>
+          <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:#64748b;">If the button does not open, use this link:</p>
+          <p style="margin:0 0 14px;font-size:12px;line-height:1.45;word-break:break-all;color:#0f172a;">${loginUrl}</p>
+          <p style="margin:0;padding-top:12px;border-top:1px solid #e2e8f0;font-size:12px;line-height:1.5;color:#64748b;">
+            If you did not request this sign-in, you can safely ignore this email.
+          </p>
+        </div>
+      </div>
+    `;
+    await sendEmailMessage({
+      to: email,
+      subject: 'Your Metcash Expo sign-in link',
+      html,
+      text: `DBLE secure sign-in link\n\nSign in: ${loginUrl}\n\nThis link expires in ${MAGIC_LINK_MINUTES} minutes and can be used once.\nIf you did not request this, you can ignore this email.`,
+      from: authEmailFrom,
+    });
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/auth/request-link:', err.message || err);
+    const msg = String(err?.message || err || '');
+    if (/535|authentication credentials invalid/i.test(msg)) {
+      return res.status(502).json({
+        ok: false,
+        error:
+          'Email provider rejected SMTP credentials. Check SMTP_PASS is a valid Resend API key and SMTP_USER is "resend".',
+      });
+    }
+    return res.status(500).json({ ok: false, error: 'Could not send sign-in link.' });
+  }
+});
+
+app.post('/api/auth/verify-link', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ ok: false, error: 'Missing token.' });
+    const tokenHash = sha256Hex(token);
+    const { rows } = await pool.query(
+      `SELECT id, email, expires_at, used_at
+       FROM auth_magic_links
+       WHERE token_hash = $1
+       LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) return res.status(400).json({ ok: false, error: 'Invalid or expired link.' });
+    if (row.used_at) return res.status(400).json({ ok: false, error: 'Link already used.' });
+    if (new Date(row.expires_at).getTime() <= Date.now()) {
+      return res.status(400).json({ ok: false, error: 'Invalid or expired link.' });
+    }
+
+    await pool.query(`UPDATE auth_magic_links SET used_at = NOW() WHERE id = $1`, [row.id]);
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const expiresAt = addDays(new Date(), AUTH_SESSION_DAYS);
+    await pool.query(
+      `INSERT INTO auth_sessions (session_id, email, expires_at)
+       VALUES ($1, $2, $3)`,
+      [sessionId, normalizeEmail(row.email), expiresAt.toISOString()],
+    );
+    setSessionCookie(res, sessionId);
+    return res.json({ ok: true, email: normalizeEmail(row.email) });
+  } catch (err) {
+    console.error('POST /api/auth/verify-link:', err.message || err);
+    return res.status(500).json({ ok: false, error: 'Could not verify magic link.' });
+  }
+});
+
+app.get('/api/auth/me', async (req, res) => {
+  try {
+    const sid = String(req.cookies?.[AUTH_SESSION_COOKIE] || '').trim();
+    const session = await getSessionById(sid);
+    if (!session) {
+      clearSessionCookie(res);
+      return res.json({ authenticated: false });
+    }
+    return res.json({ authenticated: true, email: normalizeEmail(session.email) });
+  } catch (err) {
+    console.error('GET /api/auth/me:', err.message || err);
+    return res.status(500).json({ authenticated: false });
+  }
+});
+
+app.post('/api/auth/logout', async (req, res) => {
+  try {
+    const sid = String(req.cookies?.[AUTH_SESSION_COOKIE] || '').trim();
+    if (sid) {
+      await pool.query(`UPDATE auth_sessions SET revoked_at = NOW() WHERE session_id = $1`, [sid]);
+    }
+    clearSessionCookie(res);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/auth/logout:', err.message || err);
+    clearSessionCookie(res);
+    return res.status(500).json({ ok: false });
+  }
+});
+
+// Local debug helper: creates a real session cookie without email link flow.
+app.post('/api/auth/dev-login', async (req, res) => {
+  try {
+    if (process.env.NODE_ENV === 'production' || !DEV_AUTH_BYPASS) {
+      return res.status(403).json({ ok: false, error: 'Disabled.' });
+    }
+    const requested = normalizeEmail(req.body?.email);
+    const email = requested || DEV_AUTH_BYPASS_EMAIL;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ ok: false, error: 'Provide a valid debug email.' });
+    }
+    if (ALLOWED_LOGIN_EMAILS.size > 0 && !ALLOWED_LOGIN_EMAILS.has(email)) {
+      return res.status(403).json({ ok: false, error: 'Email not allowlisted.' });
+    }
+    const sessionId = crypto.randomBytes(32).toString('hex');
+    const expiresAt = addDays(new Date(), AUTH_SESSION_DAYS);
+    await pool.query(
+      `INSERT INTO auth_sessions (session_id, email, expires_at)
+       VALUES ($1, $2, $3)`,
+      [sessionId, email, expiresAt.toISOString()],
+    );
+    setSessionCookie(res, sessionId);
+    return res.json({ ok: true, email });
+  } catch (err) {
+    console.error('POST /api/auth/dev-login:', err.message || err);
+    return res.status(500).json({ ok: false, error: 'Debug login failed.' });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -257,6 +547,53 @@ async function initDb() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_code TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rep_email TEXT`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_magic_links (
+      id            SERIAL PRIMARY KEY,
+      email         TEXT NOT NULL,
+      token_hash    TEXT NOT NULL UNIQUE,
+      expires_at    TIMESTAMPTZ NOT NULL,
+      used_at       TIMESTAMPTZ,
+      created_at    TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_auth_magic_links_email
+      ON auth_magic_links(email, created_at DESC)
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS auth_sessions (
+      id            SERIAL PRIMARY KEY,
+      session_id    TEXT NOT NULL UNIQUE,
+      email         TEXT NOT NULL,
+      expires_at    TIMESTAMPTZ NOT NULL,
+      created_at    TIMESTAMPTZ DEFAULT NOW(),
+      revoked_at    TIMESTAMPTZ
+    )
+  `);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_forward_tokens (
+      id              SERIAL PRIMARY KEY,
+      order_id        INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      rep_email       TEXT NOT NULL,
+      customer_email  TEXT NOT NULL,
+      token_hash      TEXT NOT NULL UNIQUE,
+      expires_at      TIMESTAMPTZ NOT NULL,
+      used_at         TIMESTAMPTZ,
+      created_at      TIMESTAMPTZ DEFAULT NOW()
+    )
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_order_forward_tokens_order_id
+      ON order_forward_tokens(order_id)
+  `);
+  await pool.query(`
+    CREATE INDEX IF NOT EXISTS idx_auth_sessions_session_id
+      ON auth_sessions(session_id)
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS order_items (
@@ -1996,7 +2333,238 @@ app.post('/api/spin-win', async (req, res) => {
 // ---------------------------------------------------------------------------
 // API – orders
 // ---------------------------------------------------------------------------
-app.post('/api/save-order', async (req, res) => {
+function buildOrderEmailHtml({
+  orderId,
+  storeName,
+  banner,
+  userName,
+  purchaseOrder,
+  items,
+  totalValue,
+  spinPrizeLine,
+}) {
+  const rows = [];
+  (items || []).forEach((item) => {
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const drops = Array.isArray(item.dropMonths) ? item.dropMonths : Array(qty).fill(item.dropMonth || 'September');
+    const cost = Number.parseFloat(String(item.cost || '0')) || 0;
+    const groupedByDrop = drops.reduce((acc, d) => {
+      const key = String(d || 'September').trim();
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const dropText = Object.entries(groupedByDrop)
+      .map(([m, n]) => `${m}: ${n}`)
+      .join(' | ');
+    rows.push({
+      description: String(item.description || '').trim() || String(item.offerId || 'Item'),
+      qty,
+      dropText,
+      lineTotal: (cost * qty).toFixed(2),
+    });
+  });
+
+  if (spinPrizeLine) {
+    rows.push({
+      description: `Spin to Win Prize - ${String(spinPrizeLine).trim()}`,
+      qty: 1,
+      dropText: '-',
+      lineTotal: '-',
+    });
+  }
+
+  const rowHtml = rows
+    .map(
+      (r) => `
+      <tr>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.description}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${r.qty}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.dropText}</td>
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">$${r.lineTotal}</td>
+      </tr>`,
+    )
+    .join('');
+
+  return `
+  <div style="font-family:Arial,sans-serif;max-width:860px;margin:0 auto;background:#f8fafc;padding:18px;color:#0f172a;">
+    <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
+      <h2 style="margin:0 0 4px;">2026 Expo - Energizer Order</h2>
+      <p style="margin:0 0 10px;color:#475569;">Order #${orderId} · ${new Date().toLocaleString('en-AU')}</p>
+      <p style="margin:0 0 4px;"><strong>Store:</strong> ${storeName}${banner ? ` / ${banner}` : ''}</p>
+      <p style="margin:0 0 4px;"><strong>Submitted by:</strong> ${userName || 'Unknown'}</p>
+      ${purchaseOrder ? `<p style="margin:0 0 10px;"><strong>PO / Notes:</strong> ${purchaseOrder}</p>` : ''}
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:#f1f5f9;">
+            <th style="text-align:left;padding:8px 10px;">Item</th>
+            <th style="text-align:right;padding:8px 10px;">Qty</th>
+            <th style="text-align:left;padding:8px 10px;">Drop</th>
+            <th style="text-align:right;padding:8px 10px;">Line Total</th>
+          </tr>
+        </thead>
+        <tbody>${rowHtml}</tbody>
+      </table>
+      <p style="margin:12px 0 0;text-align:right;font-size:14px;"><strong>Total: $${(Number(totalValue) || 0).toFixed(2)}</strong></p>
+    </div>
+  </div>`;
+}
+
+function buildRepForwardEmailHtml({ orderHtml, forwardUrl, customerEmail }) {
+  const c = String(customerEmail || '').trim();
+  const cHtml = c ? `<p style="margin:0 0 12px;color:#334155;">Customer recipient: <strong>${c}</strong></p>` : '';
+  const action = forwardUrl
+    ? `<p style="margin:14px 0 0;">
+         <a href="${forwardUrl}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">
+           Confirm & Forward to Customer
+         </a>
+       </p>`
+    : '';
+  return `
+    <div style="font-family:Arial,sans-serif;max-width:900px;margin:0 auto;">
+      <div style="background:#ecfeff;border:1px solid #99f6e4;border-radius:12px;padding:14px 16px;margin:0 0 14px;">
+        <h3 style="margin:0 0 8px;color:#0f172a;">Internal confirmation</h3>
+        <p style="margin:0 0 8px;color:#0f172a;">Please review this order, then forward to the customer.</p>
+        ${cHtml}
+        ${action}
+      </div>
+      ${orderHtml}
+    </div>
+  `;
+}
+
+function buildOrderForwardMailtoHref({
+  customerEmail,
+  storeName,
+  orderId,
+  totalValue,
+  purchaseOrder,
+  items,
+}) {
+  const to = String(customerEmail || '').trim();
+  const subject = `2026 Expo - Energizer Order - ${storeName} - #${orderId}`;
+  const lines = [];
+  lines.push('Hi,');
+  lines.push('');
+  lines.push('Please find your order confirmation below.');
+  lines.push('');
+  lines.push(`Order: #${orderId}`);
+  lines.push(`Store: ${storeName}`);
+  if (purchaseOrder) lines.push(`PO / Notes: ${purchaseOrder}`);
+  lines.push('');
+  lines.push('Items:');
+  (items || []).forEach((item) => {
+    const qty = Math.max(1, Number(item.quantity) || 1);
+    const drops = Array.isArray(item.dropMonths) ? item.dropMonths : Array(qty).fill(item.dropMonth || 'September');
+    const grouped = drops.reduce((acc, d) => {
+      const k = String(d || 'September').trim();
+      acc[k] = (acc[k] || 0) + 1;
+      return acc;
+    }, {});
+    const dropText = Object.entries(grouped).map(([m, n]) => `${m}: ${n}`).join(', ');
+    lines.push(`- ${String(item.description || item.offerId || 'Item').trim()} | Qty ${qty} | Drop ${dropText}`);
+  });
+  lines.push('');
+  lines.push(`Total: $${(Number(totalValue) || 0).toFixed(2)}`);
+  lines.push('');
+  lines.push('Regards,');
+  lines.push('Energizer Sales Team');
+  const body = lines.join('\n');
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
+
+async function getLatestSpinPrize({ repEmail, storeId, storeName }) {
+  const rep = String(repEmail || '').trim();
+  const sid = String(storeId || '').trim();
+  const sname = String(storeName || '').trim();
+  if (!rep && !sid && !sname) return null;
+
+  const clauses = [];
+  const vals = [];
+  if (rep) {
+    vals.push(rep);
+    clauses.push(`LOWER(COALESCE(rep_email,'')) = LOWER($${vals.length})`);
+  }
+  if (sid) {
+    vals.push(sid);
+    clauses.push(`NULLIF(TRIM(COALESCE(store_id,'')), '') = $${vals.length}`);
+  } else if (sname) {
+    vals.push(sname);
+    clauses.push(`LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($${vals.length}))`);
+  }
+  if (clauses.length === 0) return null;
+
+  const { rows } = await pool.query(
+    `SELECT prize_name, sku
+     FROM spin_win_events
+     WHERE ${clauses.join(' AND ')}
+       AND created_at >= NOW() - INTERVAL '30 days'
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    vals,
+  );
+  const row = rows[0];
+  if (!row) return null;
+  const prize = String(row.prize_name || '').trim();
+  const sku = String(row.sku || '').trim();
+  if (!prize && !sku) return null;
+  return sku ? `${prize} (${sku})` : prize;
+}
+
+async function getOrderEmailModel(orderId) {
+  const orderIdNum = Number.parseInt(String(orderId), 10);
+  if (!Number.isFinite(orderIdNum)) return null;
+  const { rows: orderRows } = await pool.query(
+    `SELECT id, store_name, banner, user_name, purchase_order, total_value, email, rep_email, store_code
+     FROM orders
+     WHERE id = $1
+     LIMIT 1`,
+    [orderIdNum],
+  );
+  const order = orderRows[0];
+  if (!order) return null;
+  const { rows: itemRows } = await pool.query(
+    `SELECT offer_id, offer_tier, description, cost, drop_month
+     FROM order_items
+     WHERE order_id = $1
+     ORDER BY id ASC`,
+    [orderIdNum],
+  );
+  const grouped = new Map();
+  itemRows.forEach((row) => {
+    const key = `${String(row.description || '').trim()}||${String(row.cost || '0')}||${String(row.offer_id || '')}||${String(row.offer_tier || '')}`;
+    if (!grouped.has(key)) {
+      grouped.set(key, {
+        offerId: row.offer_id || '',
+        offerTier: row.offer_tier || '',
+        description: String(row.description || '').trim(),
+        cost: Number.parseFloat(String(row.cost || '0')) || 0,
+        quantity: 0,
+        dropMonths: [],
+      });
+    }
+    const g = grouped.get(key);
+    g.quantity += 1;
+    g.dropMonths.push(String(row.drop_month || 'September'));
+  });
+  const spinPrizeLine = await getLatestSpinPrize({
+    repEmail: order.rep_email,
+    storeId: order.store_code,
+    storeName: order.store_name,
+  });
+  return {
+    orderId: order.id,
+    storeName: order.store_name || '',
+    banner: order.banner || '',
+    userName: order.user_name || '',
+    purchaseOrder: order.purchase_order || '',
+    totalValue: Number.parseFloat(String(order.total_value || '0')) || 0,
+    customerEmail: normalizeEmail(order.email || ''),
+    items: Array.from(grouped.values()),
+    spinPrizeLine,
+  };
+}
+
+app.post('/api/save-order', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
     const { storeNumber='', storeName='', banner='', userName='',
@@ -2027,6 +2595,55 @@ app.post('/api/save-order', async (req, res) => {
     }
 
     await client.query('COMMIT');
+
+    const authEmail = normalizeEmail(req.auth?.email || '');
+    const repRecipient = normalizeEmail(repEmail || authEmail);
+    const capturedRecipient = normalizeEmail(email);
+    if (repRecipient) {
+      try {
+        const spinPrizeLine = await getLatestSpinPrize({
+          repEmail: repRecipient,
+          storeId: storeCode,
+          storeName,
+        });
+        const orderHtml = buildOrderEmailHtml({
+          orderId,
+          storeName,
+          banner,
+          userName,
+          purchaseOrder,
+          items,
+          totalValue,
+          spinPrizeLine,
+        });
+        let repHtml = orderHtml;
+        if (capturedRecipient) {
+          const forwardUrl = buildOrderForwardMailtoHref({
+            customerEmail: capturedRecipient,
+            storeName,
+            orderId,
+            totalValue,
+            purchaseOrder,
+            items,
+          });
+          repHtml = buildRepForwardEmailHtml({
+            orderHtml,
+            forwardUrl,
+            customerEmail: capturedRecipient,
+          });
+        }
+        await sendEmailMessage({
+          to: repRecipient,
+          subject: `2026 Expo - Energizer Order - ${storeName} - #${orderId}`,
+          html: repHtml,
+          text: `Order #${orderId} for ${storeName}. Total $${(Number(totalValue) || 0).toFixed(2)}`,
+          from: orderEmailFrom,
+          replyTo: orderReplyTo || undefined,
+        });
+      } catch (mailErr) {
+        console.error('Order email send failed:', mailErr.message || mailErr);
+      }
+    }
     res.json({ success: true, orderId, message: 'Order saved.' });
   } catch (err) {
     await client.query('ROLLBACK');
@@ -2037,7 +2654,82 @@ app.post('/api/save-order', async (req, res) => {
   }
 });
 
-app.get('/api/orders-stats', async (req, res) => {
+app.post('/api/order-forward/confirm', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ ok: false, error: 'Missing token.' });
+    const tokenHash = sha256Hex(token);
+    const { rows } = await pool.query(
+      `SELECT id, order_id, rep_email, customer_email, expires_at, used_at
+       FROM order_forward_tokens
+       WHERE token_hash = $1
+       LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) return res.status(404).json({ ok: false, error: 'Forward link not found.' });
+    if (row.used_at) return res.status(400).json({ ok: false, error: 'This forward link has already been used.' });
+    if (new Date(row.expires_at).getTime() <= Date.now()) {
+      return res.status(400).json({ ok: false, error: 'This forward link has expired.' });
+    }
+    const model = await getOrderEmailModel(row.order_id);
+    if (!model) return res.status(404).json({ ok: false, error: 'Order not found.' });
+    return res.json({
+      ok: true,
+      orderId: model.orderId,
+      storeName: model.storeName,
+      customerEmail: row.customer_email,
+      repEmail: row.rep_email,
+      totalValue: model.totalValue,
+      itemCount: model.items.reduce((n, it) => n + (Number(it.quantity) || 0), 0),
+      expiresAt: row.expires_at,
+    });
+  } catch (err) {
+    console.error('POST /api/order-forward/confirm:', err.message || err);
+    return res.status(500).json({ ok: false, error: 'Could not validate forward link.' });
+  }
+});
+
+app.post('/api/order-forward/send', async (req, res) => {
+  try {
+    const token = String(req.body?.token || '').trim();
+    if (!token) return res.status(400).json({ ok: false, error: 'Missing token.' });
+    const tokenHash = sha256Hex(token);
+    const { rows } = await pool.query(
+      `SELECT id, order_id, rep_email, customer_email, expires_at, used_at
+       FROM order_forward_tokens
+       WHERE token_hash = $1
+       LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) return res.status(404).json({ ok: false, error: 'Forward link not found.' });
+    if (row.used_at) return res.status(400).json({ ok: false, error: 'This forward link has already been used.' });
+    if (new Date(row.expires_at).getTime() <= Date.now()) {
+      return res.status(400).json({ ok: false, error: 'This forward link has expired.' });
+    }
+    const model = await getOrderEmailModel(row.order_id);
+    if (!model) return res.status(404).json({ ok: false, error: 'Order not found.' });
+    const customerEmail = normalizeEmail(row.customer_email);
+    if (!customerEmail) return res.status(400).json({ ok: false, error: 'No customer email to forward to.' });
+    const html = buildOrderEmailHtml(model);
+    await sendEmailMessage({
+      to: customerEmail,
+      subject: `2026 Expo - Energizer Order - ${model.storeName} - #${model.orderId}`,
+      html,
+      text: `Order #${model.orderId} for ${model.storeName}. Total $${(Number(model.totalValue) || 0).toFixed(2)}`,
+      from: orderEmailFrom,
+      replyTo: orderReplyTo || undefined,
+    });
+    await pool.query(`UPDATE order_forward_tokens SET used_at = NOW() WHERE id = $1`, [row.id]);
+    return res.json({ ok: true });
+  } catch (err) {
+    console.error('POST /api/order-forward/send:', err.message || err);
+    return res.status(500).json({ ok: false, error: 'Could not forward order email.' });
+  }
+});
+
+app.get('/api/orders-stats', requireAuth, async (req, res) => {
   try {
     const { rows: [row] } = await pool.query(
       'SELECT COUNT(*) AS count, COALESCE(SUM(total_value),0) AS total FROM orders'
@@ -2051,7 +2743,7 @@ app.get('/api/orders-stats', async (req, res) => {
   }
 });
 
-app.get('/api/orders-by-store-summary', async (req, res) => {
+app.get('/api/orders-by-store-summary', requireAuth, async (req, res) => {
   try {
     const storeId = String(req.query.storeId || '').trim();
     const storeName = String(req.query.storeName || '').trim();
@@ -2411,7 +3103,7 @@ app.get('/api/store-suggest/:storeId', async (req, res) => {
 // ---------------------------------------------------------------------------
 // Dashboard
 // ---------------------------------------------------------------------------
-app.get('/api/dashboard', async (req, res) => {
+app.get('/api/dashboard', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -2433,7 +3125,7 @@ app.get('/api/dashboard', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard/charts', async (req, res) => {
+app.get('/api/dashboard/charts', requireAuth, async (req, res) => {
   try {
     const [offersRes, statesRes, repsRes] = await Promise.all([
       pool.query(`
@@ -2470,7 +3162,7 @@ app.get('/api/dashboard/charts', async (req, res) => {
 });
 
 /** Expo orders vs summed sales25.csv (all stores) by category — qty & value */
-app.get('/api/dashboard/sales25-vs-orders', async (req, res) => {
+app.get('/api/dashboard/sales25-vs-orders', requireAuth, async (req, res) => {
   try {
     await loadSales25Csv();
     if (!sales25ItemNames || sales25ItemNames.length < 15) {
@@ -2557,7 +3249,7 @@ app.get('/api/dashboard/sales25-vs-orders', async (req, res) => {
   }
 });
 
-app.get('/api/dashboard/csv', async (req, res) => {
+app.get('/api/dashboard/csv', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
       SELECT
@@ -2667,9 +3359,57 @@ if (buildPath) {
     console.log('Serving live frontend/public/products at /products (no rebuild for new images):', publicProductsPath);
     app.use('/products', express.static(publicProductsPath));
   }
+  if (fs.existsSync(frontendPublicPath)) {
+    app.use('/metcash26', express.static(frontendPublicPath));
+  }
   console.log('Serving React build from:', buildPath);
-  app.use(express.static(buildPath));
-  app.use((req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+  app.use('/metcash26', express.static(buildPath));
+
+  const holdingPageHtml = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DBLE</title>
+    <style>
+      html,body{height:100%;margin:0}
+      body{
+        font-family:Arial,sans-serif;
+        background:#0f172a;
+        color:#e2e8f0;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+      }
+      .card{
+        width:min(720px,92vw);
+        text-align:center;
+        border:1px solid rgba(148,163,184,.32);
+        background:rgba(15,23,42,.72);
+        border-radius:14px;
+        padding:26px 24px;
+      }
+      .logo{width:170px;max-width:70%;height:auto;margin:0 auto 14px;display:block}
+      p{margin:.5rem 0}
+      .footer{
+        margin-top:12px;
+        font-size:12px;
+        color:rgba(226,232,240,.72);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <img src="/metcash26/dble_logo.svg" alt="DBLE" class="logo" />
+      <p>dble -Empowering Sales</p>
+      <p class="footer">dble.co | Flow Mktg 2026 Copyright</p>
+    </div>
+  </body>
+</html>`;
+
+  app.get('/metcash26', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+  app.get(/^\/metcash26\/.*$/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+  app.get('/', (req, res) => res.status(200).type('html').send(holdingPageHtml));
 } else {
   app.get('/', (req, res) => res.status(200).send('<h1>metcash26-api running</h1><p>React build not found — run <code>npm run build</code> inside /frontend.</p>'));
 }

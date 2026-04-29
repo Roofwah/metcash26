@@ -14,6 +14,7 @@ import Dashboard from './components/Dashboard';
 import Footer from './components/Footer';
 import LandscapeHint from './components/LandscapeHint';
 import LoginScreen from './components/LoginScreen';
+import OrderForwardConfirm from './components/OrderForwardConfirm';
 import PresentationPlayer from './features/presentation-killer/components/PresentationPlayer';
 import InsightsNavigation from './features/presentation-killer/components/InsightsNavigation';
 import { killerPresentationDeck } from './features/presentation-killer/data/killerPresentationDeck';
@@ -27,6 +28,8 @@ import {
   recomputeSplitBundleW,
   type BundleLineDetail,
 } from './utils/expandRetailOrderItems';
+
+axios.defaults.withCredentials = true;
 
 interface UserData {
   fullName: string;
@@ -75,10 +78,15 @@ type AppStep =
   | 'empty-cart-thankyou';
 
 function App() {
+  const forwardToken =
+    typeof window !== 'undefined'
+      ? (new URLSearchParams(window.location.search).get('forward') || '').trim()
+      : '';
   const [userData, setUserData] = useState<UserData | null>(null);
   const [storeData, setStoreData] = useState<StoreData | null>(null);
   const [currentStep, setCurrentStep] = useState<AppStep>('login');
   const [sessionEmail, setSessionEmail] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
   const [printData, setPrintData] = useState<any>(null);
@@ -99,6 +107,28 @@ function App() {
     ? sessionEmail.split('@')[0].split(/[._-]/).map(s => s.charAt(0).toUpperCase() + s.slice(1).toLowerCase()).join(' ')
     : undefined;
   const repEmail = sessionEmail || undefined;
+
+  useEffect(() => {
+    let cancelled = false;
+    axios
+      .get(apiUrl('/api/auth/me'), { withCredentials: true })
+      .then((res) => {
+        if (cancelled) return;
+        if (res.data?.authenticated && res.data?.email) {
+          setSessionEmail(String(res.data.email));
+          setCurrentStep((prev) => (prev === 'login' ? 'form' : prev));
+        }
+      })
+      .catch(() => {
+        // Intentionally silent: app will remain on login.
+      })
+      .finally(() => {
+        if (!cancelled) setAuthChecked(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!storeData?.storeId?.trim()) {
@@ -135,6 +165,7 @@ function App() {
   };
 
   const handleLogout = () => {
+    axios.post(apiUrl('/api/auth/logout'), {}, { withCredentials: true }).catch(() => undefined);
     setShowPresentation(false);
     setShowInsightsNavigation(false);
     setFormBackHandler(null);
@@ -735,6 +766,10 @@ function App() {
 
   return (
     <div className="App with-nav">
+      {forwardToken ? (
+        <OrderForwardConfirm token={forwardToken} />
+      ) : (
+        <>
 
       {currentStep !== 'login' && (
         <TopNav
@@ -777,7 +812,7 @@ function App() {
         </div>
       )}
 
-      {currentStep === 'login' && <LoginScreen onSuccess={handleLoginSuccess} />}
+      {currentStep === 'login' && authChecked && <LoginScreen onSuccess={handleLoginSuccess} />}
 
       {currentStep === 'form' && (
         <UserForm
@@ -918,6 +953,8 @@ function App() {
           onClose={handlePresentationClose}
           onCTAAction={handlePresentationCTA}
         />
+      )}
+        </>
       )}
 
     </div>

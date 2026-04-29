@@ -1,7 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import SpinWheel, { SpinWheelHandle } from './SpinWheel';
-import WinLog from './WinLog';
-import { Prize, WinRecord, loadWins } from './prizes';
+import { Prize } from './prizes';
 import type { SpinSessionMeta } from './spinWinLog';
 import './spintowin.css';
 
@@ -11,7 +10,6 @@ interface SpinToWinPageProps {
 }
 
 export default function SpinToWinPage({ onClaimPrize, spinSessionMeta }: SpinToWinPageProps) {
-  const [wins, setWins] = useState<WinRecord[]>(() => loadWins());
   const [spinning, setSpinning] = useState(false);
   const wheelRef = useRef<SpinWheelHandle>(null);
 
@@ -21,7 +19,6 @@ export default function SpinToWinPage({ onClaimPrize, spinSessionMeta }: SpinToW
   }, []);
 
   const handleWin = useCallback((_prize: Prize, _sku: string, _ts: string) => {
-    setWins(loadWins());
     setSpinning(false);
   }, []);
 
@@ -38,7 +35,6 @@ export default function SpinToWinPage({ onClaimPrize, spinSessionMeta }: SpinToW
           <button className="sw-spin-btn app-spin-btn" onClick={handleSpin} disabled={spinning}>
             {spinning ? 'Spinning…' : 'SPIN TO WIN'}
           </button>
-          <WinLog wins={wins} onClear={() => setWins([])} />
         </div>
         <div className="app-right">
           <SpinWheel ref={wheelRef} onWin={handleWin} onClaimPrize={onClaimPrize} spinSessionMeta={spinSessionMeta} />

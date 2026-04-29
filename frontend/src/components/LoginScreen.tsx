@@ -1,49 +1,99 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import './LoginScreen.css';
-
-const DEMO_EMAIL = 'chris@flowmarketing.com.au';
-const DEMO_CODE = '1234';
+import axios from 'axios';
+import { apiUrl } from '../api';
 
 interface LoginScreenProps {
   onSuccess: (email: string) => void;
 }
 
 const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
-  const [phase, setPhase] = useState<'email' | 'code'>('email');
   const [email, setEmail] = useState('');
-  const [code, setCode] = useState('');
   const [sending, setSending] = useState(false);
+  const [verifying, setVerifying] = useState(false);
+  const [devSigningIn, setDevSigningIn] = useState(false);
   const [error, setError] = useState('');
+  const [info, setInfo] = useState('');
 
   const normalizedEmail = email.trim().toLowerCase();
 
-  const handleSendCode = (e: React.FormEvent) => {
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = (params.get('magic') || '').trim();
+    if (!token) return;
+    setVerifying(true);
+    setError('');
+    setInfo('Verifying your sign-in link...');
+    axios
+      .post(
+        apiUrl('/api/auth/verify-link'),
+        { token },
+        { withCredentials: true },
+      )
+      .then((res) => {
+        const userEmail = String(res.data?.email || '').trim().toLowerCase();
+        if (userEmail) {
+          onSuccess(userEmail);
+          params.delete('magic');
+          const next = params.toString();
+          const nextUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
+          window.history.replaceState({}, '', nextUrl);
+        } else {
+          setError('Could not complete sign-in. Please request a new link.');
+          setInfo('');
+        }
+      })
+      .catch(() => {
+        setError('This sign-in link is invalid or expired. Please request a new one.');
+        setInfo('');
+      })
+      .finally(() => {
+        setVerifying(false);
+      });
+  }, [onSuccess]);
+
+  const handleSendLink = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setInfo('');
     if (!normalizedEmail || !normalizedEmail.includes('@')) {
       setError('Enter a valid email address.');
       return;
     }
     setSending(true);
-    window.setTimeout(() => {
-      setSending(false);
-      setPhase('code');
-      setCode('');
-    }, 600);
+    axios
+      .post(apiUrl('/api/auth/request-link'), { email: normalizedEmail })
+      .then(() => {
+        setInfo('If your email is approved, we have sent a magic link.');
+      })
+      .catch((err) => {
+        setError(err?.response?.data?.error || 'Could not send sign-in link. Please try again.');
+      })
+      .finally(() => setSending(false));
   };
 
-  const handleSignIn = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleDevSignIn = () => {
     setError('');
-    if (normalizedEmail !== DEMO_EMAIL.toLowerCase()) {
-      setError('Account not recognised.');
+    setInfo('');
+    if (!normalizedEmail || !normalizedEmail.includes('@')) {
+      setError('Enter a valid email address.');
       return;
     }
-    if (code.trim() !== DEMO_CODE) {
-      setError('Invalid code. Please try again.');
-      return;
-    }
-    onSuccess(DEMO_EMAIL);
+    setDevSigningIn(true);
+    axios
+      .post(
+        apiUrl('/api/auth/dev-login'),
+        { email: normalizedEmail },
+        { withCredentials: true },
+      )
+      .then((res) => {
+        const userEmail = String(res.data?.email || normalizedEmail).trim().toLowerCase();
+        onSuccess(userEmail);
+      })
+      .catch((err) => {
+        setError(err?.response?.data?.error || 'Debug sign-in is not enabled.');
+      })
+      .finally(() => setDevSigningIn(false));
   };
 
   return (
@@ -58,54 +108,38 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           <img src="/dble.svg" alt="DBLE" className="login-logo" width={200} height={182} />
         </div>
 
-        <h1>{phase === 'email' ? 'Sign in' : 'Check your email'}</h1>
-
-        {phase === 'email' ? (
-          <>
-            <form onSubmit={handleSendCode}>
-              {error && <div className="login-error">{error}</div>}
-              <div className="login-field">
-                <label htmlFor="login-email">Email</label>
-                <input
-                  id="login-email"
-                  name="email"
-                  type="email"
-                  autoComplete="off"
-                  value={email}
-                  onChange={(ev) => setEmail(ev.target.value)}
-                />
-              </div>
-              <button type="submit" className="login-primary" disabled={sending}>
-                {sending ? 'Sending…' : 'Send verification code'}
-              </button>
-            </form>
-          </>
-        ) : (
-          <>
-            <p className="login-lede">
-              Enter the verification code we sent to your email to continue.
-            </p>
-            <form onSubmit={handleSignIn}>
-              {error && <div className="login-error">{error}</div>}
-              <div className="login-field">
-                <label htmlFor="login-code">One-time code</label>
-                <input
-                  id="login-code"
-                  name="one-time-code"
-                  type="password"
-                  autoComplete="one-time-code"
-                  inputMode="numeric"
-                  value={code}
-                  onChange={(ev) => setCode(ev.target.value)}
-                  placeholder="••••"
-                />
-              </div>
-              <button type="submit" className="login-primary">
-                Sign in
-              </button>
-            </form>
-          </>
-        )}
+        <h1>Sign in</h1>
+        <p className="login-lede">
+          Enter your approved email to receive a secure magic sign-in link.
+        </p>
+        <form onSubmit={handleSendLink}>
+          {error && <div className="login-error">{error}</div>}
+          {!!info && <div className="login-lede"><strong>{info}</strong></div>}
+          <div className="login-field">
+            <label htmlFor="login-email">Email</label>
+            <input
+              id="login-email"
+              name="email"
+              type="email"
+              autoComplete="off"
+              value={email}
+              onChange={(ev) => setEmail(ev.target.value)}
+              disabled={verifying}
+            />
+          </div>
+          <button type="submit" className="login-primary" disabled={sending || verifying}>
+            {verifying ? 'Verifying…' : sending ? 'Sending…' : 'Send magic link'}
+          </button>
+          <button
+            type="button"
+            className="login-primary"
+            disabled={sending || verifying || devSigningIn}
+            onClick={handleDevSignIn}
+            style={{ marginTop: 10, background: '#475569' }}
+          >
+            {devSigningIn ? 'Signing in…' : 'Debug sign in (local only)'}
+          </button>
+        </form>
       </div>
     </div>
   );
