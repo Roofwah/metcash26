@@ -376,11 +376,11 @@ const UserForm: React.FC<UserFormProps> = ({
           <div className="step-content home-screen">
             <div className="home-content">
               <div className="logo-container">
-                <img src="/metcash26/dble_logo.svg" alt="Metexpo Logo" className="logo rounded-logo" />
+                <img src="/metcash26/metexpo.png" alt="Metexpo Logo" className="logo rounded-logo" />
               </div>
               <div className="logo-divider" aria-hidden="true" />
               <div className="logo-container">
-                <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo home-armorall-logo" />
+                <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo home-armorall-logo" />
               </div>
               <h1 className="home-title">Metcash 2026 Expo Deals &amp; Insights</h1>
               <button type="button" onClick={handleStart} className="start-btn">Start</button>
@@ -391,7 +391,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">Step 1.</p>
             <h3>Your Full Name</h3>
@@ -415,7 +415,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">Step 2.</p>
             <h3>Select your state</h3>
@@ -460,7 +460,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">MSO</p>
             <h3>Select your group</h3>
@@ -483,7 +483,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">MSO</p>
             <h3>Select stores ({selectedMsoGroup})</h3>
@@ -523,7 +523,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">Step 3.</p>
             <h3>Select your suburb ({selectedState})</h3>
@@ -542,7 +542,7 @@ const UserForm: React.FC<UserFormProps> = ({
         return (
           <div className="step-content">
             <div className="logo-container">
-              <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+              <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
             </div>
             <p className="typing-text">Step 4.</p>
             <h3>Select your store ({selectedSuburb})</h3>
@@ -582,7 +582,7 @@ const UserForm: React.FC<UserFormProps> = ({
     return (
       <div className="thank-you-screen">
         <div className="logo-container">
-          <img src="/metcash26/logos/energizer.svg" alt="Energizer Logo" className="logo" />
+          <img src="/metcash26/energizer.png" alt="Energizer Logo" className="logo" />
         </div>
         <div className="thank-you-content">
           <h1 className="thank-you-title">Thank you {displayFullName}!</h1>
