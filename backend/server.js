@@ -190,8 +190,6 @@ const AUTH_SESSION_COOKIE = 'metcash_session';
 const AUTH_SESSION_DAYS = Number(process.env.AUTH_SESSION_DAYS || 10);
 const MAGIC_LINK_MINUTES = Number(process.env.MAGIC_LINK_MINUTES || 15);
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).trim();
-const DEV_AUTH_BYPASS = String(process.env.DEV_AUTH_BYPASS || '').trim().toLowerCase() === 'true';
-const DEV_AUTH_BYPASS_EMAIL = normalizeEmail(process.env.DEV_AUTH_BYPASS_EMAIL || '');
 const ALLOWED_LOGIN_EMAILS = new Set(
   String(process.env.ALLOWED_LOGIN_EMAILS || '')
     .split(',')
@@ -439,35 +437,6 @@ app.post('/api/auth/logout', async (req, res) => {
     console.error('POST /api/auth/logout:', err.message || err);
     clearSessionCookie(res);
     return res.status(500).json({ ok: false });
-  }
-});
-
-// Local debug helper: creates a real session cookie without email link flow.
-app.post('/api/auth/dev-login', async (req, res) => {
-  try {
-    if (process.env.NODE_ENV === 'production' || !DEV_AUTH_BYPASS) {
-      return res.status(403).json({ ok: false, error: 'Disabled.' });
-    }
-    const requested = normalizeEmail(req.body?.email);
-    const email = requested || DEV_AUTH_BYPASS_EMAIL;
-    if (!email || !email.includes('@')) {
-      return res.status(400).json({ ok: false, error: 'Provide a valid debug email.' });
-    }
-    if (ALLOWED_LOGIN_EMAILS.size > 0 && !ALLOWED_LOGIN_EMAILS.has(email)) {
-      return res.status(403).json({ ok: false, error: 'Email not allowlisted.' });
-    }
-    const sessionId = crypto.randomBytes(32).toString('hex');
-    const expiresAt = addDays(new Date(), AUTH_SESSION_DAYS);
-    await pool.query(
-      `INSERT INTO auth_sessions (session_id, email, expires_at)
-       VALUES ($1, $2, $3)`,
-      [sessionId, email, expiresAt.toISOString()],
-    );
-    setSessionCookie(res, sessionId);
-    return res.json({ ok: true, email });
-  } catch (err) {
-    console.error('POST /api/auth/dev-login:', err.message || err);
-    return res.status(500).json({ ok: false, error: 'Debug login failed.' });
   }
 });
 

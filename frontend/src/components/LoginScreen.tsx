@@ -11,7 +11,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
   const [email, setEmail] = useState('');
   const [sending, setSending] = useState(false);
   const [verifying, setVerifying] = useState(false);
-  const [devSigningIn, setDevSigningIn] = useState(false);
   const [error, setError] = useState('');
   const [info, setInfo] = useState('');
 
@@ -72,30 +71,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
       .finally(() => setSending(false));
   };
 
-  const handleDevSignIn = () => {
-    setError('');
-    setInfo('');
-    if (!normalizedEmail || !normalizedEmail.includes('@')) {
-      setError('Enter a valid email address.');
-      return;
-    }
-    setDevSigningIn(true);
-    axios
-      .post(
-        apiUrl('/api/auth/dev-login'),
-        { email: normalizedEmail },
-        { withCredentials: true },
-      )
-      .then((res) => {
-        const userEmail = String(res.data?.email || normalizedEmail).trim().toLowerCase();
-        onSuccess(userEmail);
-      })
-      .catch((err) => {
-        setError(err?.response?.data?.error || 'Debug sign-in is not enabled.');
-      })
-      .finally(() => setDevSigningIn(false));
-  };
-
   return (
     <div className="login-screen">
       <div className="image-background" aria-hidden="true">
@@ -105,7 +80,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
 
       <div className="login-card">
         <div className="login-logo-wrap">
-          <img src="/dble.svg" alt="DBLE" className="login-logo" width={200} height={182} />
+          <img src="/metcash26/dble.svg" alt="DBLE" className="login-logo" width={200} height={182} />
         </div>
 
         <h1>Sign in</h1>
@@ -129,15 +104,6 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSuccess }) => {
           </div>
           <button type="submit" className="login-primary" disabled={sending || verifying}>
             {verifying ? 'Verifying…' : sending ? 'Sending…' : 'Send magic link'}
-          </button>
-          <button
-            type="button"
-            className="login-primary"
-            disabled={sending || verifying || devSigningIn}
-            onClick={handleDevSignIn}
-            style={{ marginTop: 10, background: '#475569' }}
-          >
-            {devSigningIn ? 'Signing in…' : 'Debug sign in (local only)'}
           </button>
         </form>
       </div>

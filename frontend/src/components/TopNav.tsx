@@ -65,7 +65,7 @@ const TopNav: React.FC<TopNavProps> = ({
         aria-label="Open navigation menu"
         onClick={() => setIsOpen((prev) => !prev)}
       >
-        <img className="floating-nav-logo-image" src="/dble.svg?v=20260320-1" alt="dble" />
+        <img className="floating-nav-logo-image" src="/metcash26/dble.svg?v=20260320-1" alt="dble" />
       </button>
 
       {isOpen && (
