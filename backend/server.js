@@ -3360,7 +3360,8 @@ if (buildPath) {
     app.use('/products', express.static(publicProductsPath));
   }
   if (fs.existsSync(frontendPublicPath)) {
-    app.use('/metcash26', express.static(frontendPublicPath));
+    // Expose public assets (logos/icons) but never serve public/index.html for /metcash26.
+    app.use('/metcash26', express.static(frontendPublicPath, { index: false }));
   }
   console.log('Serving React build from:', buildPath);
   app.use('/metcash26', express.static(buildPath));
