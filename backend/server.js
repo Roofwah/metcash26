@@ -2335,22 +2335,25 @@ function buildOrderEmailHtml({
 
   if (spinPrizeLine) {
     rows.push({
-      description: `Spin to Win Prize - ${String(spinPrizeLine).trim()}`,
-      qty: 1,
-      dropText: '-',
-      lineTotal: '-',
+      description: `Energizer Spin to Win Prize : (${String(spinPrizeLine).trim()})`,
+      qty: '',
+      dropText: '',
+      lineTotal: '',
     });
   }
 
   const rowHtml = rows
     .map(
-      (r) => `
+      (r) => {
+        const lineTotalCell = r.lineTotal === '' ? '' : `$${r.lineTotal}`;
+        return `
       <tr>
         <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.description}</td>
         <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${r.qty}</td>
         <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.dropText}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">$${r.lineTotal}</td>
-      </tr>`,
+        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${lineTotalCell}</td>
+      </tr>`;
+      },
     )
     .join('');
 
@@ -3321,12 +3324,16 @@ const possibleBuilds = [
 const buildPath = possibleBuilds.find(p => fs.existsSync(p));
 const frontendPublicPath = path.join(__dirname, '..', 'frontend', 'public');
 const publicProductsPath = path.join(frontendPublicPath, 'products');
+const spinLogosPath = path.join(__dirname, '..', 'spintowin', 'public', 'logos');
 if (buildPath) {
   // Do NOT serve all of frontend/public before build: public/index.html has no JS bundles and
   // would be sent for GET / → blank screen. Only mount /products so new images work without rebuild.
   if (fs.existsSync(publicProductsPath)) {
     console.log('Serving live frontend/public/products at /products (no rebuild for new images):', publicProductsPath);
     app.use('/products', express.static(publicProductsPath));
+  }
+  if (fs.existsSync(spinLogosPath)) {
+    app.use('/metcash26/logos', express.static(spinLogosPath));
   }
   console.log('Serving React build from:', buildPath);
   app.use('/metcash26', express.static(buildPath));
