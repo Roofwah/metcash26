@@ -210,6 +210,10 @@ function normalizeEmail(email) {
   return String(email || '').trim().toLowerCase();
 }
 
+function formatPublicOrderCode(orderId) {
+  return `METCASH26${Number.parseInt(String(orderId), 10) || 0}`;
+}
+
 function sha256Hex(input) {
   return crypto.createHash('sha256').update(String(input || ''), 'utf8').digest('hex');
 }
@@ -2391,7 +2395,20 @@ function buildOrderEmailHtml({
   totalValue,
   spinPrizeLine,
 }) {
-  const rows = [];
+  const orderCode = formatPublicOrderCode(orderId);
+  const bundleSections = [];
+  const bundleIndex = new Map();
+  const getBundleLabel = (item) => {
+    const offerGroup = String(item.offerGroup || '').trim();
+    if (offerGroup) return offerGroup;
+    const offerId = String(item.offerId || '').trim();
+    if (!offerId) return 'Order bundle';
+    return offerId
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (c) => c.toUpperCase());
+  };
+
   (items || []).forEach((item) => {
     const qty = Math.max(1, Number(item.quantity) || 1);
     const drops = Array.isArray(item.dropMonths) ? item.dropMonths : Array(qty).fill(item.dropMonth || 'September');
@@ -2404,7 +2421,13 @@ function buildOrderEmailHtml({
     const dropText = Object.entries(groupedByDrop)
       .map(([m, n]) => `${m}: ${n}`)
       .join(' | ');
-    rows.push({
+    const bundleLabel = getBundleLabel(item);
+    if (!bundleIndex.has(bundleLabel)) {
+      bundleIndex.set(bundleLabel, bundleSections.length);
+      bundleSections.push({ label: bundleLabel, lines: [] });
+    }
+    const idx = bundleIndex.get(bundleLabel);
+    bundleSections[idx].lines.push({
       description: String(item.description || '').trim() || String(item.offerId || 'Item'),
       qty,
       dropText,
@@ -2412,35 +2435,34 @@ function buildOrderEmailHtml({
     });
   });
 
-  if (spinPrizeLine) {
-    rows.push({
-      description: `Energizer Spin to Win Prize : (${String(spinPrizeLine).trim()})`,
-      qty: '',
-      dropText: '',
-      lineTotal: '',
-    });
-  }
-
-  const rowHtml = rows
-    .map(
-      (r) => {
-        const lineTotalCell = r.lineTotal === '' ? '' : `$${r.lineTotal}`;
-        return `
-      <tr>
-        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.description}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${r.qty}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.dropText}</td>
-        <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${lineTotalCell}</td>
-      </tr>`;
-      },
-    )
+  const rowHtml = bundleSections
+    .map((section) => {
+      const lineRows = section.lines
+        .map((r) => `
+          <tr>
+            <td style="padding:8px 10px 8px 18px;border-bottom:1px solid #e5e7eb;">${r.description}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">${r.qty}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;">${r.dropText}</td>
+            <td style="padding:8px 10px;border-bottom:1px solid #e5e7eb;text-align:right;">$${r.lineTotal}</td>
+          </tr>`)
+        .join('');
+      return `
+        <tr>
+          <td style="padding:10px;border-bottom:1px solid #cbd5e1;background:#f8fafc;font-weight:700;">Bundle: ${section.label}</td>
+          <td style="padding:10px;border-bottom:1px solid #cbd5e1;background:#f8fafc;"></td>
+          <td style="padding:10px;border-bottom:1px solid #cbd5e1;background:#f8fafc;"></td>
+          <td style="padding:10px;border-bottom:1px solid #cbd5e1;background:#f8fafc;"></td>
+        </tr>
+        ${lineRows}
+      `;
+    })
     .join('');
 
   return `
   <div style="font-family:Arial,sans-serif;max-width:860px;margin:0 auto;background:#f8fafc;padding:18px;color:#0f172a;">
     <div style="background:#ffffff;border:1px solid #e5e7eb;border-radius:12px;padding:16px;">
       <h2 style="margin:0 0 4px;">2026 Expo - Energizer Order</h2>
-      <p style="margin:0 0 10px;color:#475569;">Order #${orderId} · ${new Date().toLocaleString('en-AU')}</p>
+      <p style="margin:0 0 10px;color:#475569;">Order ${orderCode} · ${new Date().toLocaleString('en-AU')}</p>
       <p style="margin:0 0 4px;"><strong>Store:</strong> ${storeName}${banner ? ` / ${banner}` : ''}</p>
       <p style="margin:0 0 4px;"><strong>Submitted by:</strong> ${userName || 'Unknown'}</p>
       ${purchaseOrder ? `<p style="margin:0 0 10px;"><strong>PO / Notes:</strong> ${purchaseOrder}</p>` : ''}
@@ -2456,19 +2478,30 @@ function buildOrderEmailHtml({
         <tbody>${rowHtml}</tbody>
       </table>
       <p style="margin:12px 0 0;text-align:right;font-size:14px;"><strong>Total: $${(Number(totalValue) || 0).toFixed(2)}</strong></p>
+      ${spinPrizeLine ? `<p style="margin:8px 0 0;text-align:right;font-size:13px;color:#0f172a;"><strong>Energizer Spin to Win Prize : (${String(spinPrizeLine).trim()})</strong></p>` : ''}
     </div>
   </div>`;
+}
+
+function escapeHtmlAttr(s) {
+  return String(s || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
 
 function buildRepForwardEmailHtml({ orderHtml, forwardUrl, customerEmail }) {
   const c = String(customerEmail || '').trim();
   const cHtml = c ? `<p style="margin:0 0 12px;color:#334155;">Customer recipient: <strong>${c}</strong></p>` : '';
+  const href = escapeHtmlAttr(forwardUrl);
   const action = forwardUrl
-    ? `<p style="margin:14px 0 0;">
-         <a href="${forwardUrl}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">
+    ? `<div style="margin:14px 0 0;">
+         <a href="${href}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:10px 16px;border-radius:8px;font-weight:600;">
            Confirm & Forward to Customer
          </a>
-       </p>`
+         <p style="margin:8px 0 0;font-size:12px;color:#475569;">This opens your email app with a prefilled draft. Send from your mailbox so it appears in Sent items. Nothing is sent from dble until you press Send in your mail app.</p>
+       </div>`
     : '';
   return `
     <div style="font-family:Arial,sans-serif;max-width:900px;margin:0 auto;">
@@ -2483,42 +2516,45 @@ function buildRepForwardEmailHtml({ orderHtml, forwardUrl, customerEmail }) {
   `;
 }
 
-function buildOrderForwardMailtoHref({
-  customerEmail,
-  storeName,
-  orderId,
-  totalValue,
-  purchaseOrder,
-  items,
-}) {
-  const to = String(customerEmail || '').trim();
-  const subject = `2026 Expo - Energizer Order - ${storeName} - #${orderId}`;
+function buildOrderForwardMailtoHref({ model, customerEmail }) {
+  const to = normalizeEmail(customerEmail || '');
+  const orderCode = formatPublicOrderCode(model?.orderId);
+  const subject = `2026 Expo - Energizer Order - ${model?.storeName || ''} - ${orderCode}`;
   const lines = [];
-  lines.push('Hi,');
+  lines.push(`Hello, ${String(model?.userName || '').trim() || 'Sales Team'} just wanted to share your order confirmation below.`);
   lines.push('');
-  lines.push('Please find your order confirmation below.');
+  lines.push(`Order: ${orderCode}`);
+  lines.push(`Store: ${String(model?.storeName || '').trim()}${model?.banner ? ` / ${String(model.banner).trim()}` : ''}`);
+  if (model?.purchaseOrder) lines.push(`PO / Notes: ${String(model.purchaseOrder).trim()}`);
   lines.push('');
-  lines.push(`Order: #${orderId}`);
-  lines.push(`Store: ${storeName}`);
-  if (purchaseOrder) lines.push(`PO / Notes: ${purchaseOrder}`);
-  lines.push('');
-  lines.push('Items:');
-  (items || []).forEach((item) => {
-    const qty = Math.max(1, Number(item.quantity) || 1);
-    const drops = Array.isArray(item.dropMonths) ? item.dropMonths : Array(qty).fill(item.dropMonth || 'September');
-    const grouped = drops.reduce((acc, d) => {
-      const k = String(d || 'September').trim();
-      acc[k] = (acc[k] || 0) + 1;
-      return acc;
-    }, {});
-    const dropText = Object.entries(grouped).map(([m, n]) => `${m}: ${n}`).join(', ');
-    lines.push(`- ${String(item.description || item.offerId || 'Item').trim()} | Qty ${qty} | Drop ${dropText}`);
+  lines.push('Order Details:');
+  const grouped = new Map();
+  (model?.items || []).forEach((item) => {
+    const key = String(item.offerGroup || item.offerId || 'Order bundle').trim();
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push(item);
   });
-  lines.push('');
-  lines.push(`Total: $${(Number(totalValue) || 0).toFixed(2)}`);
+  grouped.forEach((arr, label) => {
+    lines.push(`- Bundle: ${label}`);
+    arr.forEach((item) => {
+      const qty = Math.max(1, Number(item.quantity) || 1);
+      const drops = Array.isArray(item.dropMonths) ? item.dropMonths : [];
+      const dropCounts = drops.reduce((acc, d) => {
+        const k = String(d || 'September').trim();
+        acc[k] = (acc[k] || 0) + 1;
+        return acc;
+      }, {});
+      const dropText = Object.entries(dropCounts).map(([m, n]) => `${m}: ${n}`).join(', ');
+      const lineTotal = ((Number(item.cost) || 0) * qty).toFixed(2);
+      lines.push(`  • ${String(item.description || item.offerId || 'Item').trim()} | Qty ${qty}${dropText ? ` | Drop ${dropText}` : ''} | $${lineTotal}`);
+    });
+    lines.push('');
+  });
+  lines.push(`Total: $${(Number(model?.totalValue) || 0).toFixed(2)}`);
+  if (model?.spinPrizeLine) lines.push(`Energizer Spin to Win Prize : (${String(model.spinPrizeLine).trim()})`);
   lines.push('');
   lines.push('Regards,');
-  lines.push('Energizer Sales Team');
+  lines.push(String(model?.userName || 'Sales Team').trim());
   const body = lines.join('\n');
   return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
@@ -2529,29 +2565,24 @@ async function getLatestSpinPrize({ repEmail, storeId, storeName }) {
   const sname = String(storeName || '').trim();
   if (!rep && !sid && !sname) return null;
 
-  const clauses = [];
-  const vals = [];
-  if (rep) {
-    vals.push(rep);
-    clauses.push(`LOWER(COALESCE(rep_email,'')) = LOWER($${vals.length})`);
-  }
-  if (sid) {
-    vals.push(sid);
-    clauses.push(`NULLIF(TRIM(COALESCE(store_id,'')), '') = $${vals.length}`);
-  } else if (sname) {
-    vals.push(sname);
-    clauses.push(`LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($${vals.length}))`);
-  }
-  if (clauses.length === 0) return null;
-
   const { rows } = await pool.query(
     `SELECT prize_name, sku
      FROM spin_win_events
-     WHERE ${clauses.join(' AND ')}
-       AND created_at >= NOW() - INTERVAL '30 days'
-     ORDER BY created_at DESC
+     WHERE created_at >= NOW() - INTERVAL '30 days'
+       AND (
+         ($1 <> '' AND LOWER(COALESCE(rep_email,'')) = LOWER($1))
+         OR ($2 <> '' AND NULLIF(TRIM(COALESCE(store_id,'')), '') = $2)
+         OR ($3 <> '' AND LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($3)))
+       )
+     ORDER BY
+       (
+         CASE WHEN $1 <> '' AND LOWER(COALESCE(rep_email,'')) = LOWER($1) THEN 4 ELSE 0 END +
+         CASE WHEN $2 <> '' AND NULLIF(TRIM(COALESCE(store_id,'')), '') = $2 THEN 3 ELSE 0 END +
+         CASE WHEN $3 <> '' AND LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($3)) THEN 2 ELSE 0 END
+       ) DESC,
+       created_at DESC
      LIMIT 1`,
-    vals,
+    [rep, sid, sname],
   );
   const row = rows[0];
   if (!row) return null;
@@ -2580,6 +2611,23 @@ async function getOrderEmailModel(orderId) {
      ORDER BY id ASC`,
     [orderIdNum],
   );
+  const offerIds = Array.from(new Set(itemRows.map((r) => String(r.offer_id || '').trim()).filter(Boolean)));
+  let offerToName = new Map();
+  if (offerIds.length > 0) {
+    const { rows: offerRows } = await pool.query(
+      `SELECT "OFFER", MAX("Offer Name") AS oname, MAX("Offer Group") AS og
+       FROM offers
+       WHERE "OFFER" = ANY($1)
+       GROUP BY "OFFER"`,
+      [offerIds],
+    );
+    offerToName = new Map(
+      offerRows.map((r) => [
+        String(r.OFFER || '').trim(),
+        String(r.oname || '').trim() || String(r.og || '').trim(),
+      ]),
+    );
+  }
   const grouped = new Map();
   itemRows.forEach((row) => {
     const key = `${String(row.description || '').trim()}||${String(row.cost || '0')}||${String(row.offer_id || '')}||${String(row.offer_tier || '')}`;
@@ -2589,6 +2637,7 @@ async function getOrderEmailModel(orderId) {
         offerTier: row.offer_tier || '',
         description: String(row.description || '').trim(),
         cost: Number.parseFloat(String(row.cost || '0')) || 0,
+        offerGroup: offerToName.get(String(row.offer_id || '').trim()) || '',
         quantity: 0,
         dropMonths: [],
       });
@@ -2652,30 +2701,14 @@ app.post('/api/save-order', requireAuth, async (req, res) => {
     const capturedRecipient = normalizeEmail(email);
     if (repRecipient) {
       try {
-        const spinPrizeLine = await getLatestSpinPrize({
-          repEmail: repRecipient,
-          storeId: storeCode,
-          storeName,
-        });
-        const orderHtml = buildOrderEmailHtml({
-          orderId,
-          storeName,
-          banner,
-          userName,
-          purchaseOrder,
-          items,
-          totalValue,
-          spinPrizeLine,
-        });
+        const model = await getOrderEmailModel(orderId);
+        if (!model) throw new Error(`Order model not found for #${orderId}`);
+        const orderHtml = buildOrderEmailHtml(model);
         let repHtml = orderHtml;
         if (capturedRecipient) {
           const forwardUrl = buildOrderForwardMailtoHref({
+            model,
             customerEmail: capturedRecipient,
-            storeName,
-            orderId,
-            totalValue,
-            purchaseOrder,
-            items,
           });
           repHtml = buildRepForwardEmailHtml({
             orderHtml,
@@ -2685,9 +2718,9 @@ app.post('/api/save-order', requireAuth, async (req, res) => {
         }
         await sendEmailMessage({
           to: repRecipient,
-          subject: `2026 Expo - Energizer Order - ${storeName} - #${orderId}`,
+          subject: `2026 Expo - Energizer Order - ${model.storeName} - ${formatPublicOrderCode(model.orderId)}`,
           html: repHtml,
-          text: `Order #${orderId} for ${storeName}. Total $${(Number(totalValue) || 0).toFixed(2)}`,
+          text: `Order ${formatPublicOrderCode(model.orderId)} for ${model.storeName}. Total $${(Number(model.totalValue) || 0).toFixed(2)}`,
           from: orderEmailFrom,
           replyTo: orderReplyTo || undefined,
         });
@@ -2725,15 +2758,21 @@ app.post('/api/order-forward/confirm', async (req, res) => {
     }
     const model = await getOrderEmailModel(row.order_id);
     if (!model) return res.status(404).json({ ok: false, error: 'Order not found.' });
+    const mailtoUrl = buildOrderForwardMailtoHref({
+      model,
+      customerEmail: normalizeEmail(row.customer_email),
+    });
     return res.json({
       ok: true,
       orderId: model.orderId,
+      publicOrderCode: formatPublicOrderCode(model.orderId),
       storeName: model.storeName,
       customerEmail: row.customer_email,
       repEmail: row.rep_email,
       totalValue: model.totalValue,
       itemCount: model.items.reduce((n, it) => n + (Number(it.quantity) || 0), 0),
       expiresAt: row.expires_at,
+      mailtoUrl,
     });
   } catch (err) {
     console.error('POST /api/order-forward/confirm:', err.message || err);
@@ -2763,20 +2802,61 @@ app.post('/api/order-forward/send', async (req, res) => {
     if (!model) return res.status(404).json({ ok: false, error: 'Order not found.' });
     const customerEmail = normalizeEmail(row.customer_email);
     if (!customerEmail) return res.status(400).json({ ok: false, error: 'No customer email to forward to.' });
-    const html = buildOrderEmailHtml(model);
-    await sendEmailMessage({
-      to: customerEmail,
-      subject: `2026 Expo - Energizer Order - ${model.storeName} - #${model.orderId}`,
-      html,
-      text: `Order #${model.orderId} for ${model.storeName}. Total $${(Number(model.totalValue) || 0).toFixed(2)}`,
-      from: orderEmailFrom,
-      replyTo: orderReplyTo || undefined,
+    const mailtoUrl = buildOrderForwardMailtoHref({ model, customerEmail });
+    return res.json({
+      ok: true,
+      mailtoUrl,
+      message:
+        'Customer email is not sent from our servers. Use the mailto link from your own mailbox so it appears in Sent items.',
     });
-    await pool.query(`UPDATE order_forward_tokens SET used_at = NOW() WHERE id = $1`, [row.id]);
-    return res.json({ ok: true });
   } catch (err) {
     console.error('POST /api/order-forward/send:', err.message || err);
-    return res.status(500).json({ ok: false, error: 'Could not forward order email.' });
+    return res.status(500).json({ ok: false, error: 'Could not build forward draft.' });
+  }
+});
+
+/** Legacy one-click links from older emails: never send from server; offer mailto only. */
+app.get('/api/order-forward/go', async (req, res) => {
+  try {
+    const token = String(req.query?.token || '').trim();
+    if (!token) return res.status(400).type('html').send('<p>Missing forward token.</p>');
+    const tokenHash = sha256Hex(token);
+    const { rows } = await pool.query(
+      `SELECT id, order_id, rep_email, customer_email, expires_at, used_at
+       FROM order_forward_tokens
+       WHERE token_hash = $1
+       LIMIT 1`,
+      [tokenHash],
+    );
+    const row = rows[0];
+    if (!row) {
+      return res.status(404).type('html').send(
+        '<p>This forward link is not valid. Ask for a fresh confirmation email from a new order submit.</p>',
+      );
+    }
+    if (new Date(row.expires_at).getTime() <= Date.now()) {
+      return res.status(400).type('html').send('<p>This forward link has expired.</p>');
+    }
+    const model = await getOrderEmailModel(row.order_id);
+    if (!model) return res.status(404).type('html').send('<p>Order not found.</p>');
+    const customerEmail = normalizeEmail(row.customer_email);
+    if (!customerEmail) return res.status(400).type('html').send('<p>No customer email on file.</p>');
+    const mailtoUrl = buildOrderForwardMailtoHref({ model, customerEmail });
+    const href = escapeHtmlAttr(mailtoUrl);
+    res.setHeader('Content-Type', 'text/html; charset=utf-8');
+    return res.status(200).send(`<!DOCTYPE html>
+<html><head><meta charset="utf-8"><title>Forward to customer</title></head>
+<body style="font-family:Arial,sans-serif;background:#f8fafc;padding:24px;">
+  <div style="max-width:640px;margin:0 auto;background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:20px;">
+    <h2 style="margin:0 0 10px;color:#0f172a;">Send from your mailbox</h2>
+    <p style="margin:0 0 12px;color:#334155;">No email was sent from dble. Use the button below to open your mail app with a prefilled message to <strong>${escapeHtmlAttr(customerEmail)}</strong>. Press Send there so it appears in your Sent items.</p>
+    <p style="margin:0 0 16px;"><a href="${href}" style="display:inline-block;background:#0f766e;color:#fff;text-decoration:none;padding:12px 18px;border-radius:8px;font-weight:600;">Open mail app</a></p>
+    <p style="margin:0;font-size:12px;color:#64748b;">If the button does not work, copy this link into your browser address bar: ${escapeHtmlAttr(mailtoUrl)}</p>
+  </div>
+</body></html>`);
+  } catch (err) {
+    console.error('GET /api/order-forward/go:', err.message || err);
+    return res.status(500).type('html').send('<p>Could not prepare forward draft.</p>');
   }
 });
 
