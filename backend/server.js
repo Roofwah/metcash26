@@ -188,6 +188,7 @@ app.use(cookieParser());
 
 const AUTH_SESSION_COOKIE = 'metcash_session';
 const AUTH_SESSION_DAYS = Number(process.env.AUTH_SESSION_DAYS || 10);
+const AUTH_SESSION_COOKIE_DOMAIN = String(process.env.AUTH_SESSION_COOKIE_DOMAIN || '').trim();
 const OTP_CODE_MINUTES = Number(process.env.OTP_CODE_MINUTES || process.env.MAGIC_LINK_MINUTES || 15);
 const OTP_MAX_ATTEMPTS = Math.max(1, Number(process.env.OTP_MAX_ATTEMPTS || 5));
 const APP_BASE_URL = (process.env.APP_BASE_URL || `http://localhost:${PORT}`).trim();
@@ -265,22 +266,26 @@ app.get('/healthz', (_req, res) => {
 });
 
 function setSessionCookie(res, sessionId) {
-  res.cookie(AUTH_SESSION_COOKIE, sessionId, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     maxAge: AUTH_SESSION_DAYS * 24 * 60 * 60 * 1000,
     path: '/',
-  });
+  };
+  if (AUTH_SESSION_COOKIE_DOMAIN) cookieOptions.domain = AUTH_SESSION_COOKIE_DOMAIN;
+  res.cookie(AUTH_SESSION_COOKIE, sessionId, cookieOptions);
 }
 
 function clearSessionCookie(res) {
-  res.clearCookie(AUTH_SESSION_COOKIE, {
+  const cookieOptions = {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-  });
+  };
+  if (AUTH_SESSION_COOKIE_DOMAIN) cookieOptions.domain = AUTH_SESSION_COOKIE_DOMAIN;
+  res.clearCookie(AUTH_SESSION_COOKIE, cookieOptions);
 }
 
 async function getSessionById(sessionId) {
