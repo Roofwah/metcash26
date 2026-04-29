@@ -348,7 +348,8 @@
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-x: contain;
   overscroll-behavior-y: auto;
-  touch-action: pan-x pinch-zoom;
+  /* Allow vertical page scrolling while preserving horizontal card swipes. */
+  touch-action: pan-x pan-y pinch-zoom;
   margin-bottom: 0;
   scrollbar-width: thin;
   box-sizing: border-box;
@@ -359,7 +360,7 @@
 }
 
 .offers-carousel * {
-  touch-action: inherit;
+  touch-action: auto;
 }
 
 .offers-carousel::-webkit-scrollbar {

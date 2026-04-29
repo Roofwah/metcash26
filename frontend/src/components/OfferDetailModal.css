@@ -15,13 +15,14 @@
     max(0.75rem, env(safe-area-inset-bottom)) max(0.75rem, env(safe-area-inset-left));
   box-sizing: border-box;
   -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
 }
 
-/* Landscape tablets / iPad: modal sits too high — nudge down 50px (no max-width: iPad Pro exceeds 1366) */
+/* Landscape tablets / iPad: slight downward nudge without clipping actions. */
 @media (orientation: landscape) and (min-width: 600px) {
   .offer-detail-modal-content {
-    transform: translateY(50px);
-    -webkit-transform: translateY(50px);
+    transform: translateY(24px);
+    -webkit-transform: translateY(24px);
   }
 }
 
@@ -30,6 +31,8 @@
   border-radius: 16px;
   max-width: min(100vw - 1.5rem, 960px);
   width: 100%;
+  /* Older Safari fallback first, then dynamic viewport when supported. */
+  max-height: min(92vh, 920px);
   max-height: min(92dvh, 920px);
   overflow: hidden;
   display: flex;
