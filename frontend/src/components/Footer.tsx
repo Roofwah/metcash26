@@ -8,10 +8,9 @@ interface FooterProps {
   hideStatusOrb?: boolean;
 }
 
-const FOOTER_COMMIT_STAMP = '6a41c44  ·  2026-04-28 09:59';
-
 const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
   const [backendConnected, setBackendConnected] = useState(false);
+  const [commitStamp, setCommitStamp] = useState('build unknown');
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -25,6 +24,19 @@ const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
     checkBackend();
     const interval = setInterval(checkBackend, 5000);
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const versionPath = window.location.pathname.startsWith('/metcash26')
+      ? '/metcash26/version.json'
+      : '/version.json';
+    fetch(versionPath, { cache: 'no-store' })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        const stamp = String(data?.stamp || '').trim();
+        if (stamp) setCommitStamp(stamp);
+      })
+      .catch(() => undefined);
   }, []);
 
   return (
@@ -58,7 +70,7 @@ const Footer: React.FC<FooterProps> = ({ onBack, hideStatusOrb = false }) => {
         </div>
 
         <div className="footer-commit-stamp" aria-label="Build commit reference">
-          {FOOTER_COMMIT_STAMP}
+          {commitStamp}
         </div>
       </div>
     </footer>

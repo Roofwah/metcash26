@@ -17,6 +17,7 @@
   },
   "scripts": {
     "start": "react-scripts start",
+    "prebuild": "node scripts/writeVersionJson.js",
     "build": "react-scripts build",
     "test": "react-scripts test"
   },
