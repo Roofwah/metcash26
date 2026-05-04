@@ -214,7 +214,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
           {cartItems.map((item, index) => {
               if (item.fixedBundle) {
                 const B = Math.max(1, item.quantity);
-                const minQty = Math.max(1, item.minQuantity ?? 1);
+                const minQty = 0;
                 const rawBundleMonths =
                   item.dropMonths && item.dropMonths.length >= B
                     ? item.dropMonths
@@ -377,7 +377,7 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               }
 
               const firstDropMonth = item.dropMonths?.[0] ?? DEFAULT_DROP_MONTH;
-              const minQty = Math.max(0, item.minQuantity ?? 1);
+              const minQty = Math.max(0, item.minQuantity ?? (item.fixedBundle ? 1 : 0));
               const isLocked = !!item.lockQuantity && !item.fixedBundle;
               return (
                 <div key={index} className="order-item">

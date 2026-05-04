@@ -371,6 +371,11 @@ function App() {
   };
 
   const handleGoToCart = () => {
+    if (sessionFlow === 'mso' && cartItems.length === 0) {
+      // MSO should remain on the matrix when nothing is selected.
+      setCurrentStep('mso-matrix');
+      return;
+    }
     setCurrentStep(cartItems.length > 0 ? 'order-summary' : 'empty-cart-thankyou');
   };
 
@@ -425,7 +430,9 @@ function App() {
       }
 
       if (currentItem.lockQuantity && !currentItem.fixedBundle) return prev;
-      const minQty = Math.max(0, currentItem.minQuantity ?? 1);
+      // Standard rows can drop to zero (remove line). Fixed bundles also allow zero from Order
+      // Summary so users can remove a pre-pack without clearing the full cart.
+      const minQty = Math.max(0, currentItem.fixedBundle ? 0 : (currentItem.minQuantity ?? 0));
       let q = quantity;
       if (q < minQty) q = minQty;
       if (q <= 0) {
@@ -768,6 +775,13 @@ function App() {
   };
 
   const handleMsoMatrixCheckout = (items: MsoMatrixCartItem[]) => {
+    if (!items || items.length === 0) {
+      // Defensive guard: avoid rendering empty checkout states in MSO flow.
+      setCartItems([]);
+      setMsoMatrixDraftItems([]);
+      setCurrentStep('mso-matrix');
+      return;
+    }
     const itemsWithDropMonths = items.map((item) => {
       const W =
         item.fixedBundle || item.splitBundle
