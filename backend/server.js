@@ -1400,7 +1400,16 @@ function groupOffersRows(rows) {
     if (key === 'Energizer 7' && row.Save && row.Save.includes('50%')) {
       grouped[key].save = '50%';
     }
-    if (row.Description) {
+    // Include every priced line in `items` for cart math. Previously only `row.Description`
+    // rows were pushed while expoChargeBackCost summed *all* rows — empty Description in
+    // DB made catalog totals (expoChargeBackCost) higher than sum(offer.items[].expoTotalCost),
+    // so quick-add fixed bundles were priced below true expo (critical).
+    const lineLabel =
+      normalizeCsvCell(row.Description) ||
+      normalizeCsvCell(row.SKU || row.Code) ||
+      normalizeCsvCell(row['Offer Name']) ||
+      (expoTotalCostNum > 0 || totalUnitCostNum > 0 ? 'Offer component' : '');
+    if (lineLabel) {
       const expoPrice  = expoTotalCostNum;
       const normCost   = totalUnitCostNum;
       const rrp        = rrpNum;
@@ -1409,7 +1418,7 @@ function groupOffersRows(rows) {
       const discount   = normCost > 0 ? ((normCost - expoPrice) / normCost * 100).toFixed(1) + '%' : (row.Save || '');
       const margin     = rrp > 0 ? ((rrp - expoPerUnit) / rrp * 100).toFixed(1) + '%' : '';
       grouped[key].descriptions.push({
-        description:  row.Description,
+        description:  row.Description || lineLabel,
         metcashCode:  row['HTH Code'] || row.Code || '',
         qty:          row.Qty || '',
         rrp:          row['SRP / Promo RRP'] || '',
@@ -1421,7 +1430,7 @@ function groupOffersRows(rows) {
 
       grouped[key].items.push({
         sku: normalizeCsvCell(row.SKU || row.Code),
-        description: normalizeCsvCell(row.Description),
+        description: normalizeCsvCell(row.Description) || lineLabel,
         baseQty,
         cartonQty,
         rrp: rrpNum,

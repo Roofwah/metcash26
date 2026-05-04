@@ -4,7 +4,7 @@ import './OfferDetail.css';
 import LearnMoreModal from './LearnMoreModal';
 import { apiUrl } from '../api';
 import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
-import { recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { recomputeChooseNPackCount, recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
 import { offerCardEditorialHeading, offerEditorialImageGalleryUrls } from '../utils/offerMedia';
 import {
   chooseNMaxUnitsForLine,
@@ -211,8 +211,13 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
         offerData.items.forEach((item) => {
           const baseQty = Math.max(0, Number(item.baseQty ?? item.qty ?? item.Qty ?? 0) || 0);
           if (baseQty <= 0) return;
-          totalExpo += parseFloat(String(item['Expo Total Cost'] || '0')) || 0;
+          totalExpo +=
+            parseFloat(String(item['Expo Total Cost'] || item.expoPrice || '0')) || 0;
         });
+        const catalogExpo = parseFloat(offerData.expoChargeBackCost || '0') || 0;
+        if (catalogExpo > totalExpo + 0.05) {
+          totalExpo = catalogExpo;
+        }
         const label =
           offerCardEditorialHeading({
             modalTitle: offerData.modalTitle,
@@ -296,6 +301,7 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
           });
         });
         if (lineDetails.length > 0) {
+          const wTorch = Math.max(1, recomputeChooseNPackCount(lineDetails));
           const label =
             offerCardEditorialHeading({
               modalTitle: offerData.modalTitle,
@@ -311,7 +317,7 @@ const OfferDetail: React.FC<OfferDetailProps> = ({ offerId, userData, storeData,
             chooseNBundle: true,
             chooseNMinSel: minS,
             lineDetails,
-            dropMonths: [DEFAULT_DROP_MONTH],
+            dropMonths: Array.from({ length: wTorch }, () => DEFAULT_DROP_MONTH),
           });
         }
       } else {

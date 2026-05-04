@@ -7,6 +7,7 @@ import {
   formatPriorYearSalesQty,
   shouldShowPriorYearSalesQty,
 } from '../utils/priorYearSales';
+import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
 import { offerCardEditorialHeading, offerMatrixColumnMedia } from '../utils/offerMedia';
 import { chooseNMaxUnitsForLine, isMixedChooseNOffer } from '../utils/mixedChooseN';
 import {
@@ -34,11 +35,11 @@ function msoCommittedExpoForCell(
   bundles: CellBundleMap,
 ): number {
   const cell = bundles[sk]?.[offer.offerId];
-  if (cell && cell.quantity > 0) {
-    if (cell.splitBundle || cell.chooseNBundle) {
-      return (cell.lineDetails || []).reduce((s, l) => s + parseFloat(l.cost) * (l.quantity || 0), 0);
-    }
-    return parseFloat(cell.cost || '0') * (cell.quantity || 0);
+  // Split / choose-N economics live on lineDetails (updated by inline configure flows).
+  // Fixed and simple rows must follow matrix `q`: a cached `cell` from the first configure /
+  // rehydrate still carries the old `cell.quantity`, so cost×cell.quantity ignores +/- on the grid.
+  if (cell && cell.quantity > 0 && (cell.splitBundle || cell.chooseNBundle)) {
+    return (cell.lineDetails || []).reduce((s, l) => s + parseFloat(l.cost) * (l.quantity || 0), 0);
   }
   return msoMatrixCellCommittedExpo(offer, q);
 }
@@ -553,6 +554,19 @@ const MsoOfferMatrix: React.FC<MsoOfferMatrixProps> = ({
         const q = row[offer.offerId] ?? 0;
         const custom = cellBundles[sk]?.[offer.offerId];
         if (custom && custom.quantity > 0) {
+          if (q <= 0) {
+            continue;
+          }
+          if (custom.fixedBundle) {
+            const minB = Math.max(1, Number(offer.rules?.minBundleQty) || 1);
+            const newQty = q * minB;
+            const dm = custom.dropMonths || [];
+            const pad = dm.length > 0 ? dm[dm.length - 1]! : DEFAULT_DROP_MONTH;
+            const dropMonths =
+              dm.length >= newQty ? dm.slice(0, newQty) : [...dm, ...Array.from({ length: newQty - dm.length }, () => pad)];
+            out.push({ ...custom, quantity: newQty, dropMonths });
+            continue;
+          }
           out.push(custom);
           continue;
         }

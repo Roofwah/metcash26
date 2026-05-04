@@ -22,7 +22,7 @@ export type RetailCartItem = {
   fixedBundle?: boolean;
   /** SPLIT + allow line increase: one row; `quantity` = synced bundle count W; `lineDetails` = SKU qtys (≥ W×base). */
   splitBundle?: boolean;
-  /** MIXED CHOOSE_N: one custom bundle row; `quantity` = 1; `lineDetails` = selected torch lines. */
+  /** MIXED CHOOSE_N: one cart row; `quantity` is usually 1; pack count for drops = `recomputeChooseNPackCount(lineDetails)`. */
   chooseNBundle?: boolean;
   lineDetails?: BundleLineDetail[];
   /** MSO: set on rows from matrix; still expanded when bundle flags are set. */
@@ -68,6 +68,21 @@ export function recomputeSplitBundleW(lineDetails: BundleLineDetail[]): number {
     minB = Math.min(minB, Math.floor(d.quantity / b));
   }
   return minB === Infinity ? 0 : minB;
+}
+
+/**
+ * Full-pack count for MIXED CHOOSE_N (e.g. TORCH_1). Only lines with qty > 0 count — unselected
+ * SKUs must not pull the minimum to zero (which would collapse drops to a single pack).
+ */
+export function recomputeChooseNPackCount(lineDetails: BundleLineDetail[]): number {
+  const active = (lineDetails || []).filter((d) => (Number(d.quantity) || 0) > 0);
+  if (!active.length) return 1;
+  let minB = Infinity;
+  for (const d of active) {
+    const b = Math.max(1, Number(d.baseQty) || 1);
+    minB = Math.min(minB, Math.floor((Number(d.quantity) || 0) / b));
+  }
+  return minB === Infinity ? 1 : Math.max(1, minB);
 }
 
 function dropMonthsForSkuUnits(
@@ -164,7 +179,9 @@ export function expandRetailCartItemsForSaveOrder(cart: RetailCartItem[], offers
 
   for (const it of cart) {
     if (it.splitBundle || it.chooseNBundle) {
-      const W = it.splitBundle ? Math.max(1, Number(it.quantity) || 1) : 1;
+      const W = it.splitBundle
+        ? Math.max(1, Number(it.quantity) || 1)
+        : Math.max(1, recomputeChooseNPackCount(it.lineDetails || []));
       const bundleDrops =
         it.dropMonths && it.dropMonths.length >= W
           ? it.dropMonths

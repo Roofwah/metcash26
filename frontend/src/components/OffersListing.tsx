@@ -16,7 +16,7 @@ import {
   formatPriorYearSalesQty,
   shouldShowPriorYearSalesQty,
 } from '../utils/priorYearSales';
-import { recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { recomputeChooseNPackCount, recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
 
 interface DescriptionItem {
   description: string;
@@ -179,6 +179,8 @@ interface OffersListingProps {
   onRemoveCartLine?: (offerId: string, description: string) => void;
   /** Remove every cart row for an offer (used for MIXED CHOOSE_N main-card minus). */
   onClearOfferCartLines?: (offerId: string) => void;
+  /** Set CHOOSE_N pack count (all active lines scaled) in one cart update. */
+  onSetChooseNPacks?: (offerId: string, targetW: number) => void;
   showSalesDashboardButton?: boolean;
   onOpenSalesDashboard?: () => void;
   onOpenInsightsNavigation?: () => void;
@@ -196,6 +198,7 @@ const OffersListing: React.FC<OffersListingProps> = ({
   onUpdateCartLineQuantity,
   onRemoveCartLine,
   onClearOfferCartLines,
+  onSetChooseNPacks,
   showSalesDashboardButton,
   onOpenSalesDashboard,
   onOpenInsightsNavigation,
@@ -359,11 +362,9 @@ const OffersListing: React.FC<OffersListingProps> = ({
     const lines = offer.items || [];
     if (lines.length === 0) return getOrderedQuantity(offer.offerId);
     if (isMixedChooseNOffer(offer.rules)) {
-      const any = lines.some((line) => {
-        const d = String(line.description || '');
-        return !!getLineCartEntry(offer.offerId, d, line.sku);
-      });
-      return any ? 1 : 0;
+      const bundle = cartItems.find((c) => c.offerId === offer.offerId && c.chooseNBundle);
+      if (!bundle?.lineDetails?.length) return 0;
+      return recomputeChooseNPackCount(bundle.lineDetails);
     }
     const mode = String(offer.rules?.offerMode || '').toUpperCase();
     if (mode === 'SPLIT' && offer.rules?.allowLineIncrease) {
@@ -450,6 +451,10 @@ const OffersListing: React.FC<OffersListingProps> = ({
         if (b <= 0) continue;
         totalExpo += Number(line.expoTotalCost) || 0;
       }
+      const catalogExpo = parseFloat(offer.expoChargeBackCost) || 0;
+      if (catalogExpo > totalExpo + 0.05) {
+        totalExpo = catalogExpo;
+      }
       const perBundleCost = addQty > 0 && totalExpo > 0 ? totalExpo / addQty : 0;
       onAddToCart([
         {
@@ -519,9 +524,32 @@ const OffersListing: React.FC<OffersListingProps> = ({
     const isFixedLike = mode === 'FIXED' || (mode === 'SPLIT' && !allowLineIncrease);
     const lines = offer.items || [];
     if (lines.length === 0) return;
-    if (isMixedChooseNOffer(offer.rules) && delta < 0) {
-      onClearOfferCartLines?.(offer.offerId);
-      return;
+
+    if (isMixedChooseNOffer(offer.rules)) {
+      const bundle = cartItems.find((c) => c.offerId === offer.offerId && c.chooseNBundle);
+      if (delta > 0) {
+        if (!bundle?.lineDetails?.length) {
+          handleAddOfferFast(offer, e);
+          return;
+        }
+        if (onSetChooseNPacks) {
+          const w = recomputeChooseNPackCount(bundle.lineDetails);
+          onSetChooseNPacks(offer.offerId, w + 1);
+        }
+        return;
+      }
+      if (delta < 0) {
+        if (!bundle?.lineDetails?.length) return;
+        const w = recomputeChooseNPackCount(bundle.lineDetails);
+        if (w <= 1) {
+          onClearOfferCartLines?.(offer.offerId);
+          return;
+        }
+        if (onSetChooseNPacks) {
+          onSetChooseNPacks(offer.offerId, w - 1);
+        }
+        return;
+      }
     }
 
     if (delta > 0) {
@@ -637,6 +665,16 @@ const OffersListing: React.FC<OffersListingProps> = ({
     const suggestedSellQty = suggestForOffer?.suggest;
     const orderedExpoChargeBack = (() => {
       const rows = cartItems.filter((item) => item.offerId === offer.offerId);
+      // Fixed-like offers must price from fixedBundle rows. Previously any split/chooseN row
+      // for the same offerId was preferred via .find(), so a stray or legacy split line could
+      // supply a partial lineDetails sum while the card still showed "Ordered" from the fixed row
+      // — wrong sub-total (e.g. ~⅔ of true bundle expo when lineDetails covered 4 of 6 SKUs).
+      if (fixedLikeCard) {
+        const fixedRows = rows.filter((r) => r.fixedBundle);
+        if (fixedRows.length > 0) {
+          return fixedRows.reduce((s, r) => s + (parseFloat(r.cost || '0') || 0) * (r.quantity || 0), 0);
+        }
+      }
       const bundle = rows.find((r) => r.splitBundle || r.chooseNBundle);
       if (bundle?.lineDetails?.length) {
         return bundle.lineDetails.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);

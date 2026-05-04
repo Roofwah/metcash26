@@ -1,7 +1,7 @@
 import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
 import { offerCardEditorialHeading } from './offerMedia';
 import { chooseNMaxUnitsForLine, isMixedChooseNOffer } from './mixedChooseN';
-import { recomputeSplitBundleW, type BundleLineDetail } from './expandRetailOrderItems';
+import { recomputeChooseNPackCount, recomputeSplitBundleW, type BundleLineDetail } from './expandRetailOrderItems';
 
 export type MsoMatrixOfferRules = {
   offerMode?: string;
@@ -94,12 +94,17 @@ export function chooseNMatrixLineDescription(line: MsoMatrixOfferLine, idx: numb
 function repriceChooseNMatrixRow(row: MsoMatrixCartItem): MsoMatrixCartItem {
   const details = row.lineDetails || [];
   const lineSum = details.reduce((s, l) => s + parseFloat(String(l.cost || '0')) * (l.quantity || 0), 0);
+  const newW = Math.max(1, recomputeChooseNPackCount(details));
+  const prev = row.dropMonths || [];
+  const pad = [...prev];
+  while (pad.length < newW) pad.push(DEFAULT_DROP_MONTH);
+  const dropMonths = pad.slice(0, newW);
   return {
     ...row,
     quantity: 1,
     chooseNBundle: true,
     cost: lineSum.toFixed(2),
-    dropMonths: row.dropMonths?.length ? row.dropMonths : [DEFAULT_DROP_MONTH],
+    dropMonths,
   };
 }
 
@@ -309,13 +314,14 @@ export function buildMsoMatrixCartItemFromCell(
       });
     });
     if (lineDetails.length === 0) return null;
+    const wPack = Math.max(1, recomputeChooseNPackCount(lineDetails));
     return {
       offerId: offer.offerId,
       offerTier: tier,
       quantity: 1,
       description: `${title}${descSuffix}`,
       cost: sum.toFixed(2),
-      dropMonths: [DEFAULT_DROP_MONTH],
+      dropMonths: Array.from({ length: wPack }, () => DEFAULT_DROP_MONTH),
       msoStoreKey: storeKey,
       minQuantity: 1,
       lockQuantity: true,

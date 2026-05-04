@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { apiUrl } from '../api';
 import { DEFAULT_DROP_MONTH } from '../constants/dropMonths';
-import { recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { recomputeChooseNPackCount, recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
 import { offerCardEditorialHeading } from '../utils/offerMedia';
 import { offerDetailModal } from '../content/modalCopy';
 import {
@@ -635,7 +635,11 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                           for (const item of items) {
                             const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
                             if (base <= 0) continue;
-                            totalExpo += parseNum(item['Expo Total Cost']);
+                            totalExpo += parseNum(item['Expo Total Cost'] ?? item.expoPrice);
+                          }
+                          const catalogExpo = parseNum(offerData.expoChargeBackCost);
+                          if (catalogExpo > totalExpo + 0.05) {
+                            totalExpo = catalogExpo;
                           }
                           const perBundle =
                             safeQty > 0 && totalExpo > 0
@@ -664,7 +668,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                             const quantity = Math.max(base, Number(lineQuantities[`line-${idx}`] ?? base));
                             if (quantity <= 0) return;
                             const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
-                            const expoTotal = parseNum(item['Expo Total Cost']);
+                            const expoTotal = parseNum(item['Expo Total Cost'] ?? item.expoPrice);
                             const unitCost =
                               unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
                             lineDetails.push({
@@ -707,7 +711,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                             const quantity = Math.max(0, Number(lineQuantities[`line-${idx}`] ?? 0));
                             if (quantity <= 0) return;
                             const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
-                            const expoTotal = parseNum(item['Expo Total Cost']);
+                            const expoTotal = parseNum(item['Expo Total Cost'] ?? item.expoPrice);
                             const unitCost =
                               unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
                             sum += unitCost * quantity;
@@ -724,6 +728,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                               modalTitle: offerData.modalTitle,
                               h1: offerData.h1,
                             }) || offerData.offerGroup;
+                          const wTorch = Math.max(1, recomputeChooseNPackCount(lineDetails));
                           cartRows =
                             lineDetails.length > 0
                               ? [
@@ -737,7 +742,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                                     chooseNBundle: true,
                                     chooseNMinSel: minSel,
                                     lineDetails,
-                                    dropMonths: [DEFAULT_DROP_MONTH],
+                                    dropMonths: Array.from({ length: wTorch }, () => DEFAULT_DROP_MONTH),
                                   },
                                 ]
                               : [];
@@ -747,7 +752,7 @@ const OfferDetailModal: React.FC<OfferDetailModalProps> = ({
                               const base = Math.max(0, Number(item.baseQty ?? item.Qty ?? 0) || 0);
                               const quantity = Math.max(1, Number(item.Qty ?? 1) || 1);
                               const unitCostFromApi = Number(item.lineUnitExpoCost ?? 0);
-                              const expoTotal = parseNum(item['Expo Total Cost']);
+                              const expoTotal = parseNum(item['Expo Total Cost'] ?? item.expoPrice);
                               const unitCost =
                                 unitCostFromApi > 0 ? unitCostFromApi : base > 0 ? expoTotal / base : expoTotal;
                               return {

@@ -25,6 +25,7 @@ import { DEFAULT_DROP_MONTH, normalizeDropMonth } from './constants/dropMonths';
 import { storeSales } from './content/modalCopy';
 import {
   expandRetailCartItemsForSaveOrder,
+  recomputeChooseNPackCount,
   recomputeSplitBundleW,
   type BundleLineDetail,
 } from './utils/expandRetailOrderItems';
@@ -50,7 +51,7 @@ interface CartItem {
   fixedBundle?: boolean;
   /** SPLIT + line increase: one row; quantity = synced bundle count W. */
   splitBundle?: boolean;
-  /** MIXED CHOOSE_N: one custom bundle; quantity = 1. */
+  /** MIXED CHOOSE_N: one row; pack count for drops from `recomputeChooseNPackCount(lineDetails)`. */
   chooseNBundle?: boolean;
   lineDetails?: BundleLineDetail[];
   /** Used when removing torch lines so the cart can enforce min selections. */
@@ -241,10 +242,16 @@ function App() {
   };
 
   const handleAddToCart = (items: CartItem[]) => {
-    const itemsWithDropMonths = items.map((item) => ({
-      ...item,
-      dropMonths: item.dropMonths || Array(item.quantity).fill(DEFAULT_DROP_MONTH),
-    }));
+    const itemsWithDropMonths = items.map((item) => {
+      const slots =
+        item.chooseNBundle
+          ? Math.max(1, recomputeChooseNPackCount(item.lineDetails || []))
+          : Math.max(1, Number(item.quantity) || 1);
+      return {
+        ...item,
+        dropMonths: item.dropMonths || Array(slots).fill(DEFAULT_DROP_MONTH),
+      };
+    });
     setCartItems((prev) => {
       const next = [...prev];
       for (const incoming of itemsWithDropMonths) {
@@ -283,12 +290,17 @@ function App() {
             else merged.push({ ...row });
           }
           const lineSum = merged.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+          const newW = Math.max(1, recomputeChooseNPackCount(merged));
           next[chooseMergeIdx] = {
             ...existing,
             lineDetails: merged,
             quantity: 1,
             cost: lineSum.toFixed(2),
             chooseNMinSel: existing.chooseNMinSel ?? incoming.chooseNMinSel,
+            dropMonths: padBundleDropMonths(
+              [...(existing.dropMonths || []), ...(incoming.dropMonths || [])],
+              newW,
+            ),
           };
           continue;
         }
@@ -393,7 +405,23 @@ function App() {
         if (quantity <= 0) {
           return prev.filter((_, i) => i !== index);
         }
-        return prev;
+        const minW = Math.max(1, currentItem.minQuantity ?? 1);
+        const w = Math.max(minW, Math.floor(quantity));
+        const details = (currentItem.lineDetails || []).map((d) => {
+          const b = Math.max(1, Number(d.baseQty) || 1);
+          if ((Number(d.quantity) || 0) <= 0) return d;
+          return { ...d, quantity: w * b };
+        });
+        const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+        const currentDropMonths = currentItem.dropMonths || [];
+        updated[index] = {
+          ...currentItem,
+          quantity: 1,
+          lineDetails: details,
+          cost: lineSum.toFixed(2),
+          dropMonths: padBundleDropMonths(currentDropMonths, w),
+        };
+        return updated;
       }
 
       if (currentItem.lockQuantity && !currentItem.fixedBundle) return prev;
@@ -418,6 +446,36 @@ function App() {
 
   const handleClearOfferCartLines = (offerId: string) => {
     setCartItems((prev) => prev.filter((item) => item.offerId !== offerId));
+  };
+
+  /** Retail listing: bump CHOOSE_N pack count in one state update (avoids stale reads from per-line updates). */
+  const handleSetChooseNPacks = (offerId: string, targetW: number) => {
+    if (targetW <= 0) {
+      setCartItems((prev) => prev.filter((item) => !(item.offerId === offerId && item.chooseNBundle)));
+      return;
+    }
+    setCartItems((prev) => {
+      const idx = prev.findIndex((item) => item.offerId === offerId && item.chooseNBundle);
+      if (idx < 0) return prev;
+      const current = prev[idx];
+      const minW = Math.max(1, current.minQuantity ?? 1);
+      const w = Math.max(minW, Math.floor(targetW));
+      const details = (current.lineDetails || []).map((d) => {
+        const b = Math.max(1, Number(d.baseQty) || 1);
+        if ((Number(d.quantity) || 0) <= 0) return d;
+        return { ...d, quantity: w * b };
+      });
+      const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+      const next = [...prev];
+      next[idx] = {
+        ...current,
+        quantity: 1,
+        lineDetails: details,
+        cost: lineSum.toFixed(2),
+        dropMonths: padBundleDropMonths(current.dropMonths, w),
+      };
+      return next;
+    });
   };
 
   const handleUpdateCartLineQuantity = (
@@ -459,10 +517,12 @@ function App() {
           }
           details.splice(di, 1);
           const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+          const newWAfterSplice = Math.max(1, recomputeChooseNPackCount(details));
           updated[bundleIdx] = {
             ...current,
             lineDetails: details,
             cost: lineSum.toFixed(2),
+            dropMonths: padBundleDropMonths(current.dropMonths, newWAfterSplice),
           };
           return updated;
         }
@@ -481,11 +541,13 @@ function App() {
           return updated;
         }
         const lineSum = details.reduce((s, l) => s + parseFloat(l.cost || '0') * (l.quantity || 0), 0);
+        const newW = Math.max(1, recomputeChooseNPackCount(details));
         updated[bundleIdx] = {
           ...current,
           lineDetails: details,
           quantity: 1,
           cost: lineSum.toFixed(2),
+          dropMonths: padBundleDropMonths(current.dropMonths, newW),
         };
         return updated;
       }
@@ -546,7 +608,14 @@ function App() {
             dropMonths: padBundleDropMonths(row.dropMonths, newW),
           };
         } else {
-          next[bidx] = { ...row, lineDetails: details, quantity: 1, cost: lineSum.toFixed(2) };
+          const newW = Math.max(1, recomputeChooseNPackCount(details));
+          next[bidx] = {
+            ...row,
+            lineDetails: details,
+            quantity: 1,
+            cost: lineSum.toFixed(2),
+            dropMonths: padBundleDropMonths(row.dropMonths, newW),
+          };
         }
         return next;
       }
@@ -559,13 +628,17 @@ function App() {
   };
 
   const handleUpdateDropMonth = (index: number, unitIndex: number, dropMonth: string) => {
-    setCartItems(prev => {
+    setCartItems((prev) => {
       const updated = [...prev];
       const currentItem = updated[index];
-      const currentDropMonths = currentItem.dropMonths || Array(currentItem.quantity).fill(DEFAULT_DROP_MONTH);
-      const newDropMonths = [...currentDropMonths];
+      if (!currentItem) return prev;
+      const wNeeded = currentItem.chooseNBundle
+        ? Math.max(1, recomputeChooseNPackCount(currentItem.lineDetails || []))
+        : Math.max(1, Number(currentItem.quantity) || 1);
+      const base = padBundleDropMonths(currentItem.dropMonths, wNeeded);
+      const newDropMonths = [...base];
       newDropMonths[unitIndex] = dropMonth;
-      updated[index].dropMonths = newDropMonths;
+      updated[index] = { ...currentItem, dropMonths: newDropMonths };
       return updated;
     });
   };
@@ -700,14 +773,9 @@ function App() {
         item.fixedBundle || item.splitBundle
           ? Math.max(1, Number(item.quantity) || 1)
           : item.chooseNBundle
-            ? 1
+            ? Math.max(1, recomputeChooseNPackCount(item.lineDetails || []))
             : Math.max(1, Number(item.quantity) || 1);
-      const dropMonths =
-        item.dropMonths && item.dropMonths.length >= (item.chooseNBundle ? 1 : W)
-          ? item.dropMonths
-          : item.chooseNBundle
-            ? [DEFAULT_DROP_MONTH]
-            : Array.from({ length: W }, () => DEFAULT_DROP_MONTH);
+      const dropMonths = padBundleDropMonths(item.dropMonths, W);
       return { ...item, dropMonths };
     });
     setCartItems(itemsWithDropMonths as CartItem[]);
@@ -849,6 +917,7 @@ function App() {
           onUpdateCartLineQuantity={handleUpdateCartLineQuantity}
           onRemoveCartLine={handleRemoveCartLine}
           onClearOfferCartLines={handleClearOfferCartLines}
+          onSetChooseNPacks={handleSetChooseNPacks}
           showSalesDashboardButton={storeHasSalesData === true}
           onOpenSalesDashboard={() => setShowStoreSalesModal(true)}
           onOpenInsightsNavigation={handleOpenInsightsNavigation}

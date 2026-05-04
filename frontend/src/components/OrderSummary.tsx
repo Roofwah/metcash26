@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import './OrderSummary.css';
 import { type StoreData } from '../api';
 import { DEFAULT_DROP_MONTH, DROP_MONTH_OPTIONS, normalizeDropMonth } from '../constants/dropMonths';
-import type { BundleLineDetail } from '../utils/expandRetailOrderItems';
+import { recomputeChooseNPackCount, recomputeSplitBundleW, type BundleLineDetail } from '../utils/expandRetailOrderItems';
 
 interface CartItem {
   offerId: string;
@@ -278,7 +278,9 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
               }
 
               if (item.splitBundle || item.chooseNBundle) {
-                const W = item.splitBundle ? Math.max(1, item.quantity) : 1;
+                const W = item.splitBundle
+                  ? Math.max(1, item.quantity)
+                  : Math.max(1, recomputeChooseNPackCount(item.lineDetails || []));
                 const minSplitBundles = Math.max(1, item.minQuantity ?? 1);
                 const sub = bundleLineDetailsSubtotal(item.lineDetails);
                 const title = item.description;
@@ -348,43 +350,26 @@ const OrderSummary: React.FC<OrderSummaryProps> = ({
                       </div>
                     </div>
                     <div className="item-controls">
-                      {item.splitBundle ? (
-                        <div className="quantity-controls">
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(index, W - 1)}
-                            className="qty-btn"
-                            disabled={W <= minSplitBundles}
-                            aria-label="Remove one bundle"
-                          >
-                            -
-                          </button>
-                          <span className="qty-display">{W}</span>
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(index, W + 1)}
-                            className="qty-btn"
-                            aria-label="Add one bundle"
-                          >
-                            +
-                          </button>
-                        </div>
-                      ) : (
-                        <div className="quantity-controls">
-                          <button
-                            type="button"
-                            onClick={() => onUpdateQuantity(index, 0)}
-                            className="qty-btn"
-                            aria-label="Remove custom bundle from order"
-                          >
-                            -
-                          </button>
-                          <span className="qty-display">1</span>
-                          <button type="button" className="qty-btn" disabled aria-hidden="true" tabIndex={-1}>
-                            +
-                          </button>
-                        </div>
-                      )}
+                      <div className="quantity-controls">
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity(index, W - 1)}
+                          className="qty-btn"
+                          disabled={item.splitBundle && W <= minSplitBundles}
+                          aria-label="Remove one bundle"
+                        >
+                          -
+                        </button>
+                        <span className="qty-display">{W}</span>
+                        <button
+                          type="button"
+                          onClick={() => onUpdateQuantity(index, W + 1)}
+                          className="qty-btn"
+                          aria-label="Add one bundle"
+                        >
+                          +
+                        </button>
+                      </div>
                       <div className="item-total">${sub.toFixed(2)}</div>
                     </div>
                   </div>
