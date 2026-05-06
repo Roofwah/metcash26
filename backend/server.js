@@ -2568,39 +2568,6 @@ function buildOrderForwardMailtoHref({ model, customerEmail }) {
   return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 
-async function getLatestSpinPrize({ repEmail, storeId, storeName }) {
-  const rep = String(repEmail || '').trim();
-  const sid = String(storeId || '').trim();
-  const sname = String(storeName || '').trim();
-  if (!rep && !sid && !sname) return null;
-
-  const { rows } = await pool.query(
-    `SELECT prize_name, sku
-     FROM spin_win_events
-     WHERE created_at >= NOW() - INTERVAL '30 days'
-       AND (
-         ($1 <> '' AND LOWER(COALESCE(rep_email,'')) = LOWER($1))
-         OR ($2 <> '' AND NULLIF(TRIM(COALESCE(store_id,'')), '') = $2)
-         OR ($3 <> '' AND LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($3)))
-       )
-     ORDER BY
-       (
-         CASE WHEN $1 <> '' AND LOWER(COALESCE(rep_email,'')) = LOWER($1) THEN 4 ELSE 0 END +
-         CASE WHEN $2 <> '' AND NULLIF(TRIM(COALESCE(store_id,'')), '') = $2 THEN 3 ELSE 0 END +
-         CASE WHEN $3 <> '' AND LOWER(TRIM(COALESCE(store_name,''))) = LOWER(TRIM($3)) THEN 2 ELSE 0 END
-       ) DESC,
-       created_at DESC
-     LIMIT 1`,
-    [rep, sid, sname],
-  );
-  const row = rows[0];
-  if (!row) return null;
-  const prize = String(row.prize_name || '').trim();
-  const sku = String(row.sku || '').trim();
-  if (!prize && !sku) return null;
-  return sku ? `${prize} (${sku})` : prize;
-}
-
 async function getOrderEmailModel(orderId) {
   const orderIdNum = Number.parseInt(String(orderId), 10);
   if (!Number.isFinite(orderIdNum)) return null;
@@ -2655,11 +2622,6 @@ async function getOrderEmailModel(orderId) {
     g.quantity += 1;
     g.dropMonths.push(String(row.drop_month || 'September'));
   });
-  const spinPrizeLine = await getLatestSpinPrize({
-    repEmail: order.rep_email,
-    storeId: order.store_code,
-    storeName: order.store_name,
-  });
   return {
     orderId: order.id,
     storeName: order.store_name || '',
@@ -2669,7 +2631,7 @@ async function getOrderEmailModel(orderId) {
     totalValue: Number.parseFloat(String(order.total_value || '0')) || 0,
     customerEmail: normalizeEmail(order.email || ''),
     items: Array.from(grouped.values()),
-    spinPrizeLine,
+    spinPrizeLine: null,
   };
 }
 
