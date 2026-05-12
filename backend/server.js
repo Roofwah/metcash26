@@ -821,6 +821,34 @@ function canonicalSalesCategoryKey(s) {
   return x;
 }
 
+/**
+ * Same normalization as frontend `canonicalOfferId` in priorYearSales.ts — used
+ * to map cart `offer_id` (e.g. ENERGIZER_1) to FY25 dashboard columns without
+ * relying on coarse `Offer Group` ("Energizer"), which fuzzy-matches every
+ * Energizer sales25 header and incorrectly picks the longest name (Specialty Range).
+ */
+function canonicalSales25DashboardOfferKey(s) {
+  return String(s || '')
+    .toUpperCase()
+    .replace(/[^A-Z0-9]/g, '');
+}
+
+/** OFFER id → sales25 value-column index 0..9 (headers at headerNames[5+i]). */
+const SALES25_DASHBOARD_OFFER_TO_IDX = new Map(
+  Object.entries({
+    ENERGIZER1: 0,
+    ENERGIZER2: 2,
+    /** Max 8s & 10s loose — aligns with 14/16 FY25 column (24pk split not modeled). */
+    ENERGIZER3: 3,
+    ENERGIZER4: 5,
+    EVEREADY1: 1,
+    ARMORALL1: 7,
+    ARMORALL2: 6,
+    JELLYBELLY1: 8,
+    TORCH1: 9,
+  })
+);
+
 /** Map offer line → sales25 column index 0..9, or -1 */
 function sales25CategoryIndexForOffer(offerGroup, offerId, headerNames) {
   const names = [];
@@ -3287,12 +3315,13 @@ app.get('/api/dashboard/sales25-vs-orders', requireAuth, async (req, res) => {
       WHERE oi.offer_id IS NOT NULL AND TRIM(oi.offer_id) != ''
     `);
     const { rows: offerMapRows } = await pool.query(`
-      SELECT "OFFER", MAX("Offer Group") AS og
+      SELECT "OFFER", MAX("Offer Group") AS og, MAX("Offer Name") AS oname
       FROM offers
       WHERE "OFFER" IS NOT NULL AND TRIM("OFFER") != ''
       GROUP BY "OFFER"
     `);
     const offerToGroup = new Map(offerMapRows.map((r) => [String(r.OFFER).trim(), r.og]));
+    const offerToName = new Map(offerMapRows.map((r) => [String(r.OFFER).trim(), r.oname]));
 
     const curQty = Array(10).fill(0);
     const curVal = Array(10).fill(0);
@@ -3304,8 +3333,14 @@ app.get('/api/dashboard/sales25-vs-orders', requireAuth, async (req, res) => {
       const q = parseInt(row.quantity, 10) || 0;
       const unitCost = parseFloat(row.cost) || 0;
       const lineVal = q * unitCost;
-      const og = offerToGroup.get(oid) || '';
-      const idx = sales25CategoryIndexForOffer(og, oid, sales25ItemNames);
+      const offerKey = canonicalSales25DashboardOfferKey(oid);
+      let idx = SALES25_DASHBOARD_OFFER_TO_IDX.get(offerKey);
+      if (idx === undefined) {
+        const label = String(offerToName.get(oid) || '').trim();
+        const og = String(offerToGroup.get(oid) || '').trim();
+        idx = sales25CategoryIndexForOffer(label, oid, sales25ItemNames);
+        if (idx < 0) idx = sales25CategoryIndexForOffer(og, oid, sales25ItemNames);
+      }
       if (idx < 0) {
         unmappedQty += q;
         unmappedVal += lineVal;
