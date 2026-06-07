@@ -592,6 +592,7 @@ async function initDb() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS email TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_code TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rep_email TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_channel TEXT NOT NULL DEFAULT 'retail'`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS auth_magic_links (
@@ -777,6 +778,16 @@ let sales25Rows = [];
 let sales25ItemNames = [];
 /** Single flight — API handlers await this so data exists before responding. */
 let sales25CsvLoadPromise = null;
+/** State value targets from target.csv (Total / Non MSO / MSO rows). */
+const TARGET_STATE_ORDER = ['NSW', 'QLD', 'SA', 'VIC', 'WA', 'TAS'];
+let targetByState = {};
+let targetNonMsoByState = {};
+let targetMsoByState = {};
+let targetNational = 0;
+let targetNonMsoNational = 0;
+let targetMsoNational = 0;
+let targetCsvLoaded = false;
+let targetCsvLoadPromise = null;
 /** In-memory rows from suggest.csv — store-level suggested sell quantities by category. */
 let suggestRows = [];
 let suggestItemNames = [];
@@ -973,6 +984,99 @@ function loadSales25Csv() {
       });
   });
   return sales25CsvLoadPromise;
+}
+
+function resolveTargetCsvPath() {
+  const candidates = [
+    path.join(__dirname, 'target.csv'),
+    path.join(process.cwd(), 'backend', 'target.csv'),
+    path.join(process.cwd(), 'target.csv'),
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return null;
+}
+
+function parseTargetCsvRow(cells, colByKey) {
+  const byState = {};
+  let national = 0;
+  if (colByKey.NATIONAL !== undefined) {
+    const raw = String(cells[colByKey.NATIONAL] ?? '').trim();
+    national = raw !== '' ? (parseFloat(raw) || 0) : 0;
+  }
+  for (const state of TARGET_STATE_ORDER) {
+    if (colByKey[state] !== undefined) {
+      const raw = String(cells[colByKey[state]] ?? '').trim();
+      byState[state] = raw !== '' ? (parseFloat(raw) || 0) : 0;
+    }
+  }
+  return { national, byState };
+}
+
+function parseTargetCsvFile(filePath) {
+  let raw = fs.readFileSync(filePath, 'utf8');
+  if (raw.charCodeAt(0) === 0xfeff) raw = raw.slice(1);
+  const lines = raw.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (lines.length < 2) return false;
+
+  const headers = lines[0].split(',').map((h) => h.trim());
+  const colByKey = {};
+  headers.forEach((h, i) => {
+    if (i === 0) return;
+    const code = canonicalAustralianStateCode(h) || String(h || '').trim().toUpperCase();
+    if (code) colByKey[code] = i;
+  });
+
+  const totalLine = lines.find((l) => /^Total,/i.test(l));
+  const nonMsoLine = lines.find((l) => /^Non MSO,/i.test(l));
+  const msoLine = lines.find((l) => /^MSO,/i.test(l));
+  if (!totalLine) return false;
+
+  const total = parseTargetCsvRow(totalLine.split(',').map((c) => c.trim()), colByKey);
+  const nonMso = nonMsoLine
+    ? parseTargetCsvRow(nonMsoLine.split(',').map((c) => c.trim()), colByKey)
+    : { national: 0, byState: {} };
+  const mso = msoLine
+    ? parseTargetCsvRow(msoLine.split(',').map((c) => c.trim()), colByKey)
+    : { national: 0, byState: {} };
+
+  targetByState = total.byState;
+  targetNonMsoByState = nonMso.byState;
+  targetMsoByState = mso.byState;
+  targetNational = total.national;
+  targetNonMsoNational = nonMso.national;
+  targetMsoNational = mso.national;
+  return true;
+}
+
+function loadTargetCsv() {
+  if (targetCsvLoadPromise) return targetCsvLoadPromise;
+  targetCsvLoadPromise = Promise.resolve().then(() => {
+    const filePath = resolveTargetCsvPath();
+    if (!filePath) {
+      console.warn('target.csv not found — tried:', [
+        path.join(__dirname, 'target.csv'),
+        path.join(process.cwd(), 'backend', 'target.csv'),
+        path.join(process.cwd(), 'target.csv'),
+      ].join(' | '));
+      targetByState = {};
+      targetNonMsoByState = {};
+      targetMsoByState = {};
+      targetNational = 0;
+      targetNonMsoNational = 0;
+      targetMsoNational = 0;
+      targetCsvLoaded = false;
+      return;
+    }
+    targetCsvLoaded = parseTargetCsvFile(filePath);
+    if (targetCsvLoaded) {
+      console.log(`Loaded target.csv from ${filePath} (national target ${targetNational}).`);
+    } else {
+      console.warn(`target.csv at ${filePath} could not be parsed.`);
+    }
+  });
+  return targetCsvLoadPromise;
 }
 
 function resolveSuggestCsvPath() {
@@ -2668,13 +2772,16 @@ app.post('/api/save-order', requireAuth, async (req, res) => {
   try {
     const { storeNumber='', storeName='', banner='', userName='',
             position='', purchaseOrder='', email='', storeCode='', repEmail='', items=[], totalValue=0 } = req.body;
+    const orderChannel = String(req.body?.orderChannel || 'retail').trim().toLowerCase() === 'mso'
+      ? 'mso'
+      : 'retail';
 
     await client.query('BEGIN');
 
     const { rows: [{ id: orderId }] } = await client.query(
-      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,store_code,rep_email,total_value)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id`,
-      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, storeCode, repEmail, parseFloat(totalValue) || 0]
+      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,store_code,rep_email,total_value,order_channel)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, storeCode, repEmail, parseFloat(totalValue) || 0, orderChannel]
     );
 
     for (const item of items) {
@@ -3386,6 +3493,98 @@ app.get('/api/dashboard/sales25-vs-orders', requireAuth, async (req, res) => {
   }
 });
 
+function buildTargetBucket(actual, target) {
+  const actualR = Math.round((parseFloat(actual) || 0) * 100) / 100;
+  const targetR = Math.round((parseFloat(target) || 0) * 100) / 100;
+  const pct = targetR > 0
+    ? Math.round((actualR / targetR) * 1000) / 10
+    : (actualR > 0 ? 100 : 0);
+  const gap = Math.round((targetR - actualR) * 100) / 100;
+  return { actual: actualR, target: targetR, pct, gap };
+}
+
+/** Expo order value vs target.csv by state — total + Non MSO / MSO split (values only) */
+app.get('/api/dashboard/target-vs-orders', requireAuth, async (req, res) => {
+  try {
+    await loadTargetCsv();
+    if (!targetCsvLoaded) {
+      return res.json({
+        targetLoaded: false,
+        national: {
+          total: buildTargetBucket(0, 0),
+          nonMso: buildTargetBucket(0, 0),
+          mso: buildTargetBucket(0, 0),
+        },
+        states: [],
+        unmapped: { total: 0, nonMso: 0, mso: 0 },
+      });
+    }
+
+    const { rows } = await pool.query(`
+      SELECT COALESCE(ms.state, 'Unknown') AS state,
+             SUM(o.total_value)::numeric::float8 AS total_actual,
+             SUM(CASE WHEN LOWER(COALESCE(o.order_channel, 'retail')) = 'mso'
+                  THEN o.total_value ELSE 0 END)::numeric::float8 AS mso_actual,
+             SUM(CASE WHEN LOWER(COALESCE(o.order_channel, 'retail')) != 'mso'
+                  THEN o.total_value ELSE 0 END)::numeric::float8 AS non_mso_actual
+      FROM orders o
+      LEFT JOIN mcash_stores ms ON LOWER(ms.name) = LOWER(o.store_name)
+      GROUP BY ms.state
+    `);
+
+    const totalByState = new Map();
+    const nonMsoByState = new Map();
+    const msoByState = new Map();
+    let unmapped = { total: 0, nonMso: 0, mso: 0 };
+    let national = { total: 0, nonMso: 0, mso: 0 };
+
+    for (const row of rows) {
+      const rawState = String(row.state || '').trim();
+      const state = canonicalAustralianStateCode(rawState) || rawState;
+      const totalActual = parseFloat(row.total_actual) || 0;
+      const msoActual = parseFloat(row.mso_actual) || 0;
+      const nonMsoActual = parseFloat(row.non_mso_actual) || 0;
+      national.total += totalActual;
+      national.nonMso += nonMsoActual;
+      national.mso += msoActual;
+      if (!state || state === 'Unknown' || !TARGET_STATE_ORDER.includes(state)) {
+        unmapped.total += totalActual;
+        unmapped.nonMso += nonMsoActual;
+        unmapped.mso += msoActual;
+      } else {
+        totalByState.set(state, (totalByState.get(state) || 0) + totalActual);
+        nonMsoByState.set(state, (nonMsoByState.get(state) || 0) + nonMsoActual);
+        msoByState.set(state, (msoByState.get(state) || 0) + msoActual);
+      }
+    }
+
+    const states = TARGET_STATE_ORDER.map((state) => ({
+      state,
+      total: buildTargetBucket(totalByState.get(state) || 0, targetByState[state] || 0),
+      nonMso: buildTargetBucket(nonMsoByState.get(state) || 0, targetNonMsoByState[state] || 0),
+      mso: buildTargetBucket(msoByState.get(state) || 0, targetMsoByState[state] || 0),
+    }));
+
+    res.json({
+      targetLoaded: true,
+      national: {
+        total: buildTargetBucket(national.total, targetNational),
+        nonMso: buildTargetBucket(national.nonMso, targetNonMsoNational),
+        mso: buildTargetBucket(national.mso, targetMsoNational),
+      },
+      states,
+      unmapped: {
+        total: Math.round(unmapped.total * 100) / 100,
+        nonMso: Math.round(unmapped.nonMso * 100) / 100,
+        mso: Math.round(unmapped.mso * 100) / 100,
+      },
+    });
+  } catch (err) {
+    console.error('GET /api/dashboard/target-vs-orders:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.get('/api/dashboard/csv', requireAuth, async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -3578,6 +3777,7 @@ app.listen(PORT, async () => {
   console.log(`Metcash API → http://localhost:${PORT}`);
   await loadPosCsvFromDisk().catch((err) => console.error('pos.csv:', err.message));
   loadSales25Csv().catch((err) => console.error('sales25.csv:', err.message));
+  loadTargetCsv().catch((err) => console.error('target.csv:', err.message));
   loadSuggestCsv().catch((err) => console.error('suggest.csv:', err.message));
   initDbWithRetry();
 });

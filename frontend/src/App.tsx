@@ -697,6 +697,7 @@ function App() {
             email: data.email,
             storeCode: (store.storeId || '').trim(),
             repEmail: repEmail || '',
+            orderChannel: 'mso',
             items,
             totalValue,
           };
@@ -729,6 +730,7 @@ function App() {
           email: data.email,
           storeCode: (storeData.storeId || '').trim(),
           repEmail: repEmail || '',
+          orderChannel: 'retail',
           items,
           totalValue,
         };

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import axios from 'axios';
 import { apiUrl } from '../api';
 import './Dashboard.css';
@@ -39,6 +40,31 @@ interface ComparePayload {
     sales25Value: number;
   };
   sales25Loaded?: boolean;
+}
+
+interface TargetBucket {
+  actual: number;
+  target: number;
+  pct: number;
+  gap: number;
+}
+
+interface TargetStateRow {
+  state: string;
+  total: TargetBucket;
+  nonMso: TargetBucket;
+  mso: TargetBucket;
+}
+
+interface TargetPayload {
+  targetLoaded: boolean;
+  national: {
+    total: TargetBucket;
+    nonMso: TargetBucket;
+    mso: TargetBucket;
+  };
+  states: TargetStateRow[];
+  unmapped: { total: number; nonMso: number; mso: number };
 }
 
 interface Props { repEmail?: string; onClose: () => void; }
@@ -111,16 +137,166 @@ function BarChart({ data, isCurrency }: { data: ChartRow[]; isCurrency?: boolean
   );
 }
 
+const DONUT_R = 42;
+const DONUT_C = 2 * Math.PI * DONUT_R;
+
+function progressColor(pct: number): string {
+  if (pct >= 100) return '#16a34a';
+  if (pct >= 75) return '#ca8a04';
+  return '#dc2626';
+}
+
+function TargetDonut({
+  label,
+  actual,
+  target,
+  pct,
+  gap,
+  size = 'md',
+  noTarget = false,
+}: {
+  label: string;
+  actual: number;
+  target: number;
+  pct: number;
+  gap: number;
+  size?: 'sm' | 'md' | 'lg';
+  noTarget?: boolean;
+}) {
+  const dim = size === 'lg' ? 148 : size === 'sm' ? 96 : 120;
+  const cx = dim / 2;
+  const stroke = size === 'lg' ? 12 : size === 'sm' ? 8 : 10;
+  const hasTarget = target > 0;
+  const ringPct = noTarget && !hasTarget ? 0 : Math.min(Math.max(pct, 0), 100);
+  const offset = DONUT_C * (1 - ringPct / 100);
+  const color = noTarget && !hasTarget ? '#cbd5e1' : progressColor(pct);
+  const centerLabel = noTarget && !hasTarget
+    ? (actual > 0 ? '—' : 'N/A')
+    : `${pct}%`;
+
+  return (
+    <div className={`dash-target-donut dash-target-donut--${size}`}>
+      <svg
+        viewBox={`0 0 ${dim} ${dim}`}
+        width={dim}
+        height={dim}
+        className="dash-target-donut-svg"
+        aria-label={`${label}: ${pct}% of target`}
+      >
+        <circle
+          cx={cx}
+          cy={cx}
+          r={DONUT_R}
+          fill="none"
+          stroke="#ececf1"
+          strokeWidth={stroke}
+        />
+        {ringPct > 0 && (
+          <motion.circle
+            cx={cx}
+            cy={cx}
+            r={DONUT_R}
+            fill="none"
+            stroke={color}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            strokeDasharray={DONUT_C}
+            transform={`rotate(-90 ${cx} ${cx})`}
+            initial={{ strokeDashoffset: DONUT_C }}
+            animate={{ strokeDashoffset: offset }}
+            transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+          />
+        )}
+        <text
+          x={cx}
+          y={cx - 6}
+          textAnchor="middle"
+          className="dash-target-donut-pct"
+          fontSize={size === 'lg' ? 22 : size === 'sm' ? 15 : 18}
+          fontWeight="800"
+          fill="#1a1a2e"
+        >
+          {centerLabel}
+        </text>
+        <text
+          x={cx}
+          y={cx + 14}
+          textAnchor="middle"
+          className="dash-target-donut-label"
+          fontSize={size === 'lg' ? 12 : size === 'sm' ? 10 : 11}
+          fontWeight="700"
+          fill="#64748b"
+        >
+          {label}
+        </text>
+      </svg>
+      <div className="dash-target-donut-meta">
+        <span>{fmt(actual)}</span>
+        {hasTarget && (
+          <>
+            <span className="dash-target-donut-sep">/</span>
+            <span>{fmt(target)}</span>
+          </>
+        )}
+      </div>
+      <div className={`dash-target-donut-gap${gap <= 0 && hasTarget ? ' dash-target-donut-gap--over' : ''}`}>
+        {!hasTarget
+          ? (noTarget ? 'No target set' : '')
+          : gap > 0
+            ? `${fmt(gap)} to go`
+            : gap < 0
+              ? `${fmt(Math.abs(gap))} over`
+              : 'On target'}
+      </div>
+    </div>
+  );
+}
+
+function StateTargetSplit({ row }: { row: TargetStateRow }) {
+  return (
+    <div className="dashboard-targets-state-card">
+      <div className="dashboard-targets-state-heading">
+        <span>{row.state}</span>
+        <span className="dashboard-targets-state-total-pill">
+          {row.total.pct}% · {fmt(row.total.actual)}
+        </span>
+      </div>
+      <div className="dashboard-targets-split-pair">
+        <TargetDonut
+          label="Non MSO"
+          actual={row.nonMso.actual}
+          target={row.nonMso.target}
+          pct={row.nonMso.pct}
+          gap={row.nonMso.gap}
+          size="sm"
+        />
+        <TargetDonut
+          label="MSO"
+          actual={row.mso.actual}
+          target={row.mso.target}
+          pct={row.mso.pct}
+          gap={row.mso.gap}
+          size="sm"
+          noTarget={row.mso.target <= 0}
+        />
+      </div>
+    </div>
+  );
+}
+
 /* ── Main component ────────────────────────────────────────────────────────── */
 const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
-  const [view, setView] = useState<'table' | 'charts' | 'compare'>('table');
+  const [view, setView] = useState<'table' | 'charts' | 'compare' | 'targets'>('table');
   const [orders, setOrders] = useState<Order[]>([]);
   const [grandTotal, setGrandTotal] = useState(0);
   const [charts, setCharts] = useState<ChartData | null>(null);
   const [compare, setCompare] = useState<ComparePayload | null>(null);
+  const [targets, setTargets] = useState<TargetPayload | null>(null);
   const [compareError, setCompareError] = useState('');
+  const [targetsError, setTargetsError] = useState('');
   const [loading, setLoading] = useState(true);
   const [compareLoading, setCompareLoading] = useState(false);
+  const [targetsLoading, setTargetsLoading] = useState(false);
   const [error, setError] = useState('');
   const [csvBlockedFeedback, setCsvBlockedFeedback] = useState(false);
 
@@ -150,6 +326,18 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
       .finally(() => setCompareLoading(false));
   }, [view]);
 
+  useEffect(() => {
+    if (view !== 'targets') return;
+    setTargets(null);
+    setTargetsLoading(true);
+    setTargetsError('');
+    axios
+      .get<TargetPayload>(apiUrl('/api/dashboard/target-vs-orders'))
+      .then((res) => setTargets(res.data))
+      .catch(() => setTargetsError('Could not load target comparison.'))
+      .finally(() => setTargetsLoading(false));
+  }, [view]);
+
   const maxValue = Math.max(...orders.map(o => o.total_value), 1);
   const handleBlockedCsvClick = () => {
     setCsvBlockedFeedback(true);
@@ -159,7 +347,7 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
   return (
     <div className="dashboard-overlay" onClick={onClose}>
       <div
-        className={`dashboard-modal${view === 'compare' ? ' dashboard-modal--wide' : ''}`}
+        className={`dashboard-modal${view === 'compare' || view === 'targets' ? ' dashboard-modal--wide' : ''}`}
         onClick={e => e.stopPropagation()}
       >
 
@@ -196,6 +384,11 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
             >Charts</button>
             <button
               type="button"
+              className={`dash-toggle-btn ${view === 'targets' ? 'active' : ''}`}
+              onClick={() => setView('targets')}
+            >Targets</button>
+            <button
+              type="button"
               className={`dash-toggle-btn ${view === 'compare' ? 'active' : ''}`}
               onClick={() => setView('compare')}
             >FY25 vs orders</button>
@@ -213,8 +406,12 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
           </button>
         </div>
 
-        {loading && view !== 'compare' && <div className="dashboard-loading">Loading…</div>}
-        {error && view !== 'compare' && <div className="dashboard-error">{error}</div>}
+        {loading && view !== 'compare' && view !== 'targets' && (
+          <div className="dashboard-loading">Loading…</div>
+        )}
+        {error && view !== 'compare' && view !== 'targets' && (
+          <div className="dashboard-error">{error}</div>
+        )}
 
         {/* ── TABLE VIEW ── */}
         {!loading && !error && view === 'table' && (
@@ -284,6 +481,70 @@ const Dashboard: React.FC<Props> = ({ repEmail, onClose }) => {
               <h3 className="dash-chart-title">Rep — Sales Value</h3>
               <BarChart data={charts.repSales} isCurrency />
             </div>
+          </div>
+        )}
+
+        {/* ── Target vs current expo orders (target.csv) ── */}
+        {view === 'targets' && (
+          <div className="dashboard-targets">
+            {(targetsLoading || (!targetsError && !targets)) && (
+              <div className="dashboard-loading">Loading targets…</div>
+            )}
+            {targetsError && <div className="dashboard-error">{targetsError}</div>}
+            {!targetsLoading && !targetsError && targets && (
+              <>
+                <p className="dashboard-targets-intro">
+                  <strong>Expo order value</strong> vs <strong>target.csv</strong> — split by
+                  {' '}<strong>Non MSO</strong> and <strong>MSO</strong> per state. MSO orders are
+                  tagged at checkout; older orders count as Non MSO.
+                </p>
+                {!targets.targetLoaded && (
+                  <p className="dashboard-compare-warn">target.csv is not loaded on the server.</p>
+                )}
+                {targets.targetLoaded && targets.national && (
+                  <div className="dashboard-targets-national dashboard-targets-national--split">
+                    <TargetDonut
+                      label="Total"
+                      actual={targets.national.total.actual}
+                      target={targets.national.total.target}
+                      pct={targets.national.total.pct}
+                      gap={targets.national.total.gap}
+                      size="lg"
+                    />
+                    <TargetDonut
+                      label="Non MSO"
+                      actual={targets.national.nonMso.actual}
+                      target={targets.national.nonMso.target}
+                      pct={targets.national.nonMso.pct}
+                      gap={targets.national.nonMso.gap}
+                      size="lg"
+                    />
+                    <TargetDonut
+                      label="MSO"
+                      actual={targets.national.mso.actual}
+                      target={targets.national.mso.target}
+                      pct={targets.national.mso.pct}
+                      gap={targets.national.mso.gap}
+                      size="lg"
+                    />
+                  </div>
+                )}
+                {targets.targetLoaded && (
+                  <div className="dashboard-targets-state-grid">
+                    {(targets.states || []).map((row) => (
+                      <StateTargetSplit key={row.state} row={row} />
+                    ))}
+                  </div>
+                )}
+                {((targets.unmapped?.total ?? 0) > 0) && (
+                  <p className="dashboard-targets-unmapped">
+                    Unmapped state sales: {fmt(targets.unmapped.total)}
+                    {' '}(Non MSO {fmt(targets.unmapped.nonMso)}, MSO {fmt(targets.unmapped.mso)})
+                    {' '}— store not matched in mcash_stores
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
 
