@@ -3702,51 +3702,35 @@ if (buildPath) {
   console.log('Serving React build from:', buildPath);
   app.use('/metcash26', express.static(buildPath));
 
-  const holdingPageHtml = `<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DBLE</title>
-    <style>
-      html,body{height:100%;margin:0}
-      body{
-        font-family:Arial,sans-serif;
-        background:#0f172a;
-        color:#e2e8f0;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-      }
-      .card{
-        width:min(720px,92vw);
-        text-align:center;
-        border:1px solid rgba(148,163,184,.32);
-        background:rgba(15,23,42,.72);
-        border-radius:14px;
-        padding:26px 24px;
-      }
-      .logo{width:170px;max-width:70%;height:auto;margin:0 auto 14px;display:block}
-      p{margin:.5rem 0}
-      .footer{
-        margin-top:12px;
-        font-size:12px;
-        color:rgba(226,232,240,.72);
-      }
-    </style>
-  </head>
-  <body>
-    <div class="card">
-      <img src="/metcash26/dble_logo.svg" alt="DBLE" class="logo" />
-      <p>dble -Empowering Sales</p>
-      <p class="footer">dble.co | Flow Mktg 2026 Copyright</p>
-    </div>
-  </body>
-</html>`;
+  const landingDir = path.join(__dirname, '..', 'landing');
+  const landingIndexPath = path.join(landingDir, 'index.html');
+  if (fs.existsSync(landingIndexPath)) {
+    console.log('Serving DBLE landing page from:', landingIndexPath);
+    app.use(express.static(landingDir, { index: false }));
+    app.get('/dble_logo.svg', (_req, res) => {
+      const logoPath = path.join(landingDir, 'dble_logo.svg');
+      if (fs.existsSync(logoPath)) return res.sendFile(logoPath);
+      const buildLogo = path.join(buildPath, 'dble_logo.svg');
+      if (fs.existsSync(buildLogo)) return res.sendFile(buildLogo);
+      return res.status(404).end();
+    });
+    app.get('/dble_logo_wm.svg', (_req, res) => {
+      const logoPath = path.join(landingDir, 'dble_logo_wm.svg');
+      if (fs.existsSync(logoPath)) return res.sendFile(logoPath);
+      return res.status(404).end();
+    });
+  } else {
+    console.warn('landing/index.html not found — GET / will return 404 until the file is deployed.');
+  }
 
   app.get('/metcash26', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
   app.get(/^\/metcash26\/.*$/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
-  app.get('/', (req, res) => res.status(200).type('html').send(holdingPageHtml));
+  app.get('/', (req, res) => {
+    if (!fs.existsSync(landingIndexPath)) {
+      return res.status(404).type('html').send('<h1>DBLE landing page not found</h1>');
+    }
+    return res.sendFile(landingIndexPath);
+  });
 } else {
   app.get('/', (req, res) => res.status(200).send('<h1>metcash26-api running</h1><p>React build not found — run <code>npm run build</code> inside /frontend.</p>'));
 }

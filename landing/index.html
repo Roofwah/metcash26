@@ -1,0 +1,1763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>DBLE — Better Customer Conversations. Better Sales Outcomes.</title>
+  <meta name="description" content="DBLE helps sales teams identify opportunities, engage customers and sell more." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    :root {
+      --navy-950: #05080F;
+      --navy-900: #080D1A;
+      --navy-800: #0D1528;
+      --navy-700: #122038;
+      --navy-600: #1A3050;
+      --navy-500: #1E3A5F;
+      --navy-400: #2A4E7A;
+      --navy-300: #3B6499;
+      --navy-200: #5A82B4;
+      --navy-100: #8AAED1;
+      --navy-50:  #C4D8EC;
+      --white: #FFFFFF;
+      --off-white: #F4F6F9;
+      --text-primary: #FFFFFF;
+      --text-secondary: rgba(255,255,255,0.6);
+      --text-muted: rgba(255,255,255,0.35);
+      --border: rgba(255,255,255,0.08);
+      --border-subtle: rgba(255,255,255,0.04);
+      --accent: #4A8FD4;
+      --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    html {
+      scroll-behavior: smooth;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    body {
+      font-family: var(--font);
+      background-color: var(--navy-900);
+      color: var(--text-primary);
+      font-size: 16px;
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ── SKIP LINK ── */
+    .skip-link {
+      position: absolute;
+      top: -100%;
+      left: 1rem;
+      background: var(--white);
+      color: var(--navy-900);
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      z-index: 9999;
+      text-decoration: none;
+    }
+    .skip-link:focus { top: 1rem; }
+
+    /* ── LAYOUT ── */
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 2rem;
+    }
+    @media (max-width: 768px) {
+      .container { padding: 0 1.25rem; }
+    }
+
+    /* ── NAVIGATION ── */
+    #nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 1.5rem 0;
+      transition: background 300ms var(--ease-in-out), border-color 300ms var(--ease-in-out), padding 300ms var(--ease-in-out);
+      border-bottom: 1px solid transparent;
+    }
+    #nav.scrolled {
+      background: rgba(8, 13, 26, 0.92);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-color: var(--border);
+      padding: 1rem 0;
+    }
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-logo {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.625rem;
+      font-size: 1.375rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      text-decoration: none;
+    }
+    .nav-logo-mark {
+      width: auto;
+      height: 1.65rem;
+      max-width: min(42vw, 9.5rem);
+      flex-shrink: 0;
+      display: block;
+      shape-rendering: geometricPrecision;
+    }
+    .nav-logo span {
+      color: var(--accent);
+    }
+    .nav-links {
+      display: flex;
+      gap: 2.5rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      transition: color 200ms;
+    }
+    .nav-links a:hover { color: var(--white); }
+    .nav-links a.is-active {
+      color: var(--white);
+    }
+    .nav-links a.is-active.nav-contact {
+      border-color: rgba(74, 143, 212, 0.55);
+      background: rgba(74, 143, 212, 0.12);
+    }
+    .nav-links a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+    .nav-contact {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--white);
+      text-decoration: none;
+      border: 1px solid var(--border);
+      padding: 0.5rem 1.25rem;
+      border-radius: 6px;
+      transition: border-color 200ms, background 200ms;
+    }
+    .nav-contact:hover {
+      border-color: rgba(255,255,255,0.25);
+      background: rgba(255,255,255,0.06);
+    }
+    .nav-contact:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+    }
+    .nav-mobile-toggle {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
+      color: var(--white);
+    }
+    @media (max-width: 768px) {
+      .nav-links, .nav-contact { display: none; }
+      .nav-mobile-toggle { display: flex; align-items: center; }
+      .nav-links.open {
+        display: flex;
+        flex-direction: column;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--navy-800);
+        border-bottom: 1px solid var(--border);
+        padding: 1.5rem 1.25rem;
+        gap: 1.5rem;
+      }
+    }
+
+    /* ── SECTION BASE ── */
+    section,
+    #subscribe,
+    #contact {
+      position: relative;
+      scroll-margin-top: 5.75rem;
+    }
+
+    /* ── LABEL ── */
+    .section-label {
+      display: inline-block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      padding: 8rem 0 6rem;
+      background: var(--navy-900);
+      overflow: hidden;
+    }
+    .hero-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(74,143,212,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74,143,212,0.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+      mask-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.5) 20%, rgba(0,0,0,0.5) 80%, transparent);
+      -webkit-mask-image: linear-gradient(to bottom, transparent, rgba(0,0,0,0.5) 20%, rgba(0,0,0,0.5) 80%, transparent);
+    }
+    .hero-content {
+      position: relative;
+      max-width: 880px;
+    }
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2rem;
+    }
+    .hero-eyebrow::before {
+      content: '';
+      display: block;
+      width: 24px;
+      height: 1px;
+      background: var(--text-muted);
+    }
+    .hero-headline {
+      font-size: clamp(3rem, 7vw, 6rem);
+      font-weight: 800;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      margin-bottom: 1.5rem;
+    }
+    .hero-headline .line-2 {
+      color: var(--navy-100);
+    }
+    .hero-body {
+      font-size: clamp(1.0625rem, 2vw, 1.25rem);
+      font-weight: 400;
+      color: var(--text-secondary);
+      max-width: 520px;
+      line-height: 1.65;
+      margin-bottom: 3rem;
+    }
+    .hero-actions {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+    }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--white);
+      color: var(--navy-900);
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 700;
+      padding: 0.875rem 2rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      text-decoration: none;
+      transition: background 200ms, transform 150ms;
+      letter-spacing: -0.01em;
+    }
+    .btn-primary:hover { background: var(--off-white); }
+    .btn-primary:active { transform: scale(0.98); }
+    .btn-primary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: transparent;
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      padding: 0.875rem 2rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 200ms, background 200ms;
+      letter-spacing: -0.01em;
+    }
+    .btn-secondary:hover {
+      border-color: rgba(255,255,255,0.2);
+      background: rgba(255,255,255,0.05);
+    }
+    .btn-secondary:active { transform: scale(0.98); }
+    .btn-secondary:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    /* ── DIVIDER ── */
+    .section-divider {
+      width: 100%;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── PROBLEM ── */
+    #problem {
+      position: relative;
+      overflow: hidden;
+      padding: 8rem 0;
+      background: var(--navy-900);
+    }
+    .problem-chevrons {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .problem-chevrons canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+    .problem-chevrons-overlay {
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(105deg, rgba(8, 13, 26, 0.92) 0%, rgba(8, 13, 26, 0.55) 45%, rgba(8, 13, 26, 0.75) 100%);
+      pointer-events: none;
+    }
+    .problem-content {
+      position: relative;
+      z-index: 1;
+    }
+    .problem-inner {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6rem;
+      align-items: start;
+    }
+    .problem-headline {
+      font-size: clamp(2rem, 4vw, 3.25rem);
+      font-weight: 800;
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: var(--white);
+    }
+    .problem-headline em {
+      font-style: normal;
+      color: var(--navy-100);
+    }
+    .problem-body {
+      padding-top: 0.5rem;
+    }
+    .problem-intro {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 2.5rem;
+    }
+    .problem-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0.875rem;
+      margin-bottom: 2.5rem;
+    }
+    .problem-list li {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+    }
+    .problem-list li::before {
+      content: '';
+      display: block;
+      flex-shrink: 0;
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: var(--navy-300);
+    }
+    .problem-closing {
+      font-size: 1.375rem;
+      font-weight: 700;
+      color: var(--white);
+      line-height: 1.4;
+      letter-spacing: -0.02em;
+      border-left: 3px solid var(--accent);
+      padding-left: 1.5rem;
+    }
+    @media (max-width: 900px) {
+      .problem-inner {
+        grid-template-columns: 1fr;
+        gap: 3rem;
+      }
+    }
+
+    /* ── APPROACH ── */
+    #approach {
+      padding: 8rem 0;
+      background: var(--navy-800);
+    }
+    .approach-header {
+      max-width: 680px;
+      margin-bottom: 4rem;
+    }
+    .approach-headline {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--white);
+    }
+    .cards-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5px;
+      background: var(--border);
+      border: 1.5px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+    .approach-card {
+      background: var(--navy-800);
+      padding: 2.5rem;
+      transition: background 300ms;
+    }
+    .approach-card:hover {
+      background: var(--navy-700);
+    }
+    .card-number {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+    .card-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: var(--white);
+      line-height: 1.25;
+      margin-bottom: 1rem;
+    }
+    .card-body {
+      font-size: 0.9375rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+    @media (max-width: 768px) {
+      .cards-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* ── BELIEF ── */
+    #belief {
+      padding: 8rem 0;
+      background: var(--navy-900);
+    }
+    .belief-header {
+      max-width: 680px;
+      margin-bottom: 5rem;
+    }
+    .belief-headline {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+    .belief-body {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+    .belief-principles {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+    .principle {
+      padding: 3rem 3rem 3rem 0;
+      border-right: 1px solid var(--border);
+    }
+    .principle:last-child {
+      border-right: none;
+      padding-right: 0;
+      padding-left: 3rem;
+    }
+    .principle:nth-child(2) {
+      padding-left: 3rem;
+    }
+    .principle-number {
+      font-size: 0.6875rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1.25rem;
+    }
+    .principle-statement {
+      font-size: clamp(1.25rem, 2.5vw, 1.625rem);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.25;
+      color: var(--white);
+    }
+    @media (max-width: 900px) {
+      .belief-principles {
+        grid-template-columns: 1fr;
+      }
+      .principle {
+        padding: 2.5rem 0;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+      }
+      .principle:last-child {
+        border-bottom: none;
+        padding-left: 0;
+      }
+      .principle:nth-child(2) {
+        padding-left: 0;
+      }
+    }
+
+    /* ── PERSPECTIVE ── */
+    #perspective {
+      padding: 8rem 0;
+      background: var(--navy-800);
+    }
+    .perspective-header {
+      max-width: 680px;
+      margin-bottom: 5rem;
+    }
+    .perspective-headline {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      color: var(--white);
+    }
+    .perspective-headline .contrast {
+      color: var(--navy-100);
+    }
+    .comparison {
+      display: grid;
+      grid-template-columns: 1fr 1px 1fr;
+      gap: 0;
+    }
+    .comparison-divider {
+      background: var(--border);
+    }
+    .comparison-col {
+      padding: 2.5rem;
+    }
+    .comparison-col.traditional {
+      padding-left: 0;
+    }
+    .comparison-col.dble {
+      padding-right: 0;
+    }
+    .comparison-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      margin-bottom: 2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .comparison-label.trad-label {
+      color: var(--text-muted);
+    }
+    .comparison-label.dble-label {
+      color: var(--accent);
+    }
+    .comparison-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .comparison-list li {
+      padding: 1.125rem 0;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 1rem;
+      line-height: 1.5;
+    }
+    .comparison-list li:last-child {
+      border-bottom: none;
+    }
+    .comparison-col.traditional .comparison-list li {
+      color: var(--text-muted);
+    }
+    .comparison-col.dble .comparison-list li {
+      color: var(--white);
+      font-weight: 500;
+    }
+    @media (max-width: 768px) {
+      .comparison {
+        grid-template-columns: 1fr;
+      }
+      .comparison-divider { height: 1px; width: 100%; }
+      .comparison-col.traditional { padding-left: 0; padding-bottom: 2.5rem; }
+      .comparison-col.dble { padding-right: 0; padding-top: 2.5rem; }
+    }
+
+    /* ── EXPERIENCE ── */
+    #experience {
+      padding: 8rem 0;
+      background: var(--navy-900);
+    }
+    .experience-header {
+      max-width: 760px;
+      margin-bottom: 2rem;
+    }
+    .experience-headline {
+      font-size: clamp(2rem, 4vw, 3rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+    .experience-body {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 640px;
+    }
+    .logo-section {
+      margin-top: 5rem;
+      padding-top: 4rem;
+      border-top: 1px solid var(--border);
+    }
+    .logo-section-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 2.5rem;
+    }
+    .logo-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 0;
+    }
+    .logo-item {
+      padding: 1.75rem 2rem;
+      border-right: 1px solid var(--border-subtle);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-item:nth-child(5n) { border-right: none; }
+    .logo-item:nth-last-child(-n+5) { border-bottom: none; }
+    .logo-name {
+      font-size: 0.875rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      transition: color 250ms;
+    }
+    .logo-item:hover .logo-name { color: var(--text-secondary); }
+    @media (max-width: 900px) {
+      .logo-grid { grid-template-columns: repeat(3, 1fr); }
+      .logo-item:nth-child(5n) { border-right: 1px solid var(--border-subtle); }
+      .logo-item:nth-child(3n) { border-right: none; }
+    }
+    @media (max-width: 600px) {
+      .logo-grid { grid-template-columns: repeat(2, 1fr); }
+      .logo-item:nth-child(3n) { border-right: 1px solid var(--border-subtle); }
+      .logo-item:nth-child(2n) { border-right: none; }
+    }
+
+    /* ── FUTURE ── */
+    #future {
+      padding: 9rem 0;
+      background: var(--navy-800);
+      text-align: center;
+    }
+    .future-inner {
+      max-width: 720px;
+      margin: 0 auto;
+    }
+    .future-headline {
+      font-size: clamp(2.5rem, 5vw, 4rem);
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.08;
+      color: var(--white);
+      margin-bottom: 2rem;
+    }
+    .future-body {
+      font-size: 1.125rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 3.5rem;
+    }
+    .future-closing {
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      letter-spacing: 0.02em;
+    }
+
+    /* ── SUBSCRIBE (IDEO-style) ── */
+    #subscribe {
+      background: var(--navy-950);
+      border-top: 1px solid var(--border);
+      padding: clamp(4rem, 8vw, 6rem) 0;
+    }
+    .subscribe-inner {
+      max-width: 640px;
+    }
+    .subscribe-title {
+      font-size: clamp(1.75rem, 3.5vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      margin-bottom: 0.75rem;
+    }
+    .subscribe-lede {
+      font-size: 1.0625rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      max-width: 36rem;
+    }
+    .signup-form {
+      margin-top: 0.5rem;
+    }
+    .signup-regions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.35rem 0.75rem;
+      margin-bottom: 1.75rem;
+      font-size: 0.875rem;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+    }
+    .signup-regions-label {
+      color: var(--text-muted);
+      margin-right: 0.25rem;
+    }
+    .signup-regions label {
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: color 200ms;
+    }
+    .signup-regions label:hover {
+      color: var(--text-secondary);
+    }
+    .signup-regions label:has(input:checked) {
+      color: var(--white);
+    }
+    .signup-regions input {
+      position: absolute;
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .signup-regions-sep {
+      color: var(--text-muted);
+      user-select: none;
+    }
+    .signup-row {
+      display: flex;
+      align-items: stretch;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+      transition: border-color 200ms;
+    }
+    .signup-row:focus-within {
+      border-bottom-color: var(--accent);
+    }
+    .signup-row input[type="email"] {
+      flex: 1;
+      min-width: 0;
+      background: transparent;
+      border: none;
+      color: var(--white);
+      font-family: var(--font);
+      font-size: clamp(1rem, 2vw, 1.125rem);
+      padding: 0.85rem 0;
+      outline: none;
+    }
+    .signup-row input[type="email"]::placeholder {
+      color: var(--text-muted);
+    }
+    .signup-submit {
+      flex-shrink: 0;
+      background: none;
+      border: none;
+      color: var(--white);
+      font-family: var(--font);
+      font-size: 0.9375rem;
+      font-weight: 600;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      padding: 0.85rem 0 0.85rem 1.25rem;
+      transition: color 200ms;
+    }
+    .signup-submit:hover:not(:disabled) {
+      color: var(--accent);
+    }
+    .signup-submit:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .signup-submit:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 2px;
+    }
+    .signup-legal {
+      margin-top: 1.25rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .signup-legal a {
+      color: var(--text-secondary);
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      transition: color 200ms;
+    }
+    .signup-legal a:hover {
+      color: var(--white);
+    }
+    .signup-message {
+      margin-top: 1rem;
+      font-size: 0.9375rem;
+      color: var(--accent);
+    }
+    .signup-message.is-error {
+      color: #f87171;
+    }
+    @media (max-width: 480px) {
+      .signup-row {
+        flex-direction: column;
+        border-bottom: none;
+        gap: 1rem;
+      }
+      .signup-row input[type="email"] {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.28);
+        padding-bottom: 0.75rem;
+      }
+      .signup-submit {
+        align-self: flex-start;
+        padding-left: 0;
+      }
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy-950);
+      border-top: 1px solid var(--border-subtle);
+      padding: 4rem 0 3rem;
+    }
+    .footer-inner {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3rem;
+      align-items: end;
+      padding-bottom: 2.5rem;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .footer-contact {
+      justify-self: end;
+      text-align: right;
+      scroll-margin-top: 5.75rem;
+    }
+    .footer-logo {
+      display: inline-block;
+      text-decoration: none;
+    }
+    .footer-logo-mark {
+      display: block;
+      height: 1.85rem;
+      width: auto;
+      max-width: min(72vw, 12rem);
+      margin-bottom: 0.85rem;
+      shape-rendering: geometricPrecision;
+    }
+    .footer-tagline {
+      font-size: 0.875rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .footer-contact-links {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 0.875rem;
+      margin-bottom: 1.25rem;
+    }
+    .footer-contact-links a {
+      font-size: 0.875rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 200ms;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .footer-contact-links a:hover { color: var(--white); }
+    .footer-contact-links a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .footer-regions {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+    }
+    .footer-regions a {
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: color 200ms;
+    }
+    .footer-regions a:hover {
+      color: var(--white);
+    }
+    .footer-regions-sep {
+      margin: 0 0.35rem;
+      user-select: none;
+    }
+    .footer-bottom {
+      margin-top: 1.5rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .footer-meta {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 0.5rem 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+    }
+    .footer-meta a {
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 200ms;
+    }
+    .footer-meta a:hover {
+      color: var(--white);
+    }
+    .footer-meta a:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+      border-radius: 2px;
+    }
+    .footer-meta-sep {
+      color: var(--text-muted);
+      user-select: none;
+    }
+    @media (max-width: 600px) {
+      .footer-inner {
+        grid-template-columns: 1fr;
+      }
+      .footer-contact {
+        justify-self: end;
+        width: 100%;
+      }
+      .footer-contact-links {
+        align-items: flex-end;
+      }
+    }
+
+    /* ── SCROLL ANIMATIONS ── */
+    .reveal {
+      opacity: 0;
+      transform: translateY(24px);
+      transition: opacity 700ms var(--ease-out), transform 700ms var(--ease-out);
+    }
+    .reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    .reveal-delay-1 { transition-delay: 80ms; }
+    .reveal-delay-2 { transition-delay: 160ms; }
+    .reveal-delay-3 { transition-delay: 240ms; }
+    .reveal-delay-4 { transition-delay: 320ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+      }
+      html { scroll-behavior: auto; }
+    }
+
+    /* ── FOCUS RING ── */
+    :focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 4px;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+  <a href="#main" class="skip-link">Skip to main content</a>
+
+  <!-- NAVIGATION -->
+  <nav id="nav" aria-label="Primary navigation">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="#hero" class="nav-logo" aria-label="DBLE — home">
+          <svg class="nav-logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100.97 203.76" role="img" aria-hidden="true">
+            <polygon fill="#fcfcfc" points="4.91 42.55 51.84 26.4 150.16 80.35 106.71 183.7 60.81 200.33 103.79 97.2 4.91 42.55"/>
+            <polygon fill="#fcfcfc" points="77.2 18.32 124.13 2.18 222.45 56.13 179 159.48 133.1 176.11 176.08 72.98 77.2 18.32"/>
+            <g fill="#fcfcfc">
+              <path d="M350.93,66.51c-2.64-2.11-5.58-3.95-8.77-5.5-7.39-3.57-15.94-5.39-25.42-5.39-12.3,0-23.58,3.04-33.54,9.05-9.94,6-17.93,14.19-23.76,24.35-5.84,10.17-8.8,21.72-8.8,34.31s2.92,23.94,8.67,34.18c5.75,10.25,13.71,18.48,23.65,24.48,9.95,6,21.39,9.05,34,9.05,8.83,0,17.16-1.64,24.76-4.89,4.31-1.84,8.17-4.21,11.51-7.08v9.2h36.28V9.75h-38.58v56.76ZM321.11,155.92c-5.92,0-11.28-1.38-15.94-4.11-4.64-2.71-8.31-6.56-10.88-11.43-2.6-4.91-3.92-10.64-3.92-17.05s1.32-12.09,3.91-16.92c2.58-4.81,6.25-8.66,10.91-11.45,4.65-2.79,10.01-4.21,15.92-4.21s11.13,1.37,15.55,4.08c4.43,2.72,7.94,6.56,10.45,11.43,2.53,4.92,3.81,10.66,3.81,17.07s-1.28,12.15-3.81,17.07c-2.51,4.87-6.02,8.72-10.45,11.43-4.42,2.71-9.66,4.09-15.55,4.09Z"/>
+              <path d="M511.43,64.68h0c-9.96-6-21.24-9.05-33.54-9.05-9.48,0-18.04,1.81-25.42,5.39-3.19,1.55-6.13,3.39-8.77,5.5V9.75h-38.58v178.52h36.28v-9.32c3.4,2.92,7.3,5.33,11.62,7.19,7.52,3.25,15.82,4.89,24.65,4.89,12.61,0,24.05-3.04,34-9.05,9.94-5.99,17.89-14.23,23.65-24.48,5.75-10.25,8.67-21.75,8.67-34.18s-2.96-24.13-8.8-34.31c-5.83-10.16-13.82-18.35-23.76-24.35ZM473.5,90.76c6.05,0,11.44,1.41,16.02,4.2,4.59,2.8,8.22,6.65,10.81,11.46,2.6,4.83,3.91,10.53,3.91,16.92s-1.32,12.14-3.92,17.05h0c-2.58,4.88-6.21,8.72-10.78,11.44-4.58,2.72-9.98,4.1-16.04,4.1s-10.95-1.38-15.45-4.09c-4.5-2.71-8.05-6.55-10.55-11.42-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.15,3.81-17.07c2.5-4.86,6.05-8.71,10.55-11.42,4.51-2.72,9.71-4.09,15.45-4.09Z"/>
+              <rect x="554.5" y="9.75" width="38.58" height="178.52"/>
+              <path d="M716.46,74.25h0c-5.48-5.87-12.27-10.5-20.19-13.74-7.9-3.24-17.07-4.88-27.27-4.88-12.3,0-23.5,2.96-33.3,8.81-9.78,5.84-17.66,13.92-23.42,24.01-5.76,10.09-8.68,21.75-8.68,34.65s2.8,23.92,8.31,34.15c5.53,10.27,13.45,18.55,23.55,24.63,10.1,6.08,22.16,9.16,35.84,9.16,8.79,0,17-1.32,24.41-3.92,7.43-2.61,13.97-6.34,19.44-11.1,5.52-4.8,9.62-10.49,12.19-16.9l.7-1.74-31.04-14.74-.92,1.61c-2.27,3.97-5.46,7.13-9.5,9.39-4.05,2.28-9.04,3.43-14.81,3.43-6.35,0-11.81-1.41-16.23-4.19-4.39-2.76-7.7-6.68-9.83-11.66-.83-1.92-1.46-4-1.89-6.2h87.21l.48-1.32c.67-1.85,1.13-4.07,1.38-6.6.24-2.43.35-4.94.35-7.45,0-8.96-1.44-17.37-4.27-25.02-2.85-7.67-7.06-14.52-12.52-20.38ZM669,87.3c5.69,0,10.54,1.39,14.4,4.13,3.85,2.73,6.58,6.5,8.13,11.21.31.96.57,1.97.76,3.03h-47.35c.24-.83.5-1.62.79-2.36,1.99-5.27,5-9.29,8.94-11.96,3.95-2.68,8.77-4.04,14.32-4.04Z"/>
+              <rect x="760.84" y="149.7" width="38.58" height="38.58"/>
+              <path d="M880.89,94.83c4.35-2.71,9.38-4.08,14.97-4.08,6.3,0,11.92,1.74,16.7,5.16,4.78,3.42,8.22,8.14,10.22,14.01l.7,2.04,33.61-14.48-.54-1.72c-2.54-8.11-6.82-15.24-12.7-21.21-5.85-5.93-12.98-10.62-21.19-13.94-8.2-3.31-17.21-4.99-26.8-4.99-12.89,0-24.7,2.96-35.1,8.79-10.41,5.84-18.73,13.96-24.72,24.13-6,10.17-9.04,21.8-9.04,34.56s3.08,24.43,9.16,34.68c6.06,10.24,14.38,18.44,24.7,24.35,10.32,5.91,22.1,8.91,35,8.91,9.74,0,18.84-1.72,27.05-5.11,8.21-3.39,15.34-8.16,21.19-14.17,5.88-6.04,10.08-12.98,12.46-20.63l.53-1.71-33.6-14.73-.7,2.06c-2.01,5.88-5.41,10.59-10.12,14.01-4.7,3.42-10.35,5.15-16.81,5.15-5.59,0-10.62-1.37-14.97-4.08-4.36-2.71-7.84-6.56-10.34-11.44-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.15,3.81-17.07c2.51-4.88,5.99-8.72,10.35-11.44Z"/>
+              <path d="M1091.57,88.4h0c-6.23-10.09-14.66-18.15-25.05-23.98-10.4-5.83-22.13-8.79-34.87-8.79s-24.5,2.96-34.98,8.78c-10.47,5.83-18.94,13.9-25.17,23.98-6.24,10.11-9.41,21.86-9.41,34.94s3.16,24.64,9.4,34.82c6.23,10.17,14.7,18.28,25.17,24.1,10.47,5.83,22.24,8.78,34.98,8.78s24.47-2.96,34.87-8.79c10.39-5.82,18.82-13.93,25.05-24.1,6.24-10.19,9.4-21.9,9.4-34.82s-3.16-24.83-9.4-34.94ZM1047.08,151.84c-4.34,2.71-9.53,4.08-15.43,4.08s-11.14-1.38-15.56-4.09c-4.43-2.71-7.94-6.55-10.45-11.43-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.1,3.81-16.94c2.51-4.81,6.03-8.66,10.47-11.45,4.42-2.78,9.64-4.19,15.53-4.19s11.07,1.41,15.41,4.18c4.37,2.79,7.86,6.65,10.37,11.46,2.53,4.84,3.81,10.54,3.81,16.94s-1.28,12.15-3.81,17.07c-2.51,4.88-5.99,8.73-10.35,11.44Z"/>
+            </g>
+          </svg>
+        </a>
+        <ul class="nav-links" id="nav-links" role="list">
+          <li><a href="#hero">Home</a></li>
+          <li><a href="#belief">Philosophy</a></li>
+          <li><a href="#approach">Approach</a></li>
+          <li><a href="#contact" class="nav-contact">Contact</a></li>
+        </ul>
+        <button class="nav-mobile-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="nav-links" id="nav-toggle">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+            <path d="M3 6h16M3 11h16M3 16h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main">
+
+    <!-- HERO -->
+    <section id="hero" aria-label="Hero">
+      <div class="hero-grid" aria-hidden="true"></div>
+      <div class="container">
+        <div class="hero-content">
+          <div class="hero-eyebrow reveal">Sales Enablement</div>
+          <h1 class="hero-headline reveal reveal-delay-1">
+Better Customer<br/>
+            <span class="line-2">Conversations.</span><br/>
+            Better Sales<br/>
+            <span class="line-2">Outcomes.</span>
+          </h1>
+          <p class="hero-body reveal reveal-delay-2">
+            DBLE helps sales teams identify opportunities, engage customers and sell more.
+          </p>
+          <div class="hero-actions reveal reveal-delay-3">
+            <a href="#approach" class="btn-primary">
+              Learn More
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </a>
+            <a href="#approach" class="btn-secondary">Our Approach</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROBLEM -->
+    <section id="problem" aria-labelledby="problem-heading">
+      <div class="problem-chevrons" aria-hidden="true">
+        <canvas id="problem-chevrons-canvas"></canvas>
+        <div class="problem-chevrons-overlay"></div>
+      </div>
+      <div class="container problem-content">
+        <div class="problem-inner">
+          <div>
+            <span class="section-label reveal">The Challenge</span>
+            <h2 id="problem-heading" class="problem-headline reveal reveal-delay-1">
+              Sales teams don't need more data.<br/>
+              <em>They need more opportunities.</em>
+            </h2>
+          </div>
+          <div class="problem-body">
+            <p class="problem-intro reveal">
+              Organisations have access to more sales data than ever before.
+            </p>
+            <ul class="problem-list reveal reveal-delay-1" role="list">
+              <li>CRM systems</li>
+              <li>Sales reports</li>
+              <li>Category reports</li>
+              <li>Retailer data</li>
+              <li>Market intelligence</li>
+            </ul>
+            <p class="problem-intro reveal reveal-delay-2">
+              Yet sales growth remains difficult.
+            </p>
+            <p class="problem-closing reveal reveal-delay-3">
+              Because data alone doesn't create sales.<br/>
+              Meaningful customer conversations do.
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- APPROACH -->
+    <section id="approach" aria-labelledby="approach-heading">
+      <div class="container">
+        <div class="approach-header">
+          <span class="section-label reveal">Our Approach</span>
+          <h2 id="approach-heading" class="approach-headline reveal reveal-delay-1">
+Turn Sales Data Into<br/>Sales Opportunities.
+          </h2>
+        </div>
+        <div class="cards-grid" role="list">
+          <article class="approach-card reveal" role="listitem">
+            <div class="card-number">01</div>
+            <h3 class="card-title">See what customers are doing.</h3>
+            <p class="card-body">Understand current sales performance, trends and customer activity.</p>
+          </article>
+          <article class="approach-card reveal reveal-delay-1" role="listitem">
+            <div class="card-number">02</div>
+            <h3 class="card-title">Identify where they are underperforming.</h3>
+            <p class="card-body">Highlight gaps, missed opportunities and areas for growth.</p>
+          </article>
+          <article class="approach-card reveal reveal-delay-2" role="listitem">
+            <div class="card-number">03</div>
+            <h3 class="card-title">Give your sales team meaningful reasons to engage.</h3>
+            <p class="card-body">Provide relevant insights that help create better customer conversations.</p>
+          </article>
+          <article class="approach-card reveal reveal-delay-3" role="listitem">
+            <div class="card-number">04</div>
+            <h3 class="card-title">Measure the outcome.</h3>
+            <p class="card-body">Track actions, engagement and results over time.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- BELIEF -->
+    <section id="belief" aria-labelledby="belief-heading">
+      <div class="container">
+        <div class="belief-header">
+          <span class="section-label reveal">Our Belief</span>
+          <h2 id="belief-heading" class="belief-headline reveal reveal-delay-1">
+Sales growth starts with better conversations.
+          </h2>
+          <p class="belief-body reveal reveal-delay-2">
+            For more than twenty years we have worked with sales teams, distributors, retailers and trade customers across Australia and New Zealand. The most successful organisations consistently do three things.
+          </p>
+        </div>
+        <div class="belief-principles" role="list">
+          <div class="principle reveal" role="listitem">
+            <div class="principle-number">01</div>
+            <p class="principle-statement">Identify opportunities.</p>
+          </div>
+          <div class="principle reveal reveal-delay-1" role="listitem">
+            <div class="principle-number">02</div>
+            <p class="principle-statement">Engage customers effectively.</p>
+          </div>
+          <div class="principle reveal reveal-delay-2" role="listitem">
+            <div class="principle-number">03</div>
+            <p class="principle-statement">Change behaviour.</p>
+          </div>
+        </div>
+        <p class="section-label reveal" style="margin-top: 4rem; color: var(--text-muted); font-size: 0.8125rem; letter-spacing: 0.1em;">DBLE was built around these principles.</p>
+      </div>
+    </section>
+
+    <!-- PERSPECTIVE -->
+    <section id="perspective" aria-labelledby="perspective-heading">
+      <div class="container">
+        <div class="perspective-header">
+          <span class="section-label reveal">Perspective</span>
+          <h2 id="perspective-heading" class="perspective-headline reveal reveal-delay-1">
+Most systems report the past.<br/>
+            <span class="contrast">DBLE focuses on what happens next.</span>
+          </h2>
+        </div>
+        <div class="comparison reveal reveal-delay-2">
+          <div class="comparison-col traditional" aria-label="Traditional Systems">
+            <div class="comparison-label trad-label">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              Traditional Systems
+            </div>
+            <ul class="comparison-list" role="list">
+              <li>Show what happened.</li>
+              <li>Generate reports.</li>
+              <li>Track activity.</li>
+              <li>Review performance.</li>
+            </ul>
+          </div>
+          <div class="comparison-divider" aria-hidden="true"></div>
+          <div class="comparison-col dble" aria-label="DBLE approach">
+            <div class="comparison-label dble-label">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.5"/>
+                <circle cx="7" cy="7" r="3" fill="currentColor"/>
+              </svg>
+              DBLE
+            </div>
+            <ul class="comparison-list" role="list">
+              <li>Identify opportunities.</li>
+              <li>Support customer conversations.</li>
+              <li>Drive action.</li>
+              <li>Measure outcomes.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section id="experience" aria-labelledby="experience-heading">
+      <div class="container">
+        <div class="experience-header">
+          <span class="section-label reveal">Built on Experience</span>
+          <h2 id="experience-heading" class="experience-headline reveal reveal-delay-1">
+Twenty years of sales, channel and customer engagement experience.
+          </h2>
+          <p class="experience-body reveal reveal-delay-2">
+            DBLE is built on decades of real-world experience across field sales, trade engagement, category development and customer activation. The platform is the result of years spent helping organisations identify opportunities, engage customers and improve commercial performance.
+          </p>
+        </div>
+        <div class="logo-section reveal">
+          <p class="logo-section-label">Brands we have worked with</p>
+          <div class="logo-grid" role="list" aria-label="Client logos">
+            <div class="logo-item" role="listitem"><span class="logo-name">Energizer</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Castrol</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Repco</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">NAPA</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Ryco</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Bosch</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Gates</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Shell</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Milwaukee</span></div>
+            <div class="logo-item" role="listitem"><span class="logo-name">Kenworth</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FUTURE -->
+    <section id="future" aria-labelledby="future-heading">
+      <div class="future-inner container">
+        <span class="section-label reveal" style="display:block; text-align:center;">What's Next</span>
+        <h2 id="future-heading" class="future-headline reveal reveal-delay-1">
+We're just getting started.
+        </h2>
+        <p class="future-body reveal reveal-delay-2">
+          DBLE is an evolving sales enablement framework designed to help organisations identify opportunities, improve customer engagement and achieve better sales outcomes. This is the beginning of a much larger vision.
+        </p>
+        <p class="future-closing reveal reveal-delay-3">
+          The best commercial conversations are still ahead of you.
+        </p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- SUBSCRIBE -->
+  <section id="subscribe" aria-labelledby="subscribe-title">
+    <div class="container">
+      <div class="subscribe-inner reveal">
+        <h2 class="subscribe-title" id="subscribe-title">Stay in the loop.</h2>
+        <p class="subscribe-lede">
+          Sign up for updates on DBLE — product news, insights, and releases in your region.
+        </p>
+        <form class="signup-form" id="signup-form" novalidate>
+          <div class="signup-regions" role="radiogroup" aria-label="Region">
+            <span class="signup-regions-label">Region</span>
+            <label><input type="radio" name="region" value="au-nz" checked /> AU/NZ</label>
+            <span class="signup-regions-sep" aria-hidden="true">|</span>
+            <label><input type="radio" name="region" value="usa" /> USA</label>
+            <span class="signup-regions-sep" aria-hidden="true">|</span>
+            <label><input type="radio" name="region" value="uk" /> UK</label>
+          </div>
+          <div class="signup-row">
+            <input
+              type="email"
+              name="email"
+              id="signup-email"
+              autocomplete="email"
+              placeholder="Email address"
+              required
+              aria-describedby="signup-legal signup-message"
+            />
+            <button type="submit" class="signup-submit" id="signup-submit">Subscribe</button>
+          </div>
+          <p class="signup-legal" id="signup-legal">
+            By subscribing you agree to our
+            <a href="/privacy.html">Privacy Policy</a>.
+            Operated by FlowMktg LLC.
+          </p>
+          <p class="signup-message" id="signup-message" hidden role="status"></p>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="container">
+      <div class="footer-inner">
+        <div>
+          <a href="#hero" class="footer-logo" aria-label="DBLE — home">
+            <svg class="footer-logo-mark" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100.97 203.76" role="img" aria-hidden="true">
+              <polygon fill="#fcfcfc" points="4.91 42.55 51.84 26.4 150.16 80.35 106.71 183.7 60.81 200.33 103.79 97.2 4.91 42.55"/>
+              <polygon fill="#fcfcfc" points="77.2 18.32 124.13 2.18 222.45 56.13 179 159.48 133.1 176.11 176.08 72.98 77.2 18.32"/>
+              <g fill="#fcfcfc">
+                <path d="M350.93,66.51c-2.64-2.11-5.58-3.95-8.77-5.5-7.39-3.57-15.94-5.39-25.42-5.39-12.3,0-23.58,3.04-33.54,9.05-9.94,6-17.93,14.19-23.76,24.35-5.84,10.17-8.8,21.72-8.8,34.31s2.92,23.94,8.67,34.18c5.75,10.25,13.71,18.48,23.65,24.48,9.95,6,21.39,9.05,34,9.05,8.83,0,17.16-1.64,24.76-4.89,4.31-1.84,8.17-4.21,11.51-7.08v9.2h36.28V9.75h-38.58v56.76ZM321.11,155.92c-5.92,0-11.28-1.38-15.94-4.11-4.64-2.71-8.31-6.56-10.88-11.43-2.6-4.91-3.92-10.64-3.92-17.05s1.32-12.09,3.91-16.92c2.58-4.81,6.25-8.66,10.91-11.45,4.65-2.79,10.01-4.21,15.92-4.21s11.13,1.37,15.55,4.08c4.43,2.72,7.94,6.56,10.45,11.43,2.53,4.92,3.81,10.66,3.81,17.07s-1.28,12.15-3.81,17.07c-2.51,4.87-6.02,8.72-10.45,11.43-4.42,2.71-9.66,4.09-15.55,4.09Z"/>
+                <path d="M511.43,64.68h0c-9.96-6-21.24-9.05-33.54-9.05-9.48,0-18.04,1.81-25.42,5.39-3.19,1.55-6.13,3.39-8.77,5.5V9.75h-38.58v178.52h36.28v-9.32c3.4,2.92,7.3,5.33,11.62,7.19,7.52,3.25,15.82,4.89,24.65,4.89,12.61,0,24.05-3.04,34-9.05,9.94-5.99,17.89-14.23,23.65-24.48,5.75-10.25,8.67-21.75,8.67-34.18s-2.96-24.13-8.8-34.31c-5.83-10.16-13.82-18.35-23.76-24.35ZM473.5,90.76c6.05,0,11.44,1.41,16.02,4.2,4.59,2.8,8.22,6.65,10.81,11.46,2.6,4.83,3.91,10.53,3.91,16.92s-1.32,12.14-3.92,17.05h0c-2.58,4.88-6.21,8.72-10.78,11.44-4.58,2.72-9.98,4.1-16.04,4.1s-10.95-1.38-15.45-4.09c-4.5-2.71-8.05-6.55-10.55-11.42-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.15,3.81-17.07c2.5-4.86,6.05-8.71,10.55-11.42,4.51-2.72,9.71-4.09,15.45-4.09Z"/>
+                <rect x="554.5" y="9.75" width="38.58" height="178.52"/>
+                <path d="M716.46,74.25h0c-5.48-5.87-12.27-10.5-20.19-13.74-7.9-3.24-17.07-4.88-27.27-4.88-12.3,0-23.5,2.96-33.3,8.81-9.78,5.84-17.66,13.92-23.42,24.01-5.76,10.09-8.68,21.75-8.68,34.65s2.8,23.92,8.31,34.15c5.53,10.27,13.45,18.55,23.55,24.63,10.1,6.08,22.16,9.16,35.84,9.16,8.79,0,17-1.32,24.41-3.92,7.43-2.61,13.97-6.34,19.44-11.1,5.52-4.8,9.62-10.49,12.19-16.9l.7-1.74-31.04-14.74-.92,1.61c-2.27,3.97-5.46,7.13-9.5,9.39-4.05,2.28-9.04,3.43-14.81,3.43-6.35,0-11.81-1.41-16.23-4.19-4.39-2.76-7.7-6.68-9.83-11.66-.83-1.92-1.46-4-1.89-6.2h87.21l.48-1.32c.67-1.85,1.13-4.07,1.38-6.6.24-2.43.35-4.94.35-7.45,0-8.96-1.44-17.37-4.27-25.02-2.85-7.67-7.06-14.52-12.52-20.38ZM669,87.3c5.69,0,10.54,1.39,14.4,4.13,3.85,2.73,6.58,6.5,8.13,11.21.31.96.57,1.97.76,3.03h-47.35c.24-.83.5-1.62.79-2.36,1.99-5.27,5-9.29,8.94-11.96,3.95-2.68,8.77-4.04,14.32-4.04Z"/>
+                <rect x="760.84" y="149.7" width="38.58" height="38.58"/>
+                <path d="M880.89,94.83c4.35-2.71,9.38-4.08,14.97-4.08,6.3,0,11.92,1.74,16.7,5.16,4.78,3.42,8.22,8.14,10.22,14.01l.7,2.04,33.61-14.48-.54-1.72c-2.54-8.11-6.82-15.24-12.7-21.21-5.85-5.93-12.98-10.62-21.19-13.94-8.2-3.31-17.21-4.99-26.8-4.99-12.89,0-24.7,2.96-35.1,8.79-10.41,5.84-18.73,13.96-24.72,24.13-6,10.17-9.04,21.8-9.04,34.56s3.08,24.43,9.16,34.68c6.06,10.24,14.38,18.44,24.7,24.35,10.32,5.91,22.1,8.91,35,8.91,9.74,0,18.84-1.72,27.05-5.11,8.21-3.39,15.34-8.16,21.19-14.17,5.88-6.04,10.08-12.98,12.46-20.63l.53-1.71-33.6-14.73-.7,2.06c-2.01,5.88-5.41,10.59-10.12,14.01-4.7,3.42-10.35,5.15-16.81,5.15-5.59,0-10.62-1.37-14.97-4.08-4.36-2.71-7.84-6.56-10.34-11.44-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.15,3.81-17.07c2.51-4.88,5.99-8.72,10.35-11.44Z"/>
+                <path d="M1091.57,88.4h0c-6.23-10.09-14.66-18.15-25.05-23.98-10.4-5.83-22.13-8.79-34.87-8.79s-24.5,2.96-34.98,8.78c-10.47,5.83-18.94,13.9-25.17,23.98-6.24,10.11-9.41,21.86-9.41,34.94s3.16,24.64,9.4,34.82c6.23,10.17,14.7,18.28,25.17,24.1,10.47,5.83,22.24,8.78,34.98,8.78s24.47-2.96,34.87-8.79c10.39-5.82,18.82-13.93,25.05-24.1,6.24-10.19,9.4-21.9,9.4-34.82s-3.16-24.83-9.4-34.94ZM1047.08,151.84c-4.34,2.71-9.53,4.08-15.43,4.08s-11.14-1.38-15.56-4.09c-4.43-2.71-7.94-6.55-10.45-11.43-2.53-4.91-3.81-10.65-3.81-17.07s1.28-12.1,3.81-16.94c2.51-4.81,6.03-8.66,10.47-11.45,4.42-2.78,9.64-4.19,15.53-4.19s11.07,1.41,15.41,4.18c4.37,2.79,7.86,6.65,10.37,11.46,2.53,4.84,3.81,10.54,3.81,16.94s-1.28,12.15-3.81,17.07c-2.51,4.88-5.99,8.73-10.35,11.44Z"/>
+              </g>
+            </svg>
+          </a>
+          <p class="footer-tagline">
+            Better Customer Conversations.<br/>
+            Better Sales Outcomes.
+          </p>
+        </div>
+        <div class="footer-contact" id="contact">
+          <nav class="footer-contact-links" aria-label="Contact">
+            <a href="tel:1800660885">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M3.5 1.5h2l1 2.5-1.5 1c.75 1.5 2 2.75 3.5 3.5l1-1.5L11.5 8v2c0 .55-.45 1-1 1C5.5 11 3 8.5 3 3.5c0-.55.45-1 1-1z" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+              </svg>
+              1800 660 885
+            </a>
+            <a href="mailto:hello@dble.co">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <path d="M1.5 3.5h11l-5.5 4.5L1.5 3.5zM1.5 3.5v7h11v-7" stroke="currentColor" stroke-width="1.25" stroke-linejoin="round"/>
+              </svg>
+              hello@dble.co
+            </a>
+            <a href="https://www.linkedin.com/company/dble" target="_blank" rel="noopener noreferrer">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <rect x="1" y="1" width="12" height="12" rx="2" stroke="currentColor" stroke-width="1.25"/>
+                <path d="M3.5 5.5v5M3.5 3.5v.5M6 5.5v5M6 7.5c0-1.1.9-2 2-2s2 .9 2 2v3" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+              </svg>
+              LinkedIn
+            </a>
+          </nav>
+          <p class="footer-regions">
+            <a href="#subscribe" data-region="au-nz">AU/NZ</a>
+            <span class="footer-regions-sep" aria-hidden="true">|</span>
+            <a href="#subscribe" data-region="usa">USA</a>
+            <span class="footer-regions-sep" aria-hidden="true">|</span>
+            <a href="#subscribe" data-region="uk">UK</a>
+          </p>
+          <div class="footer-meta" aria-label="Legal">
+            <a href="/privacy.html">Privacy Policy</a>
+            <span class="footer-meta-sep" aria-hidden="true">·</span>
+            <span>FlowMktg LLC</span>
+          </div>
+        </div>
+      </div>
+      <p class="footer-bottom">
+        &copy; <span id="year"></span> FlowMktg LLC. All rights reserved.
+      </p>
+    </div>
+  </footer>
+
+  <script>
+    // Year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Nav scroll state + active section tracking
+    const nav = document.getElementById('nav');
+    const navLinks = document.getElementById('nav-links');
+    const navSectionLinks = Array.from(navLinks.querySelectorAll('a[href^="#"]'));
+    const trackedSections = navSectionLinks
+      .map((link) => {
+        const id = link.getAttribute('href').slice(1);
+        const el = document.getElementById(id);
+        return el ? { id, el, link } : null;
+      })
+      .filter(Boolean);
+
+    const setActiveNav = (id) => {
+      navSectionLinks.forEach((link) => {
+        link.classList.toggle('is-active', link.getAttribute('href') === `#${id}`);
+      });
+    };
+
+    const scrollToSection = (id) => {
+      const target = document.getElementById(id);
+      if (!target) return;
+      const offset = nav.offsetHeight + 16;
+      const top = target.getBoundingClientRect().top + window.scrollY - offset;
+      window.scrollTo({
+        top: Math.max(0, top),
+        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+      });
+    };
+
+    const updateActiveFromScroll = () => {
+      const offset = nav.offsetHeight + 48;
+      let current = trackedSections[0]?.id || 'hero';
+      for (const section of trackedSections) {
+        if (section.el.offsetTop - offset <= window.scrollY) {
+          current = section.id;
+        }
+      }
+      setActiveNav(current);
+    };
+
+    const onScroll = () => {
+      nav.classList.toggle('scrolled', window.scrollY > 40);
+      updateActiveFromScroll();
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    // Mobile nav toggle
+    const toggle = document.getElementById('nav-toggle');
+    toggle.addEventListener('click', () => {
+      const isOpen = navLinks.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
+      anchor.addEventListener('click', (event) => {
+        const href = anchor.getAttribute('href');
+        if (!href || href === '#') return;
+        const id = href.slice(1);
+        const target = document.getElementById(id);
+        if (!target) return;
+        event.preventDefault();
+        scrollToSection(id);
+        navLinks.classList.remove('open');
+        toggle.setAttribute('aria-expanded', 'false');
+        setActiveNav(id);
+      });
+    });
+
+    // Reveal on scroll
+    if (!window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      const reveals = document.querySelectorAll('.reveal');
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('visible');
+              observer.unobserve(entry.target);
+            }
+          });
+        },
+        { threshold: 0.12, rootMargin: '0px 0px -40px 0px' }
+      );
+      reveals.forEach(el => observer.observe(el));
+    } else {
+      document.querySelectorAll('.reveal').forEach(el => el.classList.add('visible'));
+    }
+
+    // Holding-page signup only — opens mailto, no backend
+    const signupForm = document.getElementById('signup-form');
+    const signupEmail = document.getElementById('signup-email');
+    const signupMessage = document.getElementById('signup-message');
+    const regionLabels = { 'au-nz': 'AU/NZ', usa: 'USA', uk: 'UK' };
+
+    const setSignupRegion = (region) => {
+      const input = signupForm?.querySelector(`input[name="region"][value="${region}"]`);
+      if (input) input.checked = true;
+    };
+
+    document.querySelectorAll('[data-region]').forEach((link) => {
+      link.addEventListener('click', () => {
+        setSignupRegion(link.getAttribute('data-region'));
+      });
+    });
+
+    signupForm?.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const email = signupEmail.value.trim();
+      const region = signupForm.querySelector('input[name="region"]:checked')?.value;
+      signupMessage.hidden = true;
+      signupMessage.classList.remove('is-error');
+
+      if (!email || !email.includes('@')) {
+        signupMessage.textContent = 'Enter a valid email address.';
+        signupMessage.classList.add('is-error');
+        signupMessage.hidden = false;
+        signupEmail.focus();
+        return;
+      }
+
+      const regionLabel = regionLabels[region] || region;
+      const subject = encodeURIComponent('DBLE updates signup');
+      const body = encodeURIComponent(`Email: ${email}\nRegion: ${regionLabel}\n\nPlease add me to DBLE updates.`);
+      window.location.href = `mailto:hello@dble.co?subject=${subject}&body=${body}`;
+      signupMessage.textContent = 'Thanks — send the email that opened to complete your signup.';
+      signupMessage.hidden = false;
+    });
+
+    // Chevron field background (from landing/dble-chevrons.html, scoped to #problem)
+    (function initProblemChevrons() {
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+      const section = document.getElementById('problem');
+      const canvas = document.getElementById('problem-chevrons-canvas');
+      if (!section || !canvas) return;
+
+      const ctx = canvas.getContext('2d');
+      const COUNT = 1200;
+      const CHEVRON_OPEN = 0.78;
+      const TRAIL_HOLD = 2.0;
+      const TARGET_ANGLE = -Math.PI / 6;
+      const BG = '#080D1A';
+
+      let W = 0;
+      let H = 0;
+      let DPR = 1;
+      let chevSize = 7;
+      let influenceR = 160;
+      let mx = -9999;
+      let my = -9999;
+      let lastTime = 0;
+      let running = false;
+      let rafId = 0;
+      const items = [];
+
+      function buildField() {
+        items.length = 0;
+        if (W <= 0 || H <= 0) return;
+        const aspect = W / H;
+        const cols = Math.round(Math.sqrt(COUNT * aspect));
+        const rows = Math.round(COUNT / cols);
+        const cellW = W / cols;
+        const cellH = H / rows;
+
+        for (let r = 0; r < rows; r++) {
+          for (let c = 0; c < cols; c++) {
+            if (items.length >= COUNT) break;
+            const roll = Math.random();
+            const dotR = roll > 0.96 ? 2.0 + Math.random() * 0.8
+              : roll > 0.80 ? 1.0 + Math.random() * 0.6
+              : 0.35 + Math.random() * 0.45;
+            items.push({
+              x: c * cellW + cellW * 0.5 + (Math.random() - 0.5) * cellW * 0.7,
+              y: r * cellH + cellH * 0.5 + (Math.random() - 0.5) * cellH * 0.7,
+              morph: 0,
+              trail: 0,
+              speed: 0.06 + Math.random() * 0.04,
+              dotR,
+              flickPhase: Math.random() * Math.PI * 2,
+              flickSpeed: 0.4 + Math.random() * 2.2,
+              flickDepth: 0.3 + Math.random() * 0.55,
+            });
+          }
+        }
+      }
+
+      function resize() {
+        DPR = Math.min(window.devicePixelRatio || 1, 2);
+        W = section.clientWidth;
+        H = section.clientHeight;
+        canvas.width = Math.round(W * DPR);
+        canvas.height = Math.round(H * DPR);
+        ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+        const vmin = Math.min(W, H);
+        chevSize = vmin * 0.013;
+        influenceR = vmin * 0.28;
+        buildField();
+      }
+
+      function setPointer(clientX, clientY) {
+        const rect = section.getBoundingClientRect();
+        if (clientX >= rect.left && clientX <= rect.right && clientY >= rect.top && clientY <= rect.bottom) {
+          mx = clientX - rect.left;
+          my = clientY - rect.top;
+        } else {
+          mx = -9999;
+          my = -9999;
+        }
+      }
+
+      function update(dt) {
+        const r2 = influenceR * influenceR;
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
+          const dx = it.x - mx;
+          const dy = it.y - my;
+          const d2 = dx * dx + dy * dy;
+          const influence = d2 < r2
+            ? 0.5 + 0.5 * Math.cos(Math.PI * Math.sqrt(d2) / influenceR)
+            : 0;
+
+          if (influence > 0.01) {
+            it.morph = Math.min(1, it.morph + influence * it.speed * dt * 60);
+            it.trail = 1.0;
+          } else {
+            it.trail = Math.max(0, it.trail - dt / TRAIL_HOLD);
+            const target = it.trail > 0.05 ? it.trail : 0;
+            const decay = it.speed * 0.5 * dt * 60;
+            it.morph = it.morph > target
+              ? Math.max(target, it.morph - decay)
+              : Math.min(target, it.morph + decay);
+          }
+        }
+      }
+
+      function drawItem(it, t) {
+        const mE = it.morph * it.morph * (3 - 2 * it.morph);
+        ctx.save();
+        ctx.translate(it.x, it.y);
+
+        if (mE < 0.02) {
+          const flick = 0.5 + 0.5 * Math.sin(t * it.flickSpeed + it.flickPhase);
+          const baseA = it.dotR > 1.8 ? 0.35 : it.dotR > 1.0 ? 0.22 : 0.12;
+          const alpha = baseA * (1 - it.flickDepth + it.flickDepth * flick);
+          const radius = it.dotR * (0.85 + 0.15 * flick);
+          ctx.beginPath();
+          ctx.arc(0, 0, radius, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(200,215,240,${alpha.toFixed(3)})`;
+          ctx.fill();
+        } else {
+          ctx.rotate(TARGET_ANGLE);
+          const s = chevSize * mE;
+          const tipX = s * 0.55;
+          const bkX = -s * 0.45;
+          const armY = s * Math.tan(CHEVRON_OPEN);
+          const alpha = (0.12 + mE * 0.48);
+          const cg = Math.round(210 + (169 - 210) * mE);
+          const cb = Math.round(230 + (110 - 230) * mE);
+          ctx.strokeStyle = `rgba(200,${cg},${cb},${alpha.toFixed(3)})`;
+          ctx.lineWidth = s * 0.52;
+          ctx.lineJoin = 'miter';
+          ctx.miterLimit = 14;
+          ctx.lineCap = 'butt';
+          ctx.beginPath();
+          ctx.moveTo(bkX, -armY);
+          ctx.lineTo(tipX, 0);
+          ctx.lineTo(bkX, armY);
+          ctx.stroke();
+        }
+
+        ctx.restore();
+      }
+
+      function render(t) {
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, W, H);
+        for (let pass = 0; pass < 2; pass++) {
+          for (let i = 0; i < items.length; i++) {
+            const it = items[i];
+            if (pass === 0 && it.morph > 0.02) continue;
+            if (pass === 1 && it.morph <= 0.02) continue;
+            drawItem(it, t);
+          }
+        }
+      }
+
+      function loop(ts) {
+        if (!running) return;
+        const dt = Math.min((ts - lastTime) / 1000, 0.05);
+        lastTime = ts;
+        update(dt);
+        render(ts / 1000);
+        rafId = requestAnimationFrame(loop);
+      }
+
+      function start() {
+        if (running) return;
+        running = true;
+        lastTime = performance.now();
+        rafId = requestAnimationFrame(loop);
+      }
+
+      function stop() {
+        running = false;
+        cancelAnimationFrame(rafId);
+      }
+
+      let lastClientX = -9999;
+      let lastClientY = -9999;
+
+      window.addEventListener('mousemove', (e) => {
+        lastClientX = e.clientX;
+        lastClientY = e.clientY;
+        setPointer(e.clientX, e.clientY);
+      }, { passive: true });
+      window.addEventListener('scroll', () => setPointer(lastClientX, lastClientY), { passive: true });
+
+      let resizeTimer;
+      const ro = new ResizeObserver(() => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(resize, 150);
+      });
+      ro.observe(section);
+
+      const visibility = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) start();
+            else stop();
+          });
+        },
+        { threshold: 0.05 },
+      );
+      visibility.observe(section);
+
+      resize();
+      start();
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>DBLE — Direction</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      width: 100%; height: 100%;
+      background: #04091C;
+      overflow: hidden;
+      /* hide cursor on pointer devices only */
+      cursor: none;
+    }
+    @media (hover: none) {
+      /* touch devices — restore default cursor (irrelevant but clean) */
+      html, body { cursor: auto; }
+    }
+
+    canvas {
+      display: block;
+      position: fixed;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+    }
+
+    .ui {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      font-family: 'Inter', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      /* safe-area insets for notch / Dynamic Island */
+      padding:
+        env(safe-area-inset-top, 0px)
+        env(safe-area-inset-right, 0px)
+        env(safe-area-inset-bottom, 0px)
+        env(safe-area-inset-left, 0px);
+    }
+
+    .wordmark {
+      position: absolute;
+      top: max(2rem, env(safe-area-inset-top, 2rem));
+      left: max(1.5rem, env(safe-area-inset-left, 1.5rem));
+      font-size: clamp(0.875rem, 2.5vw, 1rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      color: rgba(255,255,255,0.7);
+      opacity: 0;
+      animation: fadeIn 1s 0.5s forwards;
+    }
+    .wordmark span { color: #C8A96E; }
+
+    .caption {
+      position: absolute;
+      bottom: max(1.75rem, env(safe-area-inset-bottom, 1.75rem));
+      right: max(1.5rem, env(safe-area-inset-right, 1.5rem));
+      text-align: right;
+      opacity: 0;
+      animation: fadeIn 1s 1s forwards;
+    }
+    .caption p {
+      font-size: clamp(0.5rem, 1.5vw, 0.625rem);
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.18);
+      line-height: 2;
+    }
+    .caption p.active-label { color: rgba(200,169,110,0.5); }
+
+    .hint {
+      position: absolute;
+      bottom: max(1.75rem, env(safe-area-inset-bottom, 1.75rem));
+      left: max(1.5rem, env(safe-area-inset-left, 1.5rem));
+      font-size: clamp(0.5rem, 1.5vw, 0.625rem);
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.12);
+      opacity: 0;
+      animation: fadeIn 1s 2s forwards;
+    }
+
+    @keyframes fadeIn { to { opacity: 1; } }
+  </style>
+</head>
+<body>
+
+<canvas id="c"></canvas>
+
+<div class="ui" aria-hidden="true">
+  <div class="wordmark">dble<span>.co</span></div>
+  <div class="hint" id="hint">Move your cursor</div>
+  <div class="caption">
+    <p>Chaos</p>
+    <p>Clarity</p>
+    <p>Direction</p>
+    <p class="active-label">Action</p>
+  </div>
+</div>
+
+<script>
+(function () {
+  const canvas = document.getElementById('c');
+  const ctx    = canvas.getContext('2d');
+  const hint   = document.getElementById('hint');
+
+  // ── CONSTANTS ──────────────────────────────────────
+  const COUNT        = 2000;
+  const CHEVRON_OPEN = 0.78;   // radians per arm
+  const TRAIL_HOLD   = 2.0;    // seconds chevron holds after cursor leaves
+  const TARGET_ANGLE = -Math.PI / 6; // 2 o'clock
+
+  // Derived from viewport — recalculated on resize
+  let W, H, DPR;
+  let chevSize   = 7;    // arm length in CSS px
+  let influenceR = 160;  // influence radius in CSS px
+
+  // Mouse/touch in CSS px
+  let mx = -9999, my = -9999;
+
+  const items = [];
+
+  // ── RESIZE + DPR ────────────────────────────────────
+  function resize() {
+    DPR = Math.min(window.devicePixelRatio || 1, 2); // cap at 2× for perf
+    W   = window.innerWidth;
+    H   = window.innerHeight;
+
+    // Scale canvas backing store for retina
+    canvas.width  = Math.round(W * DPR);
+    canvas.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // always draw in CSS px
+
+    // Scale chevron + radius with viewport so mobile feels right
+    const vmin   = Math.min(W, H);
+    chevSize     = vmin * 0.013;          // ~7px on 540px wide, ~9px on 700px
+    influenceR   = vmin * 0.28;           // ~150px on 540, scales up on desktop
+  }
+
+  // ── BUILD FIELD ──────────────────────────────────────
+  function buildField() {
+    items.length = 0;
+    const aspect = W / H;
+    const cols   = Math.round(Math.sqrt(COUNT * aspect));
+    const rows   = Math.round(COUNT / cols);
+    const cellW  = W / cols;
+    const cellH  = H / rows;
+
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        if (items.length >= COUNT) break;
+
+        const roll = Math.random();
+        const dotR = roll > 0.96 ? 2.0 + Math.random() * 0.8
+                   : roll > 0.80 ? 1.0 + Math.random() * 0.6
+                   :               0.35 + Math.random() * 0.45;
+
+        items.push({
+          x:          c * cellW + cellW * 0.5 + (Math.random() - 0.5) * cellW * 0.7,
+          y:          r * cellH + cellH * 0.5 + (Math.random() - 0.5) * cellH * 0.7,
+          morph:      0,
+          trail:      0,
+          speed:      0.06 + Math.random() * 0.04,
+          dotR:       dotR,
+          flickPhase: Math.random() * Math.PI * 2,
+          flickSpeed: 0.4 + Math.random() * 2.2,
+          flickDepth: 0.3 + Math.random() * 0.55,
+        });
+      }
+    }
+  }
+
+  // ── UPDATE ───────────────────────────────────────────
+  function update(dt) {
+    const r2 = influenceR * influenceR;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      const dx = it.x - mx;
+      const dy = it.y - my;
+      const d2 = dx * dx + dy * dy;
+
+      const influence = d2 < r2
+        ? 0.5 + 0.5 * Math.cos(Math.PI * Math.sqrt(d2) / influenceR)
+        : 0;
+
+      if (influence > 0.01) {
+        it.morph = Math.min(1, it.morph + influence * it.speed * dt * 60);
+        it.trail = 1.0;
+      } else {
+        it.trail = Math.max(0, it.trail - dt / TRAIL_HOLD);
+        const target = it.trail > 0.05 ? it.trail : 0;
+        const decay  = it.speed * 0.5 * dt * 60;
+        it.morph = it.morph > target
+          ? Math.max(target, it.morph - decay)
+          : Math.min(target, it.morph + decay);
+      }
+    }
+  }
+
+  // ── DRAW ONE ITEM ────────────────────────────────────
+  function drawItem(it, t) {
+    const mE = it.morph * it.morph * (3 - 2 * it.morph); // smoothstep
+
+    ctx.save();
+    ctx.translate(it.x, it.y);
+
+    if (mE < 0.02) {
+      // ── Star ──
+      const flick    = 0.5 + 0.5 * Math.sin(t * it.flickSpeed + it.flickPhase);
+      const baseA    = it.dotR > 1.8 ? 0.55 : it.dotR > 1.0 ? 0.32 : 0.18;
+      const alpha    = baseA * (1 - it.flickDepth + it.flickDepth * flick);
+      const radius   = it.dotR * (0.85 + 0.15 * flick);
+      ctx.beginPath();
+      ctx.arc(0, 0, radius, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(200,215,240,${alpha.toFixed(3)})`;
+      ctx.fill();
+    } else {
+      // ── Chevron ──
+      ctx.rotate(TARGET_ANGLE);
+
+      // Dot fades out
+      const dotA = (1 - mE) * it.dotR * 0.1;
+      if (dotA > 0.005) {
+        ctx.beginPath();
+        ctx.arc(0, 0, it.dotR, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(200,215,240,${dotA.toFixed(3)})`;
+        ctx.fill();
+      }
+
+      const s    = chevSize * mE;
+      const tipX =  s * 0.55;
+      const bkX  = -s * 0.45;
+      const armY =  s * Math.tan(CHEVRON_OPEN);
+
+      const alpha = 0.18 + mE * 0.72;
+      const cg    = Math.round(210 + (169 - 210) * mE);
+      const cb    = Math.round(230 + (110 - 230) * mE);
+
+      ctx.strokeStyle = `rgba(200,${cg},${cb},${alpha.toFixed(3)})`;
+      ctx.lineWidth   = s * 0.52;
+      ctx.lineJoin    = 'miter';
+      ctx.miterLimit  = 14;
+      ctx.lineCap     = 'butt';
+
+      ctx.beginPath();
+      ctx.moveTo(bkX, -armY);
+      ctx.lineTo(tipX, 0);
+      ctx.lineTo(bkX,  armY);
+      ctx.stroke();
+    }
+
+    ctx.restore();
+  }
+
+  // ── RENDER ───────────────────────────────────────────
+  function render(t) {
+    ctx.fillStyle = '#04091C';
+    ctx.fillRect(0, 0, W, H);
+
+    for (let pass = 0; pass < 2; pass++) {
+      for (let i = 0; i < items.length; i++) {
+        const it = items[i];
+        if (pass === 0 && it.morph > 0.02) continue;
+        if (pass === 1 && it.morph <= 0.02) continue;
+        drawItem(it, t);
+      }
+    }
+  }
+
+  // ── LOOP ─────────────────────────────────────────────
+  let lastTime = 0;
+  function loop(ts) {
+    const dt = Math.min((ts - lastTime) / 1000, 0.05);
+    lastTime = ts;
+    update(dt);
+    render(ts / 1000);
+    requestAnimationFrame(loop);
+  }
+
+  // ── EVENTS ───────────────────────────────────────────
+  const isTouchDevice = window.matchMedia('(hover: none)').matches;
+
+  if (isTouchDevice) {
+    hint.textContent = 'Touch and drag';
+  }
+
+  window.addEventListener('mousemove', e => {
+    mx = e.clientX;
+    my = e.clientY;
+  });
+
+  window.addEventListener('touchstart', e => {
+    mx = e.touches[0].clientX;
+    my = e.touches[0].clientY;
+  }, { passive: true });
+
+  window.addEventListener('touchmove', e => {
+    e.preventDefault();
+    mx = e.touches[0].clientX;
+    my = e.touches[0].clientY;
+  }, { passive: false });
+
+  window.addEventListener('touchend', () => {
+    // Fade cursor away so chevrons revert after lift
+    setTimeout(() => { mx = -9999; my = -9999; }, 80);
+  });
+
+  // Debounced resize — rebuild field only after resize settles
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(() => { resize(); buildField(); }, 150);
+  });
+
+  // ── INIT ─────────────────────────────────────────────
+  resize();
+  buildField();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
