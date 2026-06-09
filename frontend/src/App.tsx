@@ -32,6 +32,24 @@ import {
 
 axios.defaults.withCredentials = true;
 
+/** Persisted on orders — existing store_name/store_number behaviour unchanged for TEMP. */
+function storeSnapshotForOrder(store: StoreData) {
+  const isTempStore =
+    (store.banner || '').toUpperCase() === 'TEMP' ||
+    (store.storeId || '').startsWith('TEMP-');
+  const enteredStoreName = isTempStore
+    ? (store.storeName || '').replace(/^TEMP\s*-\s*/i, '').trim()
+    : (store.storeName || '').trim();
+  return {
+    enteredStoreNo: (store.storeNo || '').trim(),
+    enteredStoreName,
+    storeState: (store.state || '').trim(),
+    storeSuburb: (store.suburb || '').trim(),
+    storePostcode: (store.pcode || '').trim(),
+    isTempStore,
+  };
+}
+
 interface UserData {
   fullName: string;
   storeNo: string;
@@ -700,6 +718,7 @@ function App() {
             orderChannel: 'mso',
             items,
             totalValue,
+            ...storeSnapshotForOrder(store),
           };
           await postOrder(orderData);
           lastPrint = orderData;
@@ -733,6 +752,7 @@ function App() {
           orderChannel: 'retail',
           items,
           totalValue,
+          ...storeSnapshotForOrder(storeData),
         };
         await postOrder(orderData);
         setPrintData(orderData);
@@ -841,6 +861,7 @@ function App() {
         storeCode: (storeData.storeId || '').trim(),
         items: [],
         totalValue: '0.00',
+        ...storeSnapshotForOrder(storeData),
       });
     } catch (error) {
       console.error('Error saving order:', error);

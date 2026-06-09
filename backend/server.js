@@ -593,6 +593,12 @@ async function initDb() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_code TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rep_email TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_channel TEXT NOT NULL DEFAULT 'retail'`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS entered_store_no TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS entered_store_name TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_state TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_suburb TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_postcode TEXT`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_temp_store BOOLEAN NOT NULL DEFAULT false`);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS auth_magic_links (
@@ -2767,6 +2773,31 @@ async function getOrderEmailModel(orderId) {
   };
 }
 
+/** Prefer persisted order.store_state, then mcash_stores join, for dashboard state rollups. */
+const ORDER_STATE_EXPR = `COALESCE(NULLIF(TRIM(o.store_state), ''), NULLIF(TRIM(ms.state), ''), 'Unknown')`;
+
+function clipOrderStoreSnapshot(body) {
+  const enteredStoreNo = String(body?.enteredStoreNo || '').trim();
+  const enteredStoreName = String(body?.enteredStoreName || '').trim();
+  const rawState = String(body?.storeState || '').trim();
+  const storeState = canonicalAustralianStateCode(rawState) || rawState || null;
+  const storeSuburb = String(body?.storeSuburb || '').trim() || null;
+  const storePostcode = String(body?.storePostcode || '').trim() || null;
+  const storeCode = String(body?.storeCode || '').trim();
+  const banner = String(body?.banner || '').trim();
+  const isTempStore = Boolean(body?.isTempStore)
+    || banner.toUpperCase() === 'TEMP'
+    || storeCode.toUpperCase().startsWith('TEMP-');
+  return {
+    enteredStoreNo: enteredStoreNo || null,
+    enteredStoreName: enteredStoreName || null,
+    storeState,
+    storeSuburb,
+    storePostcode,
+    isTempStore,
+  };
+}
+
 app.post('/api/save-order', requireAuth, async (req, res) => {
   const client = await pool.connect();
   try {
@@ -2775,13 +2806,23 @@ app.post('/api/save-order', requireAuth, async (req, res) => {
     const orderChannel = String(req.body?.orderChannel || 'retail').trim().toLowerCase() === 'mso'
       ? 'mso'
       : 'retail';
+    const snapshot = clipOrderStoreSnapshot(req.body);
 
     await client.query('BEGIN');
 
     const { rows: [{ id: orderId }] } = await client.query(
-      `INSERT INTO orders (store_number,store_name,banner,user_name,position,purchase_order,email,store_code,rep_email,total_value,order_channel)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-      [storeNumber, storeName, banner, userName, position, purchaseOrder, email, storeCode, repEmail, parseFloat(totalValue) || 0, orderChannel]
+      `INSERT INTO orders (
+         store_number, store_name, banner, user_name, position, purchase_order, email,
+         store_code, rep_email, total_value, order_channel,
+         entered_store_no, entered_store_name, store_state, store_suburb, store_postcode, is_temp_store
+       )
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING id`,
+      [
+        storeNumber, storeName, banner, userName, position, purchaseOrder, email,
+        storeCode, repEmail, parseFloat(totalValue) || 0, orderChannel,
+        snapshot.enteredStoreNo, snapshot.enteredStoreName, snapshot.storeState,
+        snapshot.storeSuburb, snapshot.storePostcode, snapshot.isTempStore,
+      ]
     );
 
     for (const item of items) {
@@ -3373,11 +3414,11 @@ app.get('/api/dashboard/charts', requireAuth, async (req, res) => {
         LIMIT 12
       `),
       pool.query(`
-        SELECT COALESCE(ms.state, 'Unknown') AS label,
+        SELECT ${ORDER_STATE_EXPR} AS label,
                SUM(o.total_value)::numeric::float8 AS value
         FROM orders o
         LEFT JOIN mcash_stores ms ON LOWER(ms.name) = LOWER(o.store_name)
-        GROUP BY ms.state
+        GROUP BY 1
         ORDER BY value DESC
       `),
       pool.query(`
@@ -3521,7 +3562,7 @@ app.get('/api/dashboard/target-vs-orders', requireAuth, async (req, res) => {
     }
 
     const { rows } = await pool.query(`
-      SELECT COALESCE(ms.state, 'Unknown') AS state,
+      SELECT ${ORDER_STATE_EXPR} AS state,
              SUM(o.total_value)::numeric::float8 AS total_actual,
              SUM(CASE WHEN LOWER(COALESCE(o.order_channel, 'retail')) = 'mso'
                   THEN o.total_value ELSE 0 END)::numeric::float8 AS mso_actual,
@@ -3529,7 +3570,7 @@ app.get('/api/dashboard/target-vs-orders', requireAuth, async (req, res) => {
                   THEN o.total_value ELSE 0 END)::numeric::float8 AS non_mso_actual
       FROM orders o
       LEFT JOIN mcash_stores ms ON LOWER(ms.name) = LOWER(o.store_name)
-      GROUP BY ms.state
+      GROUP BY 1
     `);
 
     const totalByState = new Map();
@@ -3591,9 +3632,9 @@ app.get('/api/dashboard/csv', requireAuth, async (req, res) => {
       SELECT
         o.id                                                              AS order_id,
         'Confirmed'                                                       AS order_status,
-        ms.state                                                          AS state,
+        COALESCE(NULLIF(TRIM(o.store_state), ''), ms.state)                AS state,
         o.store_code                                                      AS customer_number,
-        o.store_name                                                      AS customer_name,
+        COALESCE(NULLIF(TRIM(o.entered_store_name), ''), o.store_name)    AS customer_name,
         o.email                                                           AS customer_email,
         o.email                                                           AS order_placed_by,
         30152                                                             AS vendor_number,
