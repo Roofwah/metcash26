@@ -593,12 +593,24 @@ async function initDb() {
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_code TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS rep_email TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS order_channel TEXT NOT NULL DEFAULT 'retail'`);
+  await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS reporting_channel TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS entered_store_no TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS entered_store_name TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_state TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_suburb TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS store_postcode TEXT`);
   await pool.query(`ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_temp_store BOOLEAN NOT NULL DEFAULT false`);
+
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS order_reporting_overrides (
+      order_id           INTEGER PRIMARY KEY REFERENCES orders(id) ON DELETE CASCADE,
+      reporting_channel  TEXT NOT NULL,
+      note               TEXT,
+      created_at         TIMESTAMPTZ DEFAULT NOW(),
+      CONSTRAINT order_reporting_overrides_channel_check
+        CHECK (LOWER(TRIM(reporting_channel)) IN ('retail', 'mso'))
+    )
+  `);
 
   await pool.query(`
     CREATE TABLE IF NOT EXISTS auth_magic_links (
@@ -2775,6 +2787,9 @@ async function getOrderEmailModel(orderId) {
 
 /** Prefer persisted order.store_state, then mcash_stores join, for dashboard state rollups. */
 const ORDER_STATE_EXPR = `COALESCE(NULLIF(TRIM(o.store_state), ''), NULLIF(TRIM(ms.state), ''), 'Unknown')`;
+/** Dashboard MSO split: override table → orders.reporting_channel → order_channel (entry path unchanged). */
+const ORDER_REPORTING_CHANNEL_EXPR = `LOWER(COALESCE(NULLIF(TRIM(r.reporting_channel), ''), NULLIF(TRIM(o.reporting_channel), ''), o.order_channel, 'retail'))`;
+const ORDER_REPORTING_OVERRIDE_JOIN = `LEFT JOIN order_reporting_overrides r ON r.order_id = o.id`;
 
 function clipOrderStoreSnapshot(body) {
   const enteredStoreNo = String(body?.enteredStoreNo || '').trim();
@@ -3564,12 +3579,13 @@ app.get('/api/dashboard/target-vs-orders', requireAuth, async (req, res) => {
     const { rows } = await pool.query(`
       SELECT ${ORDER_STATE_EXPR} AS state,
              SUM(o.total_value)::numeric::float8 AS total_actual,
-             SUM(CASE WHEN LOWER(COALESCE(o.order_channel, 'retail')) = 'mso'
+             SUM(CASE WHEN ${ORDER_REPORTING_CHANNEL_EXPR} = 'mso'
                   THEN o.total_value ELSE 0 END)::numeric::float8 AS mso_actual,
-             SUM(CASE WHEN LOWER(COALESCE(o.order_channel, 'retail')) != 'mso'
+             SUM(CASE WHEN ${ORDER_REPORTING_CHANNEL_EXPR} != 'mso'
                   THEN o.total_value ELSE 0 END)::numeric::float8 AS non_mso_actual
       FROM orders o
       LEFT JOIN mcash_stores ms ON LOWER(ms.name) = LOWER(o.store_name)
+      ${ORDER_REPORTING_OVERRIDE_JOIN}
       GROUP BY 1
     `);
 
