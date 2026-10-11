@@ -1,0 +1,189 @@
+.ww-category-trend {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  margin: 0.75rem 0 1rem;
+}
+
+.ww-category-trend--empty {
+  flex-direction: row;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.ww-category-trend-label {
+  font-size: clamp(0.95rem, 2.8vw, 1.1rem);
+  font-weight: 700;
+  color: rgba(26, 26, 26, 0.62);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ww-category-trend-dash {
+  font-size: 1.25rem;
+  color: rgba(26, 26, 26, 0.45);
+}
+
+.ww-category-sparkline-btn {
+  display: block;
+  width: 100%;
+  padding: 0.35rem 0.5rem 0.25rem;
+  border: 1px solid rgba(18, 82, 33, 0.12);
+  background: linear-gradient(180deg, rgba(18, 82, 33, 0.06) 0%, rgba(255, 255, 255, 0.9) 100%);
+  cursor: pointer;
+  border-radius: 10px;
+}
+
+.ww-category-sparkline-btn:hover .ww-category-sparkline-path,
+.ww-category-sparkline-btn:focus-visible .ww-category-sparkline-path {
+  stroke: #0d3d18;
+}
+
+.ww-category-sparkline-area {
+  stroke: none;
+}
+
+.ww-category-sparkline-path {
+  fill: none;
+  stroke: #125221;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ww-category-sparkline--up {
+  color: #125221;
+}
+
+.ww-category-sparkline--down {
+  color: #c62828;
+}
+
+.ww-category-sparkline--flat {
+  color: #e65100;
+}
+
+.ww-category-sparkline-path--up {
+  stroke: #125221;
+}
+
+.ww-category-sparkline-path--down {
+  stroke: #c62828;
+}
+
+.ww-category-sparkline-path--flat {
+  stroke: #e65100;
+}
+
+.ww-category-trend--compact {
+  margin: 0.35rem 0 0;
+  align-items: stretch;
+  width: 100%;
+}
+
+.ww-category-trend--compact .ww-category-sparkline-btn,
+.ww-category-sparkline-static {
+  display: block;
+  width: 100%;
+  padding: 0.2rem 0.35rem 0.15rem;
+  border: 1px solid rgba(18, 82, 33, 0.1);
+  background: rgba(255, 255, 255, 0.65);
+  border-radius: 8px;
+}
+
+.ww-category-sparkline-static {
+  line-height: 0;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ww-category-trend-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.ww-category-trend-row--compact .ww-category-sparkline-btn {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ww-category-shift {
+  flex-shrink: 0;
+  font-size: clamp(0.82rem, 2vw, 0.95rem);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.ww-category-shift--up {
+  color: #125221;
+}
+
+.ww-category-shift--down {
+  color: #c62828;
+}
+
+.ww-category-shift--flat {
+  color: #e65100;
+}
+
+.ww-category-chart-modal {
+  max-width: min(380px, calc(100vw - 2rem));
+  text-align: left;
+  position: relative;
+}
+
+.ww-category-chart-modal h3 {
+  font-size: 1rem;
+  margin: 0 2rem 0.75rem 0;
+  line-height: 1.3;
+  color: #1a1a1a;
+}
+
+.ww-category-modal-close {
+  position: absolute;
+  top: 0.65rem;
+  right: 0.65rem;
+  width: 2rem;
+  height: 2rem;
+  border: none;
+  background: transparent;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: rgba(26, 26, 26, 0.55);
+  cursor: pointer;
+}
+
+.ww-category-chart-line {
+  stroke: #125221;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ww-category-chart-axis {
+  fill: rgba(26, 26, 26, 0.55);
+  font-size: 9px;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+.ww-category-chart-point {
+  fill: #125221;
+  stroke: #fff;
+  stroke-width: 1.5;
+  cursor: pointer;
+}
+
+.ww-category-chart-tooltip {
+  margin: 0.5rem 0 0;
+  font-size: 0.88rem;
+  color: rgba(26, 26, 26, 0.75);
+  text-align: center;
+}
+
+.ww-category-chart-tooltip strong {
+  color: #125221;
+}

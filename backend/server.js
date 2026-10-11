@@ -3736,6 +3736,22 @@ app.get('/api/dashboard/csv', requireAuth, async (req, res) => {
 });
 
 // ---------------------------------------------------------------------------
+// Energizer AU hub — dble.co/energizerAU (one login → Metcash / WW / Bunnings)
+// ---------------------------------------------------------------------------
+const energizerHubPath = [
+  path.join(__dirname, '..', 'platform', 'registerEnergizerHub.js'),
+  path.join(__dirname, '..', '..', '..', 'platform', 'registerEnergizerHub.js'),
+].find((p) => fs.existsSync(p));
+if (energizerHubPath) {
+  const { registerEnergizerHub } = require(energizerHubPath);
+  registerEnergizerHub(app, {
+    cookieName: AUTH_SESSION_COOKIE,
+    getSessionById,
+    pool,
+  });
+}
+
+// ---------------------------------------------------------------------------
 // Serve React build (single-service deployment)
 // ---------------------------------------------------------------------------
 const possibleBuilds = [
@@ -3782,6 +3798,20 @@ if (buildPath) {
 
   app.get('/metcash26', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
   app.get(/^\/metcash26\/.*$/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+  const ww26BundlePath = [
+    path.join(__dirname, '..', 'ww26', 'backend', 'bundle.js'),
+    path.join(__dirname, '..', '..', 'ww26', 'backend', 'bundle.js'),
+  ].find((p) => fs.existsSync(p));
+  if (ww26BundlePath) {
+    const { attachWw26 } = require(ww26BundlePath);
+    attachWw26(app, { requireAuth })
+      .then((result) => {
+        if (result?.ok) console.log('WW26 bundled at /ww26');
+      })
+      .catch((err) => console.error('WW26 bundle failed:', err.message || err));
+  } else {
+    console.warn('WW26 bundle.js not found — skip /ww26');
+  }
   app.get('/', (req, res) => {
     if (!fs.existsSync(landingIndexPath)) {
       return res.status(404).type('html').send('<h1>DBLE landing page not found</h1>');

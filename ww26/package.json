@@ -1,0 +1,11 @@
+{
+  "name": "ww26-channel",
+  "private": true,
+  "scripts": {
+    "build": "npm --prefix frontend run build",
+    "start": "npm --prefix backend start",
+    "dev": "npx concurrently -k -n backend,frontend -c blue,green \"npm --prefix backend start\" \"npm --prefix frontend run dev\"",
+    "restart": "sh -c 'CI= DISABLE_ESLINT_PLUGIN=true npm --prefix frontend run build && (lsof -ti:5003 2>/dev/null | xargs kill -9 2>/dev/null; true) && npm --prefix backend start'",
+    "install-all": "npm --prefix backend install && npm --prefix frontend install"
+  }
+}

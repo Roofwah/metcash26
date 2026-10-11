@@ -1,0 +1,260 @@
+.ww-dash-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(8, 24, 16, 0.62);
+  backdrop-filter: blur(4px);
+}
+
+.ww-dash-modal {
+  display: flex;
+  flex-direction: column;
+  width: min(96vw, 960px);
+  max-height: 90dvh;
+  overflow: hidden;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.35);
+}
+
+.ww-dash-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-shrink: 0;
+  padding: 1.15rem 1.35rem 0.95rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  background: #125221;
+  color: #fff;
+}
+
+.ww-dash-title {
+  margin: 0 0 0.2rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+}
+
+.ww-dash-subtitle {
+  margin: 0;
+  font-size: 0.74rem;
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.ww-dash-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: #fff;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.ww-dash-close:hover {
+  background: rgba(255, 255, 255, 0.28);
+}
+
+.ww-dash-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
+  flex-shrink: 0;
+  padding: 0.75rem 1.35rem;
+  border-bottom: 1px solid #eee;
+  background: #f8faf8;
+}
+
+.ww-dash-stat-value {
+  display: block;
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #125221;
+}
+
+.ww-dash-stat-label {
+  font-size: 0.66rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #888;
+}
+
+.ww-dash-toggle {
+  display: flex;
+  margin-left: auto;
+  overflow: hidden;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+}
+
+.ww-dash-toggle button {
+  border: none;
+  padding: 0.4rem 0.85rem;
+  background: #fff;
+  color: #666;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ww-dash-toggle button.active {
+  background: #125221;
+  color: #fff;
+}
+
+.ww-dash-csv {
+  border: none;
+  border-radius: 8px;
+  padding: 0.48rem 0.95rem;
+  background: #125221;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ww-dash-csv:hover {
+  background: #0d3d18;
+}
+
+.ww-dash-body {
+  flex: 1;
+  overflow: auto;
+  min-height: 200px;
+}
+
+.ww-dash-loading,
+.ww-dash-error,
+.ww-dash-empty {
+  padding: 2rem 1.35rem;
+  text-align: center;
+  color: #666;
+}
+
+.ww-dash-error {
+  color: #b42318;
+}
+
+.ww-dash-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.81rem;
+}
+
+.ww-dash-table thead th {
+  position: sticky;
+  top: 0;
+  padding: 0.55rem 0.75rem;
+  border-bottom: 2px solid #ddd;
+  background: #eef5ef;
+  text-align: left;
+  font-size: 0.66rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #666;
+  white-space: nowrap;
+}
+
+.ww-dash-table td {
+  padding: 0.48rem 0.75rem;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.ww-dash-table tbody tr:nth-child(even) td {
+  background: #fafcfa;
+}
+
+.ww-dash-table .num {
+  text-align: right;
+  font-weight: 700;
+  color: #125221;
+  white-space: nowrap;
+}
+
+.ww-dash-table .store {
+  font-weight: 600;
+}
+
+.ww-dash-login {
+  padding: 1.5rem 1.35rem 1.75rem;
+}
+
+.ww-dash-login h3 {
+  margin: 0 0 0.35rem;
+  color: #125221;
+}
+
+.ww-dash-login p {
+  margin: 0 0 1rem;
+  font-size: 0.88rem;
+  color: rgba(26, 26, 26, 0.72);
+}
+
+.ww-dash-login label {
+  display: block;
+  margin-bottom: 0.85rem;
+  text-align: left;
+}
+
+.ww-dash-login label span {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: rgba(26, 26, 26, 0.65);
+}
+
+.ww-dash-login input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(18, 82, 33, 0.22);
+  border-radius: 8px;
+  font-size: 0.9rem;
+}
+
+.ww-dash-login-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.ww-dash-login-actions button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.55rem 1rem;
+  background: #3ecf8e;
+  color: #0a1628;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.ww-dash-login-actions button.secondary {
+  background: #eef5ef;
+  color: #125221;
+}
+
+.ww-dash-login-msg {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #125221;
+}
+
+.ww-dash-login-err {
+  margin: 0 0 0.75rem;
+  font-size: 0.82rem;
+  color: #b42318;
+}

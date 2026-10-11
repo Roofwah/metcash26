@@ -1,0 +1,112 @@
+.ww-login {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  padding: 1.5rem;
+}
+
+.ww-login-bg {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  filter: brightness(0.55);
+  z-index: 0;
+}
+
+.ww-login-card {
+  position: relative;
+  z-index: 1;
+  width: min(420px, 100%);
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 14px;
+  padding: 1.75rem 1.5rem 1.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25);
+  text-align: center;
+}
+
+.ww-login-logo {
+  display: block;
+  margin: 0 auto 1rem;
+  height: auto;
+}
+
+.ww-login-card h1 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  color: #0f172a;
+}
+
+.ww-login-lede {
+  margin: 0 0 1.25rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
+  color: #475569;
+}
+
+.ww-login-field {
+  display: block;
+  text-align: left;
+  margin-bottom: 0.85rem;
+}
+
+.ww-login-field span {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+  margin-bottom: 0.35rem;
+}
+
+.ww-login-field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.ww-login-primary,
+.ww-login-secondary {
+  width: 100%;
+  margin-top: 0.35rem;
+  padding: 0.7rem 1rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+}
+
+.ww-login-primary {
+  background: #dc2626;
+  color: #fff;
+}
+
+.ww-login-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ww-login-secondary {
+  background: transparent;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+
+.ww-login-err {
+  color: #dc2626;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}
+
+.ww-login-info {
+  color: #0f766e;
+  font-size: 0.85rem;
+  margin: 0 0 0.75rem;
+}

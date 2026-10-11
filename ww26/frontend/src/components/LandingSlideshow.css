@@ -1,0 +1,39 @@
+.ww-landing-slideshow {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background-color: #5bb4e5;
+}
+
+.ww-landing-slideshow-slide {
+  position: absolute;
+  inset: 0;
+  background-color: #5bb4e5;
+  background-position: center center;
+  background-size: cover;
+  background-repeat: no-repeat;
+  opacity: 0;
+  transition: opacity 900ms ease-in-out;
+  will-change: opacity;
+}
+
+.ww-landing-slideshow-slide.is-active {
+  opacity: 1;
+  z-index: 2;
+}
+
+.ww-landing-slideshow-slide.is-leaving {
+  opacity: 0;
+  z-index: 1;
+}
+
+.ww-landing-slideshow-slide.is-hidden {
+  opacity: 0;
+  z-index: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ww-landing-slideshow-slide {
+    transition: none;
+  }
+}

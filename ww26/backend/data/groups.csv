@@ -1,0 +1,6 @@
+group_id,group_manager_id,group_manager_name,region
+G001,GM1001,Sarah Mitchell,NSW
+G002,GM1002,James Chen,VIC
+G003,GM1003,Emma Walsh,QLD
+G004,GM1004,David Nguyen,WA
+G005,GM1005,Lisa Thompson,SA
