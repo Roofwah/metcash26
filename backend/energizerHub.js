@@ -32,6 +32,14 @@ const CHANNELS = [
     status: 'coming_soon',
     requiredGrant: 'bunnings26',
   },
+  {
+    id: 'mitre10',
+    route: '/mitre10',
+    label: 'TTHG / Mitre 10',
+    subtitle: 'Coming soon',
+    status: 'coming_soon',
+    requiredGrant: 'mitre10',
+  },
 ];
 
 function listChannels(opts = {}) {
@@ -62,7 +70,9 @@ function registerEnergizerHub(app, opts) {
   const getSessionById = opts.getSessionById;
   const pool = opts.pool;
 
-  const devGrants = String(process.env.PLATFORM_DEV_GRANTS || 'metcash26,ww26,bunnings26')
+  const devGrants = String(
+    process.env.PLATFORM_DEV_GRANTS || 'metcash26,ww26,bunnings26,mitre10',
+  )
     .split(',')
     .map((g) => g.trim())
     .filter(Boolean);
