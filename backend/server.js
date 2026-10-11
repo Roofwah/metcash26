@@ -3738,18 +3738,12 @@ app.get('/api/dashboard/csv', requireAuth, async (req, res) => {
 // ---------------------------------------------------------------------------
 // Energizer AU hub — dble.co/energizerAU (one login → Metcash / WW / Bunnings)
 // ---------------------------------------------------------------------------
-const energizerHubPath = [
-  path.join(__dirname, '..', 'platform', 'registerEnergizerHub.js'),
-  path.join(__dirname, '..', '..', '..', 'platform', 'registerEnergizerHub.js'),
-].find((p) => fs.existsSync(p));
-if (energizerHubPath) {
-  const { registerEnergizerHub } = require(energizerHubPath);
-  registerEnergizerHub(app, {
-    cookieName: AUTH_SESSION_COOKIE,
-    getSessionById,
-    pool,
-  });
-}
+const { registerEnergizerHub } = require('./energizerHub');
+registerEnergizerHub(app, {
+  cookieName: AUTH_SESSION_COOKIE,
+  getSessionById,
+  pool,
+});
 
 // ---------------------------------------------------------------------------
 // Serve React build (single-service deployment)
