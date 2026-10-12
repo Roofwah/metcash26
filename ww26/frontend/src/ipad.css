@@ -141,7 +141,7 @@
   }
 
   .ww-thanks {
-    transform: translate(-50%, calc(-50% - 400px));
+    transform: translate(-50%, calc(-50% - 320px));
     left: 50%;
     top: 42%;
     max-width: min(520px, calc(100% - 2rem));
@@ -450,7 +450,7 @@
 
   /* Thanks — drop desktop art offset; center on tablet */
   .ww-thanks {
-    transform: translate(-50%, calc(-50% - 400px));
+    transform: translate(-50%, calc(-50% - 320px));
     left: 50%;
     top: 42%;
     max-width: min(520px, calc(100vw - 2rem));
