@@ -2729,7 +2729,7 @@
   position: absolute;
   top: 50%;
   left: 50%;
-  transform: translate(calc(-50% + 70px), calc(-50% - 290px));
+  transform: translate(calc(-50% + 70px), calc(-50% - 690px));
   width: auto;
   max-width: min(520px, calc(100vw - 4rem));
   margin: 0;
