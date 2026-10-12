@@ -1,4 +1,32 @@
-/** Per-store PentaBin authority: system → store manager → group manager */
+/** Per-store PentaBin: recommended default; SM and GM may each commit — most recent commit wins. */
+
+function parseTs(value) {
+  if (!value) return null;
+  const t = new Date(value).getTime();
+  return Number.isNaN(t) ? null : t;
+}
+
+function resolveAllocationAuthority({ smQty, gmQty, smAt, gmAt }) {
+  const smActive = smAt != null && smQty != null;
+  const gmActive = gmAt != null && gmQty != null;
+  if (!smActive && !gmActive) {
+    return { finalStatus: 'none', effectiveQuantity: null };
+  }
+  if (smActive && !gmActive) {
+    return { finalStatus: 'store_manager', effectiveQuantity: smQty };
+  }
+  if (gmActive && !smActive) {
+    return { finalStatus: 'group_manager', effectiveQuantity: gmQty };
+  }
+  const smTs = parseTs(smAt);
+  const gmTs = parseTs(gmAt);
+  if (smTs != null && gmTs != null) {
+    if (smTs > gmTs) return { finalStatus: 'store_manager', effectiveQuantity: smQty };
+    return { finalStatus: 'group_manager', effectiveQuantity: gmQty };
+  }
+  if (smTs != null) return { finalStatus: 'store_manager', effectiveQuantity: smQty };
+  return { finalStatus: 'group_manager', effectiveQuantity: gmQty };
+}
 
 function allocationFromRow(row) {
   if (!row) return null;
@@ -9,13 +37,13 @@ function allocationFromRow(row) {
   const gmAt = row.group_manager_confirmed_at;
   const smAt = row.store_manager_committed_at;
 
-  let finalStatus = 'none';
-  if (gmAt && gmQty != null) finalStatus = 'group_manager';
-  else if (smAt && smQty != null) finalStatus = 'store_manager';
-
-  let effectiveQuantity = recommended;
-  if (finalStatus === 'group_manager') effectiveQuantity = gmQty;
-  else if (finalStatus === 'store_manager') effectiveQuantity = smQty;
+  const { finalStatus, effectiveQuantity: authorityQty } = resolveAllocationAuthority({
+    smQty,
+    gmQty,
+    smAt,
+    gmAt,
+  });
+  const effectiveQuantity = authorityQty != null ? authorityQty : recommended;
 
   if (!hasAllocation && finalStatus === 'none') {
     return {
@@ -81,24 +109,9 @@ async function upsertStoreManagerCommitment(pool, { storeId, recommended, quanti
   const rec = Math.max(0, Number(recommended) || 0);
   const qty = Math.max(0, Number(quantity) || 0);
 
-  const { rows: locked } = await pool.query(
-    `SELECT group_manager_confirmed_at, group_manager_quantity, group_manager_name
-     FROM ww_store_allocations WHERE store_id = $1 FOR UPDATE`,
-    [storeId],
-  );
+  await pool.query(`SELECT store_id FROM ww_store_allocations WHERE store_id = $1 FOR UPDATE`, [storeId]);
 
-  if (locked[0]?.group_manager_confirmed_at) {
-    const allocation = await getAllocationForStore(pool, storeId);
-    return {
-      ok: false,
-      status: 409,
-      code: 'GROUP_MANAGER_CONFIRMED',
-      error: 'This store allocation has already been confirmed by your Group Manager.',
-      allocation,
-    };
-  }
-
-  const { rowCount } = await pool.query(
+  await pool.query(
     `INSERT INTO ww_store_allocations (
        store_id, recommended_quantity,
        store_manager_quantity, store_manager_name, store_manager_committed_at,
@@ -109,21 +122,9 @@ async function upsertStoreManagerCommitment(pool, { storeId, recommended, quanti
        store_manager_quantity = EXCLUDED.store_manager_quantity,
        store_manager_name = EXCLUDED.store_manager_name,
        store_manager_committed_at = EXCLUDED.store_manager_committed_at,
-       updated_at = NOW()
-     WHERE ww_store_allocations.group_manager_confirmed_at IS NULL`,
+       updated_at = NOW()`,
     [storeId, rec, qty, participantName],
   );
-
-  if (rowCount === 0) {
-    const allocation = await getAllocationForStore(pool, storeId);
-    return {
-      ok: false,
-      status: 409,
-      code: 'GROUP_MANAGER_CONFIRMED',
-      error: 'This store allocation has already been confirmed by your Group Manager.',
-      allocation,
-    };
-  }
 
   return { ok: true, allocation: await getAllocationForStore(pool, storeId) };
 }
@@ -180,6 +181,7 @@ module.exports = {
   ALLOCATION_SELECT,
   ALLOCATION_JOIN,
   allocationFromRow,
+  resolveAllocationAuthority,
   attachAllocation,
   getAllocationForStore,
   upsertStoreManagerCommitment,

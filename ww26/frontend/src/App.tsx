@@ -231,18 +231,19 @@ function GroupManagerStorePentaCard({
   onAdjust: (storeId: string, delta: number) => void;
 }) {
   const smCommit =
-    line.allocation?.finalStatus === 'store_manager' &&
-    line.allocation.storeManagerQuantity != null
-      ? line.allocation.storeManagerQuantity
+    line.allocation?.storeManagerQuantity != null ? line.allocation.storeManagerQuantity : null;
+  const smNote =
+    smCommit != null
+      ? line.allocation?.finalStatus === 'store_manager'
+        ? `Store Manager: ${smCommit}`
+        : `Store Manager last: ${smCommit}`
       : null;
 
   return (
     <article className="ww-store-card ww-store-card--form ww-store-card--performance ww-store-card--penta">
       <h3>{storeLabel(store)}</h3>
       {store.suburb?.trim() ? <p>{store.suburb.trim()}</p> : null}
-      {smCommit != null ? (
-        <p className="ww-store-penta-sm-note">Store Manager: {smCommit}</p>
-      ) : null}
+      {smNote ? <p className="ww-store-penta-sm-note">{smNote}</p> : null}
       <div className="ww-store-card-metrics ww-store-card-metrics--penta-stack">
         <div className="ww-store-card-metric ww-store-card-metric--plan">
           <span className="ww-penta-year-label">
@@ -558,13 +559,6 @@ export default function App() {
     const canEditAsSm =
       isStoreManagerRole && isStoreParticipant && storeId === highlightStoreId;
     if (!canEditAsGm && !canEditAsSm) return;
-    const line = pentabinLines.find((l) => l.storeId === storeId);
-    if (
-      line?.allocation?.finalStatus === 'group_manager' &&
-      !isGroupManager
-    ) {
-      return;
-    }
     setPentabinLines((lines) =>
       lines.map((l) =>
         l.storeId === storeId
@@ -636,18 +630,6 @@ export default function App() {
     setLoading(true);
     setError('');
     try {
-      const fresh = await fetchApi<{ allocation: WwStore['allocation'] }>(
-        `/api/ww26/stores/${line.storeId}/allocation`,
-      );
-      if (fresh.allocation?.finalStatus === 'group_manager') {
-        applyAllocationToLines(line.storeId, fresh.allocation);
-        const qty = fresh.allocation.groupManagerQuantity ?? fresh.allocation.effectiveQuantity;
-        const gmName = fresh.allocation.groupManagerName || 'your Group Manager';
-        setError(
-          `Your 2026 PentaBin allocation has already been confirmed. ${gmName} has committed ${qty} PentaBins for ${line.storeName}.`,
-        );
-        return;
-      }
       const res = await fetch(apiUrl(`/api/ww26/sessions/${session.sessionId}/store-commitment`), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -741,8 +723,6 @@ export default function App() {
     if (!currentReview || !groupData) return null;
     return groupData.stores.find((s) => s.store_id === currentReview.storeId) ?? null;
   }, [currentReview, groupData]);
-  const storeAllocationLocked =
-    currentReview?.allocation?.finalStatus === 'group_manager';
   const filteredStores = useMemo(
     () => sortStores(filterStores(allStores, storeQuery)),
     [allStores, storeQuery],
@@ -1142,24 +1122,23 @@ export default function App() {
                       {currentReview.recommended}
                     </span>
                   </p>
-                  {storeAllocationLocked && currentReview.allocation ? (
-                    <p className="ww-lede ww-incentive-blurb">
-                      Your 2026 PentaBin allocation has already been confirmed.
-                      {' '}
-                      {currentReview.allocation.groupManagerName || groupManagerDisplayName}
-                      {' '}
-                      has committed{' '}
-                      <strong>
-                        {currentReview.allocation.groupManagerQuantity ?? currentReview.allocation.effectiveQuantity}
-                      </strong>
-                      {' '}
-                      PentaBins for {currentReview.storeName}.
-                    </p>
-                  ) : isStoreManagerRole ? (
+                  {isStoreManagerRole ? (
                     <>
-                      {currentReview.allocation?.finalStatus === 'store_manager' ? (
+                      {currentReview.allocation &&
+                      (currentReview.allocation.storeManagerCommittedAt ||
+                        currentReview.allocation.groupManagerConfirmedAt) ? (
                         <p className="ww-plan-line">
-                          Your current commitment: <strong>{currentReview.allocation.storeManagerQuantity}</strong> PentaBins
+                          Current allocation:{' '}
+                          <strong>{currentReview.allocation.effectiveQuantity}</strong> PentaBins
+                          {currentReview.allocation.finalStatus === 'group_manager' ? (
+                            <>
+                              {' '}
+                              (last updated by{' '}
+                              {currentReview.allocation.groupManagerName || groupManagerDisplayName})
+                            </>
+                          ) : currentReview.allocation.finalStatus === 'store_manager' ? (
+                            <> (your last commitment)</>
+                          ) : null}
                         </p>
                       ) : null}
                       <div className="ww-qty-control ww-qty-control--form">
@@ -1168,7 +1147,7 @@ export default function App() {
                         <button type="button" onClick={() => adjustQty(currentReview.storeId, 1)} aria-label="Increase">+</button>
                       </div>
                       <p className="ww-lede ww-lede--plan-footer">
-                        {groupManagerDisplayName} may review this before the final plan is confirmed.
+                        You can update this anytime; {groupManagerDisplayName} may also adjust the group plan.
                       </p>
                     </>
                   ) : (
@@ -1181,10 +1160,6 @@ export default function App() {
                     className="ww-btn ww-btn-primary"
                     disabled={loading}
                     onClick={() => {
-                      if (storeAllocationLocked) {
-                        setStep('thanks');
-                        return;
-                      }
                       const line = pentabinLines[0];
                       if (line && isStoreManagerRole) {
                         void submitStoreManagerCommitment(line);
@@ -1193,13 +1168,7 @@ export default function App() {
                       }
                     }}
                   >
-                    {loading
-                      ? 'Saving…'
-                      : storeAllocationLocked
-                        ? 'Continue'
-                        : isStoreManagerRole
-                          ? 'Confirm commitment'
-                          : 'Continue'}
+                    {loading ? 'Saving…' : isStoreManagerRole ? 'Confirm commitment' : 'Continue'}
                   </button>
                 </section>
               )}

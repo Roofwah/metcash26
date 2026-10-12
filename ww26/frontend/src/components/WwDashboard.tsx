@@ -12,8 +12,13 @@ interface PentaStoreRow {
   recommended: number;
   confirmed: number;
   variance: number;
+  authority: 'none' | 'store_manager' | 'group_manager';
+  last_updated_by: string | null;
+  last_updated_at: string | null;
+  store_manager_name: string | null;
+  store_manager_committed_at: string | null;
   group_manager_name: string | null;
-  group_manager_confirmed_at: string;
+  group_manager_confirmed_at: string | null;
 }
 
 interface GroupRow {
@@ -26,6 +31,8 @@ interface GroupRow {
 interface DashboardPayload {
   summary: {
     storeCount: number;
+    groupsConfirmed: number;
+    storeManagerCount: number;
     totalConfirmed: number;
     totalRecommended: number;
     totalVariance: number;
@@ -116,7 +123,7 @@ export default function WwDashboard({ onClose }: Props) {
             <h2 id="ww-dash-title" className="ww-dash-title">
               PentaBin 2026 — confirmed
             </h2>
-            <p className="ww-dash-subtitle">{repEmail || 'Group Manager confirmations by store'}</p>
+            <p className="ww-dash-subtitle">{repEmail || 'Current allocations (latest SM or GM commit wins)'}</p>
           </div>
           <button type="button" className="ww-dash-close" onClick={onClose} aria-label="Close">
             ✕
@@ -128,7 +135,15 @@ export default function WwDashboard({ onClose }: Props) {
             <div className="ww-dash-summary">
               <div>
                 <span className="ww-dash-stat-value">{summary.storeCount}</span>
-                <span className="ww-dash-stat-label">Stores confirmed</span>
+                <span className="ww-dash-stat-label">Stores with allocation</span>
+              </div>
+              <div>
+                <span className="ww-dash-stat-value">{summary.groupsConfirmed ?? 0}</span>
+                <span className="ww-dash-stat-label">Groups confirmed</span>
+              </div>
+              <div>
+                <span className="ww-dash-stat-value">{summary.storeManagerCount ?? 0}</span>
+                <span className="ww-dash-stat-label">Store managers</span>
               </div>
               <div>
                 <span className="ww-dash-stat-value">{summary.totalConfirmed}</span>
@@ -167,7 +182,7 @@ export default function WwDashboard({ onClose }: Props) {
             {loading ? <p className="ww-dash-loading">Loading…</p> : null}
             {error ? <p className="ww-dash-error">{error}</p> : null}
             {!loading && !error && payload && view === 'stores' && payload.stores.length === 0 ? (
-              <p className="ww-dash-empty">No Group Manager confirmations yet.</p>
+              <p className="ww-dash-empty">No store or group manager commitments yet.</p>
             ) : null}
             {!loading && !error && payload && view === 'stores' && payload.stores.length > 0 ? (
               <table className="ww-dash-table">
@@ -177,30 +192,37 @@ export default function WwDashboard({ onClose }: Props) {
                     <th>Store</th>
                     <th>Group</th>
                     <th>Rec.</th>
-                    <th>Confirmed</th>
+                    <th>Current</th>
                     <th>Var.</th>
-                    <th>Group Manager</th>
-                    <th>Confirmed</th>
+                    <th>Last by</th>
+                    <th>Updated</th>
                   </tr>
                 </thead>
                 <tbody>
                   {payload.stores.map((row, i) => (
                     <tr key={row.store_id}>
-                      <td>{i + 1}</td>
-                      <td>
+                      <td className="num">{i + 1}</td>
+                      <td className="store">
                         {row.store_name}
                         {row.suburb ? ` · ${row.suburb}` : ''}
                         {row.state ? ` ${row.state}` : ''}
                       </td>
                       <td>{row.group_id}</td>
-                      <td>{row.recommended}</td>
-                      <td>{row.confirmed}</td>
-                      <td>
+                      <td className="num">{row.recommended}</td>
+                      <td className="num">{row.confirmed}</td>
+                      <td className="num">
                         {row.variance > 0 ? '+' : ''}
                         {row.variance}
                       </td>
-                      <td>{row.group_manager_name || '—'}</td>
-                      <td>{fmtDate(row.group_manager_confirmed_at)}</td>
+                      <td>
+                        {row.last_updated_by || '—'}
+                        {row.authority === 'store_manager'
+                          ? ' (SM)'
+                          : row.authority === 'group_manager'
+                            ? ' (GM)'
+                            : ''}
+                      </td>
+                      <td>{row.last_updated_at ? fmtDate(row.last_updated_at) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -223,11 +245,11 @@ export default function WwDashboard({ onClose }: Props) {
                 <tbody>
                   {payload.byGroup.map((g) => (
                     <tr key={g.groupId}>
-                      <td>{g.groupId}</td>
-                      <td>{g.storeCount}</td>
-                      <td>{g.recommended}</td>
-                      <td>{g.confirmed}</td>
-                      <td>
+                      <td className="store">{g.groupId}</td>
+                      <td className="num">{g.storeCount}</td>
+                      <td className="num">{g.recommended}</td>
+                      <td className="num">{g.confirmed}</td>
+                      <td className="num">
                         {g.confirmed - g.recommended > 0 ? '+' : ''}
                         {g.confirmed - g.recommended}
                       </td>
