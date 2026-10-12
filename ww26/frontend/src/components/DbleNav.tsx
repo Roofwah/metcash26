@@ -64,6 +64,24 @@ export default function DbleNav({ publicUrl = '', repEmail, onDashboard, onLogou
           <button
             type="button"
             className="ww-dble-nav-menu-row"
+            aria-label="Main menu — Energizer AU channels"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setIsOpen(false);
+              window.location.assign('/energizerAU');
+            }}
+          >
+            <span className="ww-dble-nav-menu-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false" aria-hidden="true">
+                <path d="M4 4h7v7H4V4zm9 0h7v7h-7V4zM4 13h7v7H4v-7zm9 0h7v7h-7v-7z" />
+              </svg>
+            </span>
+            <span>Main menu</span>
+          </button>
+          <button
+            type="button"
+            className="ww-dble-nav-menu-row"
             aria-label="Open dashboard"
             onClick={(e) => {
               e.preventDefault();

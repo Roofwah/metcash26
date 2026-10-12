@@ -291,3 +291,21 @@
     margin-right: auto;
   }
 }
+
+/*
+ * Desktop / mouse: portrait hero JPGs with cover look over-zoomed on wide screens.
+ * iPad (pointer: coarse) keeps cover; fine pointer gets contain + sky-blue letterbox.
+ */
+@media (min-width: 1024px) and (pointer: fine) {
+  .ww-form-bg,
+  .ww-thanks-bg,
+  .ww-landing-slideshow-slide {
+    background-size: contain;
+    background-position: center center;
+  }
+
+  .ww-login-bg {
+    background-size: contain;
+    background-position: center center;
+  }
+}
