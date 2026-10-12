@@ -212,10 +212,20 @@
   padding: 1.35rem 1.25rem 1.2rem;
 }
 
+.ww-kiosk-container .ww-panel-form--intro .ww-field,
+.ww-kiosk-container .ww-panel-form--welcome .ww-field {
+  width: 100%;
+  max-width: 100%;
+  align-self: stretch;
+}
+
 .ww-kiosk-container .ww-panel-form--intro .ww-field input,
 .ww-kiosk-container .ww-panel-form--welcome .ww-field input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
   padding: 0.75rem 1rem;
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   min-height: 3rem;
 }
 
@@ -2489,8 +2499,8 @@
   margin: 1rem 0;
 }
 
-/* Desktop landscape only — iPad uses ipad.css (touch) */
-@media (min-width: 1367px) and (orientation: landscape) {
+/* Large desktop landscape — below 1441px uses kiosk/tablet layout (incl. iPad Pro 13 @ 1376px) */
+@media (min-width: 1441px) and (orientation: landscape) {
   .ww-app {
     --ww-top-inset: clamp(1rem, 2.5vh, 1.5rem);
     --ww-logo-h: clamp(40px, 6vh, 54px);
@@ -2715,4 +2725,23 @@
   z-index: 6;
   width: min(420px, calc(100vw - 2rem));
   margin: 0;
+}
+
+/* Kiosk: full-width fields; beat .ww-form-screen--intro giant input rules */
+.ww-app-campaign .ww-kiosk-container .ww-form-screen--intro .ww-panel-form .ww-field input,
+.ww-app-campaign .ww-kiosk-container .ww-panel-form--intro .ww-field input,
+.ww-app-campaign .ww-kiosk-container .ww-panel-form--welcome .ww-field input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  font-size: 1.05rem;
+  min-height: 3rem;
+}
+
+@media (min-width: 768px) and (max-width: 1440px) {
+  .ww-kiosk-container .ww-form-stage {
+    max-width: min(560px, 100%);
+  }
 }

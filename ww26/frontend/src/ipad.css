@@ -176,7 +176,7 @@
   }
 }
 
-@media (min-width: 768px) and (max-width: 1366px) {
+@media (min-width: 768px) and (max-width: 1440px) {
   html {
     font-size: 14px;
   }
@@ -489,7 +489,7 @@
 }
 
 /* Landscape tablet — card shell (matches Metcash lock pattern) */
-@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+@media (min-width: 768px) and (max-width: 1440px) and (orientation: landscape) {
   .ww-form-stage {
     padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
     padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -536,7 +536,7 @@
 }
 
 /* Portrait tablet — tighter card cap */
-@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+@media (min-width: 768px) and (max-width: 1440px) and (orientation: portrait) {
   .ww-form-stack--intro,
   .ww-form-stack--welcome,
   .ww-form-stack--wide,
