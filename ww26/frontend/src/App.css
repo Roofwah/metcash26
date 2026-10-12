@@ -129,11 +129,104 @@
 }
 
 .ww-form-screen {
-  --ww-form-card-max: min(840px, calc(100vw - 1.5rem));
+  --ww-form-card-max: min(840px, calc(100% - 1.5rem));
   position: relative;
   width: 100%;
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+/* Expo wizard shell — always on (Metcash user-form-container); do not rely on pointer media */
+.ww-kiosk-container {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 100%;
+  min-height: 100dvh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: calc(12px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+    calc(72px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ww-kiosk-container .ww-form-stage {
+  position: relative;
+  inset: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  left: auto;
+  flex: 0 1 auto;
+  width: 100%;
+  max-width: min(520px, 100%);
+  min-width: 0;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: visible;
+}
+
+.ww-form-screen--group-picker .ww-kiosk-container .ww-form-stage,
+.ww-form-screen--store-detail .ww-kiosk-container .ww-form-stage {
+  max-width: min(920px, 100%);
+  align-items: flex-start;
+  justify-content: flex-start;
+}
+
+.ww-kiosk-container .ww-form-stack,
+.ww-kiosk-container .ww-form-stack--intro,
+.ww-kiosk-container .ww-form-stack--welcome,
+.ww-kiosk-container .ww-form-stack--wide,
+.ww-kiosk-container .ww-form-stack--store-picker,
+.ww-kiosk-container .ww-form-stack--group-picker,
+.ww-kiosk-container .ww-form-stack--group-detail,
+.ww-kiosk-container .ww-form-stack--store-detail,
+.ww-kiosk-container .ww-form-stack--plan {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.ww-kiosk-container .ww-panel-form,
+.ww-kiosk-container .ww-panel-form--intro,
+.ww-kiosk-container .ww-panel-form--welcome {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ww-kiosk-container .ww-panel-form--intro,
+.ww-kiosk-container .ww-panel-form--welcome {
+  padding: 1.35rem 1.25rem 1.2rem;
+}
+
+.ww-kiosk-container .ww-panel-form--intro .ww-field input,
+.ww-kiosk-container .ww-panel-form--welcome .ww-field input {
+  padding: 0.75rem 1rem;
+  font-size: 1.1rem;
+  min-height: 3rem;
+}
+
+.ww-kiosk-container .ww-panel-form .ww-field,
+.ww-kiosk-container .ww-panel-form .ww-field input,
+.ww-kiosk-container .ww-panel-form .ww-field select,
+.ww-kiosk-container .ww-panel-form .ww-btn-primary {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .ww-header-form {
@@ -190,20 +283,20 @@
 
 .ww-form-stack--wide {
   width: 100%;
-  max-width: min(1080px, calc(100vw - 3rem));
+  max-width: min(1080px, calc(100% - 3rem));
   margin-left: auto;
   margin-right: auto;
 }
 
 .ww-form-stack--store-picker {
-  max-width: var(--ww-form-card-max, min(840px, calc(100vw - 1.5rem)));
+  max-width: var(--ww-form-card-max, min(840px, calc(100% - 1.5rem)));
   width: 100%;
   margin-left: auto;
   margin-right: auto;
 }
 
 .ww-form-stack--store-detail {
-  max-width: min(860px, calc(100vw - 1.5rem));
+  max-width: min(860px, calc(100% - 1.5rem));
   width: 100%;
   margin-left: auto;
   margin-right: auto;
@@ -218,19 +311,7 @@
 }
 
 .ww-form-screen--store-detail .ww-form-stack--store-detail {
-  width: min(860px, calc(100vw - 1.5rem));
-}
-
-/* Group manager — pick group (many tiles; scroll on tablet) */
-.ww-form-screen--group-picker .ww-form-stage {
-  align-items: flex-start;
-  justify-content: center;
-  overflow-x: hidden;
-  overflow-y: auto;
-  padding-top: calc(var(--ww-top-inset) + var(--ww-logo-h) + 0.65rem);
-  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
-  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
-  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+  width: min(860px, calc(100% - 1.5rem));
 }
 
 .ww-form-screen--group-picker .ww-form-stack--group-picker {
@@ -257,7 +338,7 @@
 
 .ww-form-stack--intro,
 .ww-form-stack--welcome {
-  max-width: var(--ww-form-card-max, min(840px, calc(100vw - 1.5rem)));
+  max-width: var(--ww-form-card-max, min(840px, calc(100% - 1.5rem)));
 }
 
 .ww-form-stack .ww-error {
