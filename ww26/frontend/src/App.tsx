@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import './App.css';
 import DbleNav from './components/DbleNav';
 import LandscapeHint from './components/LandscapeHint';
 import { useWwSession } from './components/WwAuthShell';
@@ -822,6 +821,7 @@ export default function App() {
   const showThanksBg = step === 'thanks';
 
   const showLandscapeHint =
+    (step === 'identify' && isGroupManager) ||
     step === 'store' ||
     step === 'group' ||
     step === 'performance' ||
@@ -898,7 +898,7 @@ export default function App() {
 
       {isFormLayoutStep && (
         <div
-          className={`ww-form-screen ww-form-screen--intro${step === 'store' || (step === 'performance' && isStoreParticipant) ? ' ww-form-screen--store-detail' : ''}`}
+          className={`ww-form-screen ww-form-screen--intro${step === 'identify' && isGroupManager ? ' ww-form-screen--group-picker' : ''}${step === 'store' || (step === 'performance' && isStoreParticipant) ? ' ww-form-screen--store-detail' : ''}`}
         >
           <div className="ww-form-stage">
             <div

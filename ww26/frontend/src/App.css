@@ -219,6 +219,40 @@
   width: min(860px, calc(100vw - 1.5rem));
 }
 
+/* Group manager — pick group (many tiles; scroll on tablet) */
+.ww-form-screen--group-picker .ww-form-stage {
+  align-items: flex-start;
+  justify-content: center;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding-top: calc(var(--ww-top-inset) + var(--ww-logo-h) + 0.65rem);
+  padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+  padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+}
+
+.ww-form-screen--group-picker .ww-form-stack--group-picker {
+  width: min(980px, calc(100vw - 1.5rem));
+  max-width: min(980px, calc(100vw - 1.5rem));
+  margin-inline: auto;
+}
+
+.ww-form-screen--group-picker .ww-panel-form--groups {
+  background: rgba(255, 255, 255, 0.97);
+  border: 1px solid rgba(255, 255, 255, 0.92);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
+  text-align: left;
+}
+
+.ww-form-screen--group-picker .ww-panel-form--groups h2 {
+  font-size: clamp(1.35rem, 3.2vw, 1.75rem);
+  margin: 0 0 0.35rem;
+}
+
+.ww-form-screen--group-picker .ww-panel-form--groups .ww-lede {
+  margin-bottom: 0.65rem;
+}
+
 .ww-form-stack--intro,
 .ww-form-stack--welcome {
   max-width: var(--ww-form-card-max, min(840px, calc(100vw - 1.5rem)));
@@ -728,11 +762,11 @@
 
 .ww-group-grid-picker {
   display: grid;
-  grid-template-columns: repeat(6, 1fr);
-  gap: 0.4rem;
+  grid-template-columns: repeat(auto-fill, minmax(5.5rem, 1fr));
+  gap: 0.45rem;
   width: 100%;
   margin-top: 0.15rem;
-  max-height: min(56vh, 480px);
+  max-height: min(52dvh, 480px);
   overflow-y: auto;
   padding-right: 0.15rem;
   -webkit-overflow-scrolling: touch;

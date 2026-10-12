@@ -1,8 +1,11 @@
 # Render Blueprint — https://render.com/docs/blueprint-spec
 #
+# Serves Energizer AU hub at /energizerAU, Metcash at /metcash26, WW26 at /ww26 (dble.co).
+#
 # REQUIRED for the API: Postgres connection on the WEB service (not only on the DB).
 # Dashboard → your Web Service → Environment → add:
 #   DATABASE_URL = (from your Render Postgres → Connect → "Internal Database URL")
+#   WW26_DB_SCHEMA=ww26  (WW26 tables live in this schema; Metcash uses public)
 # Same region = use internal URL. After saving, redeploy.
 #
 # Optional: define a `databases:` resource here and wire DATABASE_URL with

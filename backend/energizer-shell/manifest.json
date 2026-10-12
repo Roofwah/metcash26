@@ -1,0 +1,22 @@
+{
+  "short_name": "DBLE",
+  "name": "DBLE — Energizer Sales Activation",
+  "icons": [
+    {
+      "src": "apple-touch-icon.png",
+      "type": "image/png",
+      "sizes": "180x180",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "favicon.png",
+      "type": "image/png",
+      "sizes": "32x32",
+      "purpose": "any"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#0f3460",
+  "background_color": "#0f172a"
+}

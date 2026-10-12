@@ -15,6 +15,3 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
-
-/* iPad / tablet density layer (768px–1366px) — see ipad.css */
-@import './ipad.css';

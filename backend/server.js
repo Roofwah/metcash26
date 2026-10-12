@@ -3790,8 +3790,17 @@ if (buildPath) {
     console.warn('landing/index.html not found — GET / will return 404 until the file is deployed.');
   }
 
-  app.get('/metcash26', (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
-  app.get(/^\/metcash26\/.*$/, (req, res) => res.sendFile(path.join(buildPath, 'index.html')));
+  // Old bookmarks: /metcash26 → Energizer hub. Hub tile uses /metcash26/?hub=1 to load the SPA.
+  const metcashIndexHtml = path.join(buildPath, 'index.html');
+  const sendMetcashSpa = (_req, res) => res.sendFile(metcashIndexHtml);
+  app.get(['/metcash26', '/metcash26/'], (req, res) => {
+    if (req.query.hub === '1') {
+      return sendMetcashSpa(req, res);
+    }
+    return res.redirect(302, '/energizerAU');
+  });
+  app.get(/^\/metcash26\/(?!$).+/, sendMetcashSpa);
+  // WW26 (/ww26 + /api/ww26/*) — bundled Woolworths Expo kiosk
   const ww26BundlePath = [
     path.join(__dirname, '..', 'ww26', 'backend', 'bundle.js'),
     path.join(__dirname, '..', '..', 'ww26', 'backend', 'bundle.js'),
@@ -3804,7 +3813,7 @@ if (buildPath) {
       })
       .catch((err) => console.error('WW26 bundle failed:', err.message || err));
   } else {
-    console.warn('WW26 bundle.js not found — skip /ww26');
+    console.warn('WW26 bundle.js not found — skip /ww26 (dev-only metcash checkout?)');
   }
   app.get('/', (req, res) => {
     if (!fs.existsSync(landingIndexPath)) {

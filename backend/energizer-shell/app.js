@@ -41,6 +41,9 @@ function channelHref(ch) {
   if (onLocalGateway && port) {
     return `http://localhost:${port}${ch.route}`;
   }
+  if (ch.id === 'metcash26') {
+    return '/metcash26/?hub=1';
+  }
   return ch.route;
 }
 

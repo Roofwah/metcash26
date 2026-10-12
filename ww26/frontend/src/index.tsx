@@ -5,6 +5,8 @@ import FieldPerformance from './features/fieldPerformance/FieldPerformance';
 import WwAuthShell from './components/WwAuthShell';
 import './index.css';
 import './App.css';
+/* Tablet layer last so it wins over App.css (Metcash pattern) */
+import './ipad.css';
 
 const PUBLIC = process.env.PUBLIC_URL || '';
 

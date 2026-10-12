@@ -18,6 +18,7 @@
   .ww-app {
     --ww-top-inset: calc(10px + env(safe-area-inset-top, 0px));
     --ww-logo-side: calc(10px + env(safe-area-inset-left, 0px));
+    /* DBLE nav floats over content (Metcash pattern) — not applied to form stage padding */
     --ww-dble-inset: calc(env(safe-area-inset-left, 0px) + 82px);
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
   }
@@ -26,14 +27,49 @@
     padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
   }
 
+  /* Wizard cards: symmetric inset like Metcash .user-form-container (14px 16px) */
   .ww-form-stage {
     padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
-    padding-left: max(1rem, var(--ww-dble-inset));
-    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    box-sizing: border-box;
+  }
+
+  .ww-form-stack {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-header-form .ww-title {
+    width: min(720px, calc(100vw - 2rem));
+    max-width: min(720px, calc(100vw - 2rem));
   }
 
   .ww-header-form {
-    padding-left: max(0.5rem, calc(var(--ww-dble-inset) - 1rem));
+    padding-left: 0;
+    padding-right: 0;
+  }
+
+  .ww-group-grid-picker {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.5rem;
+    max-height: min(48dvh, 440px);
+  }
+
+  .ww-form-screen--group-picker .ww-group-pick {
+    min-height: 3.1rem;
+    padding: 0.45rem 0.25rem;
+    border-radius: 10px;
+  }
+
+  .ww-form-screen--group-picker .ww-group-pick-label {
+    font-size: 0.72rem;
+  }
+
+  .ww-form-screen--group-picker .ww-group-pick-num {
+    font-size: 1.05rem;
   }
 
   .ww-partner-logos {
@@ -163,6 +199,15 @@
   .ww-dash-menu--header {
     min-height: 44px;
   }
+
+  /* Thanks — drop desktop art offset; center on tablet */
+  .ww-thanks {
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 42%;
+    max-width: min(520px, calc(100vw - 2rem));
+    text-align: center;
+  }
 }
 
 /* Portrait tablet (768–1023) */
@@ -189,10 +234,29 @@
   .ww-form-stack--plan {
     max-width: min(94vw, 740px);
   }
+
+  .ww-form-screen--group-picker .ww-form-stack--group-picker {
+    max-width: min(94vw, 900px);
+  }
 }
 
 /* Landscape tablet — card shell (matches Metcash lock pattern) */
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  .ww-form-stage {
+    padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+  }
+
+  .ww-group-grid-picker {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    max-height: min(42dvh, 380px);
+  }
+
+  .ww-form-screen--group-picker .ww-form-stack--group-picker {
+    max-width: min(98.5vw, 1040px);
+  }
   .ww-form-stack--intro,
   .ww-form-stack--welcome,
   .ww-form-stack--store-picker,
@@ -206,11 +270,16 @@
     margin-right: auto;
   }
 
+  .ww-panel-form--intro,
+  .ww-panel-form--welcome,
+  .ww-panel-form--store,
+  .ww-panel-form--groups,
   .ww-panel-form--store-detail,
   .ww-panel-form--plan,
   .ww-panel-form--group-detail,
   .ww-panel-form--performance,
-  .ww-panel-form--pentabin-review {
+  .ww-panel-form--pentabin-review,
+  .ww-panel-form--confirm-wide {
     max-width: min(98.5vw, 1090px);
     width: 100%;
     margin-left: auto;
@@ -232,23 +301,35 @@
   }
 }
 
-/* Portrait tablet — card shell */
+/* Portrait tablet — card shell (Metcash final lock) */
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .ww-form-stack--intro,
+  .ww-form-stack--welcome,
   .ww-form-stack--wide,
+  .ww-form-stack--store-picker,
+  .ww-form-stack--group-picker,
   .ww-form-stack--group-detail,
   .ww-form-stack--store-detail,
   .ww-form-stack--plan,
   .ww-form-stack--confirm {
+    width: 100%;
     max-width: min(94vw, 740px);
     margin-left: auto;
     margin-right: auto;
   }
 
+  .ww-panel-form--intro,
+  .ww-panel-form--welcome,
+  .ww-panel-form--store,
+  .ww-panel-form--groups,
   .ww-panel-form--store-detail,
   .ww-panel-form--plan,
-  .ww-panel-form--group-detail {
-    max-width: min(94vw, 740px);
+  .ww-panel-form--group-detail,
+  .ww-panel-form--performance,
+  .ww-panel-form--pentabin-review,
+  .ww-panel-form--confirm-wide {
     width: 100%;
+    max-width: min(94vw, 740px);
     margin-left: auto;
     margin-right: auto;
   }
