@@ -109,6 +109,10 @@ export default function WwDashboard({ onClose }: Props) {
 
   const summary = payload?.summary;
 
+  const goMainMenu = () => {
+    window.location.assign('/energizerAU');
+  };
+
   return (
     <div className="ww-dash-overlay" onClick={onClose} role="presentation">
       <div
@@ -125,9 +129,14 @@ export default function WwDashboard({ onClose }: Props) {
             </h2>
             <p className="ww-dash-subtitle">{repEmail || 'Current allocations (latest SM or GM commit wins)'}</p>
           </div>
-          <button type="button" className="ww-dash-close" onClick={onClose} aria-label="Close">
-            ✕
-          </button>
+          <div className="ww-dash-header-actions">
+            <button type="button" className="ww-dash-menu ww-dash-menu--header" onClick={goMainMenu}>
+              Main menu
+            </button>
+            <button type="button" className="ww-dash-close" onClick={onClose} aria-label="Close">
+              ✕
+            </button>
+          </div>
         </header>
 
         <>

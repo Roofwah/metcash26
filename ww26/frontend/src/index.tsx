@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import App from './App';
 import FieldPerformance from './features/fieldPerformance/FieldPerformance';
 import WwAuthShell from './components/WwAuthShell';
+import './index.css';
 import './App.css';
 
 const PUBLIC = process.env.PUBLIC_URL || '';

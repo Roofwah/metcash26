@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import './App.css';
 import DbleNav from './components/DbleNav';
+import LandscapeHint from './components/LandscapeHint';
 import { useWwSession } from './components/WwAuthShell';
 import WwDashboard from './components/WwDashboard';
 import LandingSlideshow from './components/LandingSlideshow';
@@ -820,6 +821,12 @@ export default function App() {
     step === 'done';
   const showThanksBg = step === 'thanks';
 
+  const showLandscapeHint =
+    step === 'store' ||
+    step === 'group' ||
+    step === 'performance' ||
+    step === 'pentabin';
+
   return (
     <div
       className={[
@@ -839,6 +846,10 @@ export default function App() {
       />
 
       {showDashboard ? <WwDashboard onClose={() => setShowDashboard(false)} /> : null}
+
+      {showLandscapeHint ? (
+        <LandscapeHint message="Best viewed in landscape on iPad" />
+      ) : null}
 
       {showCampaignBg && (
         <>

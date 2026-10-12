@@ -1,0 +1,293 @@
+/**
+ * WW26 iPad / tablet layout (aligned with Metcash26 ipad.css)
+ * Portrait:  768px – 1023px
+ * Landscape: 1024px – 1366px
+ * Design band: 768px – 1366px (desktop >1366 uses base App.css)
+ */
+
+@media (min-width: 768px) and (max-width: 1366px) {
+  html {
+    font-size: 14px;
+  }
+
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .ww-app {
+    --ww-top-inset: calc(10px + env(safe-area-inset-top, 0px));
+    --ww-logo-side: calc(10px + env(safe-area-inset-left, 0px));
+    --ww-dble-inset: calc(env(safe-area-inset-left, 0px) + 82px);
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ww-app-campaign:not(.ww-app-landing) .ww-app-content {
+    padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ww-form-stage {
+    padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
+    padding-left: max(1rem, var(--ww-dble-inset));
+    padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  }
+
+  .ww-header-form {
+    padding-left: max(0.5rem, calc(var(--ww-dble-inset) - 1rem));
+  }
+
+  .ww-partner-logos {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    right: calc(10px + env(safe-area-inset-right, 0px));
+  }
+
+  .ww-back-btn,
+  .ww-restart-btn {
+    bottom: calc(18px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .ww-back-btn {
+    left: calc(18px + env(safe-area-inset-left, 0px));
+    min-height: 44px;
+    min-width: 44px;
+  }
+
+  .ww-restart-btn {
+    right: calc(18px + env(safe-area-inset-right, 0px));
+    width: 44px;
+    height: 44px;
+  }
+
+  /* Panels */
+  .ww-panel-form {
+    padding: 1.15rem 1.25rem;
+    border-radius: 14px;
+  }
+
+  .ww-panel-form .ww-field input,
+  .ww-panel-form .ww-field select {
+    min-height: 44px;
+    padding: 0.55rem 0.75rem;
+    font-size: 1rem;
+  }
+
+  .ww-panel-form .ww-btn-primary,
+  .ww-panel-form .ww-btn-ghost {
+    min-height: 44px;
+    padding: 0.55rem 1.15rem;
+    font-size: 0.92rem;
+    border-radius: 10px;
+  }
+
+  .ww-store-pick,
+  .ww-search-item {
+    min-height: 44px;
+  }
+
+  .ww-qty-control button,
+  .ww-panel-form .ww-penta-qty-inline button {
+    min-width: 44px;
+    min-height: 44px;
+    width: 48px;
+    height: 48px;
+  }
+
+  .ww-qty-control span {
+    font-size: 1.65rem;
+  }
+
+  .ww-panel-form--group-detail .ww-store-grid--form {
+    gap: 0.5rem;
+    max-height: min(38vh, 360px);
+  }
+
+  .ww-panel-form--group-detail .ww-group-summary-row--triple {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  /* DBLE floating nav */
+  .ww-dble-nav {
+    top: calc(10px + env(safe-area-inset-top, 0px));
+    left: calc(10px + env(safe-area-inset-left, 0px));
+  }
+
+  .ww-dble-nav-button {
+    width: 46px;
+    height: 46px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  }
+
+  .ww-dble-nav-logo {
+    width: 26px;
+    height: 26px;
+  }
+
+  .ww-dble-nav-menu {
+    min-width: 200px;
+    padding: 0.58rem 0.7rem;
+  }
+
+  .ww-dble-nav-menu-row {
+    min-height: 44px;
+    padding: 10px 4px;
+  }
+
+  /* Login */
+  .ww-login {
+    min-height: 100dvh;
+    padding: calc(1rem + env(safe-area-inset-top)) calc(1rem + env(safe-area-inset-right))
+      calc(1rem + env(safe-area-inset-bottom)) calc(1rem + env(safe-area-inset-left));
+  }
+
+  .ww-login-card {
+    max-width: min(92vw, 440px);
+    padding: 1.35rem 1.25rem;
+  }
+
+  .ww-login-primary,
+  .ww-login-secondary {
+    min-height: 44px;
+  }
+
+  /* Dashboard modal */
+  .ww-dash-modal {
+    width: min(96vw, 960px);
+    max-height: calc(90dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  }
+
+  .ww-dash-summary {
+    gap: 0.65rem 1rem;
+  }
+
+  .ww-dash-csv,
+  .ww-dash-menu--header {
+    min-height: 44px;
+  }
+}
+
+/* Portrait tablet (768–1023) */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .ww-store-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ww-panel-form--group-detail .ww-store-grid--form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ww-panel-form--group-detail .ww-group-summary-row--with-yoy {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+
+  .ww-panel-form--group-detail .ww-group-yoy-card {
+    grid-column: 1 / -1;
+  }
+
+  .ww-form-stack--wide,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan {
+    max-width: min(94vw, 740px);
+  }
+}
+
+/* Landscape tablet — card shell (matches Metcash lock pattern) */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: landscape) {
+  .ww-form-stack--intro,
+  .ww-form-stack--welcome,
+  .ww-form-stack--store-picker,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan,
+  .ww-form-stack--group-picker,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--confirm {
+    max-width: min(98.5vw, 1090px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-panel-form--store-detail,
+  .ww-panel-form--plan,
+  .ww-panel-form--group-detail,
+  .ww-panel-form--performance,
+  .ww-panel-form--pentabin-review {
+    max-width: min(98.5vw, 1090px);
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-panel-form--group-detail .ww-store-grid--form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: min(34vh, 320px);
+  }
+
+  .ww-store-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ww-landing-start {
+    max-width: 420px;
+    min-height: 62px;
+  }
+}
+
+/* Portrait tablet — card shell */
+@media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
+  .ww-form-stack--wide,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan,
+  .ww-form-stack--confirm {
+    max-width: min(94vw, 740px);
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-panel-form--store-detail,
+  .ww-panel-form--plan,
+  .ww-panel-form--group-detail {
+    max-width: min(94vw, 740px);
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Phone-only tweaks (below iPad band) */
+@media (max-width: 767.98px) {
+  .ww-app {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .ww-form-stage {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .ww-qty-control button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+}
+
+/* Large desktop — comfortable max width without ipad density */
+@media (min-width: 1367px) {
+  .ww-form-stack--confirm,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan {
+    max-width: min(1080px, calc(100vw - 3rem));
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-panel-form--group-detail,
+  .ww-panel-form--store-detail,
+  .ww-panel-form--plan {
+    max-width: min(960px, calc(100vw - 3rem));
+    margin-left: auto;
+    margin-right: auto;
+  }
+}

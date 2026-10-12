@@ -45,6 +45,23 @@
   color: rgba(255, 255, 255, 0.62);
 }
 
+.ww-dash-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ww-dash-menu--header {
+  border-color: rgba(255, 255, 255, 0.45);
+  background: rgba(255, 255, 255, 0.12);
+  color: #fff;
+}
+
+.ww-dash-menu--header:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
 .ww-dash-close {
   display: flex;
   align-items: center;
@@ -111,6 +128,21 @@
 .ww-dash-toggle button.active {
   background: #125221;
   color: #fff;
+}
+
+.ww-dash-menu {
+  border: 1px solid #125221;
+  border-radius: 8px;
+  padding: 0.46rem 0.95rem;
+  background: #fff;
+  color: #125221;
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ww-dash-menu:hover {
+  background: #eef5ef;
 }
 
 .ww-dash-csv {
