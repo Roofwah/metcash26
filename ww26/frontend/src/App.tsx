@@ -451,7 +451,7 @@ export default function App() {
         setStep('pentabin');
         break;
       case 'thanks':
-        setStep(isGroupManager ? 'done' : 'pentabin');
+        setStep(isGroupManager || isStoreManagerRole ? 'done' : 'pentabin');
         break;
       default:
         break;
@@ -459,6 +459,7 @@ export default function App() {
   }, [
     step,
     isGroupManager,
+    isStoreManagerRole,
     highlightStoreId,
     clearGroupSession,
   ]);
@@ -647,7 +648,7 @@ export default function App() {
         throw new Error(data.error || 'Could not save your commitment');
       }
       if (data.allocation) applyAllocationToLines(line.storeId, data.allocation);
-      setStep('thanks');
+      setStep('done');
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save your commitment');
     } finally {
@@ -655,8 +656,10 @@ export default function App() {
     }
   };
 
+  const canSubmitSessionFeedback = isGroupManager || isStoreManagerRole;
+
   const saveSessionFeedback = async () => {
-    if (!session || !isGroupManager) return true;
+    if (!session || !canSubmitSessionFeedback) return true;
     setLoading(true);
     setError('');
     try {
@@ -1256,18 +1259,35 @@ export default function App() {
 
               {step === 'done' && session && (
                 <section className="ww-panel ww-panel-form ww-panel-form--done">
-                  <h2>Confirmation complete</h2>
-                  <p className="ww-lede">{session.participantName} · Group {groupData?.group.group_id}</p>
-                  <p className="ww-ref ww-ref--form">Reference: {session.sessionId}</p>
+                  <h2>{isGroupManager ? 'Confirmation complete' : 'Commitment saved'}</h2>
                   <p className="ww-lede">
-                    {totals.confirmed} PentaBins confirmed across {pentabinLines.length} stores.
+                    {session.participantName}
+                    {isGroupManager && groupData
+                      ? ` · Group ${groupData.group.group_id}`
+                      : myStore
+                        ? ` · ${storeLabel(myStore)}`
+                        : ''}
                   </p>
+                  <p className="ww-ref ww-ref--form">Reference: {session.sessionId}</p>
+                  {isGroupManager ? (
+                    <p className="ww-lede">
+                      {totals.confirmed} PentaBins confirmed across {pentabinLines.length} stores.
+                    </p>
+                  ) : (
+                    <p className="ww-lede">
+                      Your {pentabinLines[0]?.finalQuantity ?? '—'} PentaBin commitment for 2026 is recorded.
+                    </p>
+                  )}
                   <label className="ww-field ww-field--feedback">
                     <span>Feedback (optional)</span>
                     <textarea
                       value={sessionFeedback}
                       onChange={(e) => setSessionFeedback(e.target.value)}
-                      placeholder="Share any comments about your 2026 Penta plan…"
+                      placeholder={
+                        isGroupManager
+                          ? 'Share any comments about your 2026 Penta plan…'
+                          : 'Share any comments about the expo, PentaBins, or your store experience…'
+                      }
                       rows={4}
                       maxLength={4000}
                       disabled={loading}

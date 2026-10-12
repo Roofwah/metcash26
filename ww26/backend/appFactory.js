@@ -353,8 +353,9 @@ function createWw26Application({ standaloneHealth = true, requireAuth = null } =
       const feedback =
         raw === undefined || raw === null ? null : String(raw).trim().slice(0, 4000) || null;
 
-      if (role !== 'Group Manager') {
-        return res.status(403).json({ error: 'Only Group Managers can submit session feedback here.' });
+      const canSubmitFeedback = role === 'Group Manager' || role === 'Store Manager';
+      if (!canSubmitFeedback) {
+        return res.status(403).json({ error: 'Feedback is available for Group and Store Managers only.' });
       }
 
       const { rows: sessions } = await pool.query(`SELECT session_id FROM ww_sessions WHERE session_id = $1`, [
