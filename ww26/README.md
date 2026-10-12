@@ -72,10 +72,11 @@ Standalone WW26 (`channels/ww26` only) is still supported for local dev on port 
 | File | Purpose |
 |------|---------|
 | `backend/data/stores.csv` | Group, store number, store name, format (`WW` / `WW Metro`) |
-| `backend/data/salesdata.csv` | Sales, rank/growth, 25/26 Penta columns (key: `Site` = 4-digit store id) |
+| `backend/data/storeMetrics.csv` | **Primary** sales / units / bins (key: `Store Number` or `Site` = 4-digit store id) |
+| `backend/data/salesdata.csv` | Legacy copy of metrics; seed prefers `storeMetrics.csv` when present |
 | `backend/data/groups.csv` | Optional reference; groups are created from `stores.csv` on seed |
 
-**Metrics rule:** Only stores with a row in `salesdata.csv` (or optional metric columns on `stores.csv`) get sales/growth/Penta data. No mock or generated numbers. Missing data shows as **—** in the UI.
+**Metrics rule:** Only stores with a row in `storeMetrics.csv` / `salesdata.csv` (or optional metric columns on `stores.csv`) get sales/growth/Penta data. No mock or generated numbers. Missing data shows as **—** in the UI.
 
 On every backend start, `seedSampleData.js` loads CSVs into Postgres and upserts stores; it clears and rewrites performance rows only for stores with real data.
 

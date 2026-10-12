@@ -168,10 +168,15 @@ function metricsFromSalesDataRow(row) {
 }
 
 function loadSalesMetricsByStoreId() {
-  const filePath = path.join(__dirname, 'data', 'salesdata.csv');
-  if (!fs.existsSync(filePath)) return new Map();
+  const dataDir = path.join(__dirname, 'data');
+  const metricsFile = fs.existsSync(path.join(dataDir, 'storeMetrics.csv'))
+    ? 'storeMetrics.csv'
+    : fs.existsSync(path.join(dataDir, 'salesdata.csv'))
+      ? 'salesdata.csv'
+      : null;
+  if (!metricsFile) return new Map();
 
-  const rows = readCsv('salesdata.csv');
+  const rows = readCsv(metricsFile);
   const map = new Map();
   for (const row of rows) {
     const storeId = normalizeStoreId(pickRowValue(row, ['Site', 'site', 'store_id', 'Store Number']));
@@ -413,7 +418,7 @@ async function seedSampleData(pool) {
 
   const salesMatched = stores.filter((s) => salesByStoreId.has(s.store_id)).length;
   console.log(
-    `WW26 data: ${groupIds.length} groups, ${stores.length} stores (${salesMatched} with salesdata.csv only — no mock metrics).`,
+    `WW26 data: ${groupIds.length} groups, ${stores.length} stores (${salesMatched} with store metrics CSV — no mock metrics).`,
   );
   return {
     seededAt: new Date().toISOString(),
