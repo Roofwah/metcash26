@@ -62,10 +62,6 @@
     overflow: visible;
   }
 
-  .ww-form-screen--group-picker .ww-kiosk-container .ww-form-stage {
-    align-items: flex-start;
-    justify-content: flex-start;
-  }
 
   .ww-form-stack,
   .ww-form-stack--intro,
@@ -306,6 +302,10 @@
     max-height: min(48dvh, 440px);
   }
 
+  .ww-form-screen--group-picker .ww-group-grid-picker {
+    max-height: none;
+  }
+
   .ww-form-screen--group-picker .ww-group-pick {
     min-height: 3.1rem;
     padding: 0.45rem 0.25rem;
@@ -499,7 +499,10 @@
 
   .ww-group-grid-picker {
     grid-template-columns: repeat(6, minmax(0, 1fr));
-    max-height: min(42dvh, 380px);
+  }
+
+  .ww-form-screen--group-picker .ww-group-grid-picker {
+    max-height: none;
   }
 
   .ww-form-stack--intro,

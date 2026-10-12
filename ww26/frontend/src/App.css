@@ -175,11 +175,36 @@
   overflow: visible;
 }
 
-.ww-form-screen--group-picker .ww-kiosk-container .ww-form-stage,
 .ww-form-screen--store-detail .ww-kiosk-container .ww-form-stage {
   max-width: min(920px, 100%);
   align-items: flex-start;
   justify-content: flex-start;
+}
+
+/* Select group — tall centered card, grid scrolls inside (Metcash home-card pattern) */
+.ww-form-screen--group-picker .ww-kiosk-container {
+  justify-content: center;
+  padding-top: calc(3.25rem + env(safe-area-inset-top, 0px));
+}
+
+.ww-form-screen--group-picker .ww-kiosk-container .ww-form-stage {
+  max-width: min(1040px, 100%);
+  flex: 0 1 auto;
+  align-self: center;
+  align-items: stretch;
+  justify-content: center;
+  width: 100%;
+  max-height: calc(100dvh - 6.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px));
+  min-height: 0;
+  overflow: hidden;
+}
+
+.ww-form-screen--group-picker .ww-form-stack--group-picker {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .ww-kiosk-container .ww-form-stack,
@@ -335,6 +360,28 @@
   border: 1px solid rgba(255, 255, 255, 0.92);
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.18);
   text-align: left;
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.ww-form-screen--group-picker .ww-panel-form--groups .ww-field {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 0;
+}
+
+.ww-form-screen--group-picker .ww-group-grid-picker {
+  flex: 1 1 auto;
+  min-height: 10rem;
+  max-height: none;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .ww-form-screen--group-picker .ww-panel-form--groups h2 {
