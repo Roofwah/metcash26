@@ -187,7 +187,7 @@ app.use(express.json());
 app.use(cookieParser());
 
 const AUTH_SESSION_COOKIE = 'metcash_session';
-const AUTH_SESSION_DAYS = Number(process.env.AUTH_SESSION_DAYS || 10);
+const AUTH_SESSION_DAYS = Math.max(1, Number(process.env.AUTH_SESSION_DAYS || 10) || 10);
 const AUTH_SESSION_COOKIE_DOMAIN = String(process.env.AUTH_SESSION_COOKIE_DOMAIN || '').trim();
 const OTP_CODE_MINUTES = Number(process.env.OTP_CODE_MINUTES || process.env.MAGIC_LINK_MINUTES || 15);
 const OTP_MAX_ATTEMPTS = Math.max(1, Number(process.env.OTP_MAX_ATTEMPTS || 5));

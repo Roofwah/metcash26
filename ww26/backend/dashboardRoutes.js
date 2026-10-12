@@ -102,6 +102,7 @@ const SESSION_FEEDBACK_SQL = `
     sess.participant_name,
     sess.participant_role,
     sess.group_id,
+    sess.participant_store_id,
     sess.feedback,
     sess.started_at,
     sess.completed_at,
@@ -116,13 +117,24 @@ const SESSION_FEEDBACK_SQL = `
   ORDER BY COALESCE(sess.completed_at, sess.started_at) DESC NULLS LAST
 `;
 
+function isDirectStoreSession(row) {
+  const storeId = row.participant_store_id || row.store_id;
+  if (!storeId) return false;
+  if (row.participant_store_id) return true;
+  if (String(row.participant_role || '').toLowerCase() === 'store manager') return true;
+  if (row.group_id && String(row.group_id) === String(storeId)) return true;
+  return false;
+}
+
 function feedbackStoreLabel(row) {
-  if (row.store_name) {
-    const bits = [row.store_name];
-    if (row.store_id) bits.push(`#${row.store_id}`);
-    if (row.suburb) bits.push(row.suburb);
-    if (row.state) bits.push(row.state);
-    return bits.join(' · ');
+  if (isDirectStoreSession(row)) {
+    if (row.store_name) {
+      const bits = [row.store_name];
+      if (row.suburb) bits.push(row.suburb);
+      if (row.state) bits.push(row.state);
+      return bits.join(' · ');
+    }
+    return 'Store';
   }
   if (row.group_id) return `Group ${row.group_id}`;
   return '—';

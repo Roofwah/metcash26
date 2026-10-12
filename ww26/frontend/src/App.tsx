@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import BuildCommitFooter from './components/BuildCommitFooter';
 import DbleNav from './components/DbleNav';
 import LandscapeHint from './components/LandscapeHint';
 import { useWwSession } from './components/WwAuthShell';
@@ -892,6 +893,7 @@ export default function App() {
             >
               Start
             </button>
+            <BuildCommitFooter className="ww-build-footer--landing" />
           </div>
         </section>
       )}

@@ -16,6 +16,21 @@ const hubEmail = document.getElementById('hub-email');
 let otpSent = false;
 let devSkipAuth = false;
 
+function safeReturnTo() {
+  const raw = new URLSearchParams(window.location.search).get('from') || '';
+  if (!raw.startsWith('/') || raw.startsWith('//')) return '';
+  return raw;
+}
+
+function redirectAfterSignIn(email) {
+  const returnTo = safeReturnTo();
+  if (returnTo) {
+    window.location.replace(returnTo);
+    return;
+  }
+  showHub(email);
+}
+
 const LOCAL_CHANNEL_PORTS = {
   metcash26: 5001,
   bunnings26: 5002,
@@ -169,7 +184,7 @@ async function verifyCode() {
       method: 'POST',
       body: JSON.stringify({ email, code }),
     });
-    showHub(data.email);
+    redirectAfterSignIn(data.email);
   } catch (err) {
     showMessage(loginError, err.message);
   } finally {
@@ -206,7 +221,7 @@ initPlatform().then(async () => {
   try {
     const me = await api('/api/auth/me');
     if (me.authenticated && me.email) {
-      showHub(String(me.email));
+      redirectAfterSignIn(String(me.email));
     }
   } catch {
     // Stay on login.

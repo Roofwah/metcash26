@@ -23,25 +23,32 @@ type Props = {
 export default function WwAuthShell({ publicUrl = '', children }: Props) {
   const [repEmail, setRepEmail] = useState<string | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [authError, setAuthError] = useState('');
+
+  const checkAuth = useCallback(async () => {
+    setAuthError('');
+    try {
+      const me = await fetchApi<{ authenticated?: boolean; email?: string }>('/api/auth/me');
+      if (me.authenticated && me.email) {
+        setRepEmail(String(me.email).trim().toLowerCase());
+        setNeedsSignIn(false);
+        return;
+      }
+      setRepEmail(null);
+      setNeedsSignIn(true);
+    } catch {
+      setRepEmail(null);
+      setAuthError('Could not verify sign-in. Check your connection and try again.');
+      setNeedsSignIn(false);
+    } finally {
+      setAuthChecked(true);
+    }
+  }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const me = await fetchApi<{ authenticated?: boolean; email?: string }>('/api/auth/me');
-        if (!cancelled && me.authenticated && me.email) {
-          setRepEmail(String(me.email).trim().toLowerCase());
-        }
-      } catch {
-        // Stay on login until /api/auth/me is available.
-      } finally {
-        if (!cancelled) setAuthChecked(true);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    void checkAuth();
+  }, [checkAuth]);
 
   const logout = useCallback(() => {
     fetchApi('/api/auth/logout', { method: 'POST' }).catch(() => undefined);
@@ -57,11 +64,21 @@ export default function WwAuthShell({ publicUrl = '', children }: Props) {
   }
 
   if (!repEmail) {
+    if (authError) {
+      return (
+        <div className="ww-login ww-login--checking">
+          <p className="ww-login-lede">{authError}</p>
+          <button type="button" className="ww-login-primary" onClick={() => void checkAuth()}>
+            Try again
+          </button>
+        </div>
+      );
+    }
     const onProductionHost =
       typeof window !== 'undefined' &&
       !/localhost|127\.0\.0\.1/.test(window.location.hostname) &&
       window.location.port !== '3003';
-    if (onProductionHost) {
+    if (onProductionHost && needsSignIn) {
       const returnTo = `${window.location.pathname}${window.location.search}`;
       window.location.replace(`/energizerAU?from=${encodeURIComponent(returnTo)}`);
       return (
@@ -70,7 +87,14 @@ export default function WwAuthShell({ publicUrl = '', children }: Props) {
         </div>
       );
     }
-    return <WwLoginScreen publicUrl={publicUrl} onSuccess={setRepEmail} />;
+    if (!onProductionHost) {
+      return <WwLoginScreen publicUrl={publicUrl} onSuccess={setRepEmail} />;
+    }
+    return (
+      <div className="ww-login ww-login--checking">
+        <p className="ww-login-lede">Checking sign-in…</p>
+      </div>
+    );
   }
 
   return (

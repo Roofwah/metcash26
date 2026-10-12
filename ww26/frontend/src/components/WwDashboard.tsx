@@ -289,7 +289,15 @@ export default function WwDashboard({ onClose }: Props) {
                         {row.suburb ? ` · ${row.suburb}` : ''}
                         {row.state ? ` ${row.state}` : ''}
                       </td>
-                      <td>{row.group_id}</td>
+                      <td>
+                        {row.authority === 'store_manager' &&
+                        row.group_id &&
+                        String(row.group_id) === String(row.store_id)
+                          ? row.store_name
+                          : row.group_id
+                            ? `Group ${row.group_id}`
+                            : '—'}
+                      </td>
                       <td className="num">{row.recommended}</td>
                       <td className="num">{row.confirmed}</td>
                       <td className="num">
@@ -347,7 +355,7 @@ export default function WwDashboard({ onClose }: Props) {
               <table className="ww-dash-table ww-dash-table--feedback">
                 <thead>
                   <tr>
-                    <th>Store / group</th>
+                    <th>Store or group</th>
                     <th>Full name</th>
                     <th>Feedback</th>
                     <th>Submitted</th>
