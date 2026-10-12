@@ -10,41 +10,118 @@
     font-size: 14px;
   }
 
+  html,
+  body,
+  #root {
+    overflow-x: hidden;
+    max-width: 100%;
+  }
+
+  /* Safe area on stage only — avoid 100vw + body padding overflow (Metcash .user-form-container) */
   body {
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
+    padding-left: 0;
+    padding-right: 0;
   }
 
   .ww-app {
     --ww-top-inset: calc(10px + env(safe-area-inset-top, 0px));
     --ww-logo-side: calc(10px + env(safe-area-inset-left, 0px));
-    /* DBLE nav floats over content (Metcash pattern) — not applied to form stage padding */
     --ww-dble-inset: calc(env(safe-area-inset-left, 0px) + 82px);
+    --ww-form-card-max: min(740px, 100%);
+    padding: 0;
     padding-bottom: calc(1.25rem + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
   .ww-app-campaign:not(.ww-app-landing) .ww-app-content {
     padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px));
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
   }
 
-  /* Wizard cards: symmetric inset like Metcash .user-form-container (14px 16px) */
-  .ww-form-stage {
-    padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
-    padding-right: max(16px, env(safe-area-inset-right, 0px));
-    padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
-    padding-left: max(16px, env(safe-area-inset-left, 0px));
+  /* Flex column wizard shell (Metcash user-form-container) — not absolute inset stage */
+  .ww-form-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    overflow-x: clip;
     box-sizing: border-box;
   }
 
-  .ww-form-stack {
+  .ww-form-stage {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
     width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    min-height: 0;
+    align-items: center;
+    justify-content: center;
+    padding-top: calc(4.25rem + env(safe-area-inset-top, 0px));
+    padding-right: max(16px, env(safe-area-inset-right, 0px));
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+    padding-left: max(16px, env(safe-area-inset-left, 0px));
+    box-sizing: border-box;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  .ww-form-stack,
+  .ww-form-stack--intro,
+  .ww-form-stack--welcome,
+  .ww-form-stack--wide,
+  .ww-form-stack--store-picker,
+  .ww-form-stack--group-picker,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan,
+  .ww-form-stack--confirm {
+    width: 100%;
+    max-width: min(740px, 100%);
+    min-width: 0;
     margin-left: auto;
     margin-right: auto;
+    box-sizing: border-box;
+  }
+
+  .ww-form-screen--group-picker .ww-form-stack--group-picker {
+    max-width: min(900px, 100%);
+  }
+
+  .ww-panel-form,
+  .ww-panel-form--intro,
+  .ww-panel-form--welcome,
+  .ww-panel-form--store,
+  .ww-panel-form--groups,
+  .ww-panel-form--store-detail,
+  .ww-panel-form--plan,
+  .ww-panel-form--group-detail,
+  .ww-panel-form--performance,
+  .ww-panel-form--pentabin-review,
+  .ww-panel-form--confirm-wide {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  .ww-panel-form--intro,
+  .ww-panel-form--welcome {
+    min-width: 0;
+    min-height: 0;
+    padding: 1.35rem 1.2rem 1.25rem;
   }
 
   .ww-header-form .ww-title {
-    width: min(720px, calc(100vw - 2rem));
-    max-width: min(720px, calc(100vw - 2rem));
+    width: min(720px, calc(100% - 2rem));
+    max-width: min(720px, calc(100% - 2rem));
   }
 
   .ww-header-form {
@@ -232,11 +309,11 @@
   .ww-form-stack--group-detail,
   .ww-form-stack--store-detail,
   .ww-form-stack--plan {
-    max-width: min(94vw, 740px);
+    max-width: min(740px, 100%);
   }
 
   .ww-form-screen--group-picker .ww-form-stack--group-picker {
-    max-width: min(94vw, 900px);
+    max-width: min(900px, 100%);
   }
 }
 
@@ -254,9 +331,6 @@
     max-height: min(42dvh, 380px);
   }
 
-  .ww-form-screen--group-picker .ww-form-stack--group-picker {
-    max-width: min(98.5vw, 1040px);
-  }
   .ww-form-stack--intro,
   .ww-form-stack--welcome,
   .ww-form-stack--store-picker,
@@ -264,26 +338,15 @@
   .ww-form-stack--plan,
   .ww-form-stack--group-picker,
   .ww-form-stack--group-detail,
-  .ww-form-stack--confirm {
-    max-width: min(98.5vw, 1090px);
+  .ww-form-stack--confirm,
+  .ww-form-stack--wide {
+    max-width: min(1090px, 100%);
     margin-left: auto;
     margin-right: auto;
   }
 
-  .ww-panel-form--intro,
-  .ww-panel-form--welcome,
-  .ww-panel-form--store,
-  .ww-panel-form--groups,
-  .ww-panel-form--store-detail,
-  .ww-panel-form--plan,
-  .ww-panel-form--group-detail,
-  .ww-panel-form--performance,
-  .ww-panel-form--pentabin-review,
-  .ww-panel-form--confirm-wide {
-    max-width: min(98.5vw, 1090px);
-    width: 100%;
-    margin-left: auto;
-    margin-right: auto;
+  .ww-form-screen--group-picker .ww-form-stack--group-picker {
+    max-width: min(1040px, 100%);
   }
 
   .ww-panel-form--group-detail .ww-store-grid--form {
@@ -301,7 +364,7 @@
   }
 }
 
-/* Portrait tablet — card shell (Metcash final lock) */
+/* Portrait tablet — tighter card cap */
 @media (min-width: 768px) and (max-width: 1366px) and (orientation: portrait) {
   .ww-form-stack--intro,
   .ww-form-stack--welcome,
@@ -312,26 +375,7 @@
   .ww-form-stack--store-detail,
   .ww-form-stack--plan,
   .ww-form-stack--confirm {
-    width: 100%;
-    max-width: min(94vw, 740px);
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .ww-panel-form--intro,
-  .ww-panel-form--welcome,
-  .ww-panel-form--store,
-  .ww-panel-form--groups,
-  .ww-panel-form--store-detail,
-  .ww-panel-form--plan,
-  .ww-panel-form--group-detail,
-  .ww-panel-form--performance,
-  .ww-panel-form--pentabin-review,
-  .ww-panel-form--confirm-wide {
-    width: 100%;
-    max-width: min(94vw, 740px);
-    margin-left: auto;
-    margin-right: auto;
+    max-width: min(740px, 100%);
   }
 }
 

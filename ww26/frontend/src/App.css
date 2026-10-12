@@ -155,8 +155,8 @@
   left: 50%;
   top: calc(var(--ww-top-inset) + var(--ww-logo-h) / 2);
   transform: translate(-50%, -50%);
-  width: min(720px, calc(100vw - 2rem));
-  max-width: calc(100vw - var(--ww-logo-max-w) - var(--ww-logo-side) - 1.5rem);
+  width: min(720px, calc(100% - 2rem));
+  max-width: min(720px, calc(100% - 2rem));
   text-align: center;
   color: #fff;
   text-shadow: 0 2px 12px rgba(0, 0, 0, 0.45);
@@ -178,12 +178,14 @@
 }
 
 .ww-form-stack {
+  box-sizing: border-box;
   width: 100%;
   max-width: 280px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .ww-form-stack--wide {
@@ -232,8 +234,8 @@
 }
 
 .ww-form-screen--group-picker .ww-form-stack--group-picker {
-  width: min(980px, calc(100vw - 1.5rem));
-  max-width: min(980px, calc(100vw - 1.5rem));
+  width: 100%;
+  max-width: min(980px, 100%);
   margin-inline: auto;
 }
 
@@ -435,6 +437,7 @@
 }
 
 .ww-panel-form {
+  box-sizing: border-box;
   width: 100%;
   max-width: 280px;
   margin: 0 auto;
