@@ -41,6 +41,20 @@ interface DashboardPayload {
   byGroup: GroupRow[];
 }
 
+interface FeedbackRow {
+  session_id: string;
+  participant_name: string;
+  participant_role: string;
+  store_label: string;
+  feedback: string;
+  submitted_at: string | null;
+}
+
+interface FeedbackPayload {
+  count: number;
+  items: FeedbackRow[];
+}
+
 type Props = {
   onClose: () => void;
 };
@@ -62,9 +76,11 @@ function fmtDate(iso: string) {
 export default function WwDashboard({ onClose }: Props) {
   const { email: repEmail } = useWwSession();
 
-  const [view, setView] = useState<'stores' | 'groups'>('stores');
+  const [view, setView] = useState<'stores' | 'groups' | 'feedback'>('stores');
   const [payload, setPayload] = useState<DashboardPayload | null>(null);
+  const [feedbackPayload, setFeedbackPayload] = useState<FeedbackPayload | null>(null);
   const [loading, setLoading] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [error, setError] = useState('');
 
   const loadDashboard = useCallback(async () => {
@@ -89,6 +105,28 @@ export default function WwDashboard({ onClose }: Props) {
     void loadDashboard();
   }, [loadDashboard]);
 
+  const loadFeedback = useCallback(async () => {
+    setFeedbackLoading(true);
+    setError('');
+    try {
+      const data = await fetchApi<FeedbackPayload>('/api/ww26/dashboard/feedback');
+      setFeedbackPayload(data);
+    } catch (e) {
+      const status = (e as ApiError).status;
+      if (status === 401) {
+        setError('Session expired — sign out and sign in again.');
+      } else {
+        setError(e instanceof Error ? e.message : 'Could not load feedback.');
+      }
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'feedback') void loadFeedback();
+  }, [view, loadFeedback]);
+
   const downloadCsv = async () => {
     try {
       const res = await fetch(apiUrl('/api/ww26/dashboard/penta-confirmed/csv'), {
@@ -104,6 +142,24 @@ export default function WwDashboard({ onClose }: Props) {
       URL.revokeObjectURL(url);
     } catch {
       setError('Could not download CSV.');
+    }
+  };
+
+  const downloadFeedbackCsv = async () => {
+    try {
+      const res = await fetch(apiUrl('/api/ww26/dashboard/feedback/csv'), {
+        credentials: 'include',
+      });
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ww26-feedback-${Date.now()}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      setError('Could not download feedback CSV.');
     }
   };
 
@@ -140,7 +196,42 @@ export default function WwDashboard({ onClose }: Props) {
         </header>
 
         <>
-          {summary ? (
+          <div className="ww-dash-toolbar">
+            <div className="ww-dash-toggle" role="group" aria-label="Dashboard view">
+              <button
+                type="button"
+                className={view === 'stores' ? 'active' : ''}
+                onClick={() => setView('stores')}
+              >
+                Stores
+              </button>
+              <button
+                type="button"
+                className={view === 'groups' ? 'active' : ''}
+                onClick={() => setView('groups')}
+              >
+                Groups
+              </button>
+              <button
+                type="button"
+                className={view === 'feedback' ? 'active' : ''}
+                onClick={() => setView('feedback')}
+              >
+                Feedback
+              </button>
+            </div>
+            {view === 'feedback' ? (
+              <button type="button" className="ww-dash-csv" onClick={() => void downloadFeedbackCsv()}>
+                Download CSV
+              </button>
+            ) : (
+              <button type="button" className="ww-dash-csv" onClick={() => void downloadCsv()}>
+                Download CSV
+              </button>
+            )}
+          </div>
+
+          {summary && view !== 'feedback' ? (
             <div className="ww-dash-summary">
               <div>
                 <span className="ww-dash-stat-value">{summary.storeCount}</span>
@@ -165,30 +256,12 @@ export default function WwDashboard({ onClose }: Props) {
                 </span>
                 <span className="ww-dash-stat-label">Vs recommended</span>
               </div>
-              <div className="ww-dash-toggle" role="group" aria-label="Dashboard view">
-                <button
-                  type="button"
-                  className={view === 'stores' ? 'active' : ''}
-                  onClick={() => setView('stores')}
-                >
-                  Stores
-                </button>
-                <button
-                  type="button"
-                  className={view === 'groups' ? 'active' : ''}
-                  onClick={() => setView('groups')}
-                >
-                  Groups
-                </button>
-              </div>
-              <button type="button" className="ww-dash-csv" onClick={() => void downloadCsv()}>
-                Download CSV
-              </button>
             </div>
           ) : null}
 
           <div className="ww-dash-body">
-            {loading ? <p className="ww-dash-loading">Loading…</p> : null}
+            {view !== 'feedback' && loading ? <p className="ww-dash-loading">Loading…</p> : null}
+            {view === 'feedback' && feedbackLoading ? <p className="ww-dash-loading">Loading…</p> : null}
             {error ? <p className="ww-dash-error">{error}</p> : null}
             {!loading && !error && payload && view === 'stores' && payload.stores.length === 0 ? (
               <p className="ww-dash-empty">No store or group manager commitments yet.</p>
@@ -262,6 +335,31 @@ export default function WwDashboard({ onClose }: Props) {
                         {g.confirmed - g.recommended > 0 ? '+' : ''}
                         {g.confirmed - g.recommended}
                       </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            ) : null}
+            {!feedbackLoading && !error && view === 'feedback' && feedbackPayload?.items.length === 0 ? (
+              <p className="ww-dash-empty">No session feedback yet.</p>
+            ) : null}
+            {!feedbackLoading && !error && view === 'feedback' && feedbackPayload && feedbackPayload.items.length > 0 ? (
+              <table className="ww-dash-table ww-dash-table--feedback">
+                <thead>
+                  <tr>
+                    <th>Store / group</th>
+                    <th>Full name</th>
+                    <th>Feedback</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {feedbackPayload.items.map((row) => (
+                    <tr key={row.session_id}>
+                      <td className="store">{row.store_label}</td>
+                      <td>{row.participant_name}</td>
+                      <td className="ww-dash-feedback-msg">{row.feedback}</td>
+                      <td>{row.submitted_at ? fmtDate(row.submitted_at) : '—'}</td>
                     </tr>
                   ))}
                 </tbody>

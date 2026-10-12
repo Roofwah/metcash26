@@ -107,9 +107,18 @@
   color: #888;
 }
 
+.ww-dash-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  padding: 0.65rem 1.35rem;
+  border-bottom: 1px solid #eee;
+  background: #fafafa;
+}
+
 .ww-dash-toggle {
   display: flex;
-  margin-left: auto;
   overflow: hidden;
   border: 1px solid #ddd;
   border-radius: 8px;
@@ -182,6 +191,14 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 0.81rem;
+}
+
+.ww-dash-table--feedback .ww-dash-feedback-msg {
+  max-width: min(420px, 42vw);
+  white-space: pre-wrap;
+  word-break: break-word;
+  line-height: 1.4;
+  color: #333;
 }
 
 .ww-dash-table thead th {

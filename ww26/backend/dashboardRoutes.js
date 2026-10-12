@@ -96,6 +96,56 @@ async function loadDashboardStores() {
     .sort((a, b) => parseTs(b.last_updated_at) - parseTs(a.last_updated_at));
 }
 
+const SESSION_FEEDBACK_SQL = `
+  SELECT
+    sess.session_id,
+    sess.participant_name,
+    sess.participant_role,
+    sess.group_id,
+    sess.feedback,
+    sess.started_at,
+    sess.completed_at,
+    st.store_id,
+    st.store_name,
+    st.suburb,
+    st.state
+  FROM ww_sessions sess
+  LEFT JOIN ww_stores st ON st.store_id = sess.participant_store_id
+  WHERE sess.feedback IS NOT NULL
+    AND BTRIM(sess.feedback) <> ''
+  ORDER BY COALESCE(sess.completed_at, sess.started_at) DESC NULLS LAST
+`;
+
+function feedbackStoreLabel(row) {
+  if (row.store_name) {
+    const bits = [row.store_name];
+    if (row.store_id) bits.push(`#${row.store_id}`);
+    if (row.suburb) bits.push(row.suburb);
+    if (row.state) bits.push(row.state);
+    return bits.join(' · ');
+  }
+  if (row.group_id) return `Group ${row.group_id}`;
+  return '—';
+}
+
+function feedbackFromRow(row) {
+  return {
+    session_id: row.session_id,
+    participant_name: row.participant_name,
+    participant_role: row.participant_role,
+    store_label: feedbackStoreLabel(row),
+    store_id: row.store_id || null,
+    group_id: row.group_id || null,
+    feedback: row.feedback,
+    submitted_at: row.completed_at || row.started_at || null,
+  };
+}
+
+async function loadSessionFeedback() {
+  const { rows } = await pool.query(SESSION_FEEDBACK_SQL);
+  return rows.map(feedbackFromRow);
+}
+
 function registerWw26Dashboard(app, requireAuth) {
   const guard =
     requireAuth ||
@@ -207,6 +257,40 @@ function registerWw26Dashboard(app, requireAuth) {
       res.setHeader(
         'Content-Disposition',
         `attachment; filename="ww26-penta-confirmed-${Date.now()}.csv"`,
+      );
+      res.send(lines);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/ww26/dashboard/feedback', guard, async (_req, res) => {
+    try {
+      const items = await loadSessionFeedback();
+      res.json({ count: items.length, items });
+    } catch (err) {
+      console.error('GET /api/ww26/dashboard/feedback:', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/ww26/dashboard/feedback/csv', guard, async (_req, res) => {
+    try {
+      const items = await loadSessionFeedback();
+      const headers = ['Store', 'Full name', 'Role', 'Feedback', 'Submitted at'];
+      const lines = [
+        headers.join(','),
+        ...items.map((r) =>
+          [r.store_label, r.participant_name, r.participant_role, r.feedback, r.submitted_at]
+            .map(escapeCsv)
+            .join(','),
+        ),
+      ].join('\r\n');
+
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+      res.setHeader(
+        'Content-Disposition',
+        `attachment; filename="ww26-feedback-${Date.now()}.csv"`,
       );
       res.send(lines);
     } catch (err) {
