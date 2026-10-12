@@ -1,9 +1,180 @@
 /**
  * WW26 iPad / tablet layout (aligned with Metcash26 ipad.css)
- * Portrait:  768px – 1023px
- * Landscape: 1024px – 1366px
- * Design band: 768px – 1366px (desktop >1366 uses base App.css)
+ * Primary: touch devices (all iPads). Width band 768–1366 for density tweaks.
  */
+
+/* Touch kiosks — Metcash .user-form-container pattern (wins over App.css intro/100vw rules) */
+@media (hover: none) and (pointer: coarse) and (min-width: 600px) {
+  html,
+  body,
+  #root,
+  .ww-app,
+  .ww-app-campaign,
+  .ww-app-content,
+  .ww-form-screen {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
+  body {
+    padding-left: 0;
+    padding-right: 0;
+    margin: 0;
+  }
+
+  .ww-app.ww-app-campaign {
+    padding: 0;
+  }
+
+  .ww-kiosk-container {
+    position: relative;
+    z-index: 1;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    min-height: 100dvh;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: calc(12px + env(safe-area-inset-top, 0px)) max(20px, env(safe-area-inset-right, 0px))
+      calc(72px + env(safe-area-inset-bottom, 0px)) max(20px, env(safe-area-inset-left, 0px));
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .ww-kiosk-container .ww-form-stage {
+    position: relative;
+    inset: auto;
+    flex: 1 1 auto;
+    width: 100%;
+    max-width: min(1090px, 100%);
+    min-width: 0;
+    min-height: min-content;
+    margin: 0 auto;
+    padding: 0.25rem 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: visible;
+  }
+
+  .ww-form-screen--group-picker .ww-kiosk-container .ww-form-stage {
+    align-items: flex-start;
+    justify-content: flex-start;
+  }
+
+  .ww-form-stack,
+  .ww-form-stack--intro,
+  .ww-form-stack--welcome,
+  .ww-form-stack--wide,
+  .ww-form-stack--store-picker,
+  .ww-form-stack--group-picker,
+  .ww-form-stack--group-detail,
+  .ww-form-stack--store-detail,
+  .ww-form-stack--plan,
+  .ww-form-stack--confirm {
+    width: 100%;
+    max-width: min(740px, 100%);
+    min-width: 0;
+    margin-left: auto;
+    margin-right: auto;
+    box-sizing: border-box;
+  }
+
+  .ww-form-screen--group-picker .ww-form-stack--group-picker {
+    max-width: min(900px, 100%);
+  }
+
+  .ww-panel-form,
+  .ww-panel-form--intro,
+  .ww-panel-form--welcome,
+  .ww-panel-form--store,
+  .ww-panel-form--groups,
+  .ww-panel-form--store-detail,
+  .ww-panel-form--plan,
+  .ww-panel-form--group-detail,
+  .ww-panel-form--performance,
+  .ww-panel-form--pentabin-review,
+  .ww-panel-form--confirm-wide {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .ww-form-screen--intro .ww-panel-form--intro,
+  .ww-form-screen--intro .ww-panel-form--welcome,
+  .ww-app-campaign .ww-panel-form--intro,
+  .ww-app-campaign .ww-panel-form--welcome {
+    min-width: 0;
+    min-height: 0;
+    max-width: 100%;
+    padding: 1.35rem 1.2rem 1.25rem;
+  }
+
+  .ww-form-screen--intro .ww-panel-form--groups,
+  .ww-form-screen--intro .ww-panel-form--group-detail,
+  .ww-form-screen--intro .ww-panel-form--store-detail,
+  .ww-form-screen--intro .ww-panel-form--plan,
+  .ww-form-screen--intro .ww-panel-form--performance,
+  .ww-form-screen--intro .ww-panel-form--pentabin-review {
+    padding: 1.15rem 1.2rem 1.25rem;
+    border-radius: 16px;
+    max-width: 100%;
+  }
+
+  .ww-form-screen--intro .ww-panel-form:not(.ww-panel-form--intro):not(.ww-panel-form--welcome):not(.ww-panel-form--store) {
+    max-width: 100%;
+  }
+
+  .ww-form-screen--group-picker .ww-form-stage {
+    padding-left: 0;
+    padding-right: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  .ww-form-screen--store-detail .ww-form-stage {
+    padding: 0;
+  }
+
+  .ww-thanks {
+    transform: translate(-50%, -50%);
+    left: 50%;
+    top: 42%;
+    max-width: min(520px, calc(100% - 2rem));
+    text-align: center;
+  }
+
+  @media (orientation: landscape) {
+    .ww-form-stack,
+    .ww-form-stack--intro,
+    .ww-form-stack--welcome,
+    .ww-form-stack--wide,
+    .ww-form-stack--store-picker,
+    .ww-form-stack--group-picker,
+    .ww-form-stack--group-detail,
+    .ww-form-stack--store-detail,
+    .ww-form-stack--plan,
+    .ww-form-stack--confirm {
+      max-width: min(1090px, 100%);
+    }
+
+    .ww-form-screen--group-picker .ww-form-stack--group-picker {
+      max-width: min(1040px, 100%);
+    }
+
+    .ww-group-grid-picker {
+      grid-template-columns: repeat(5, minmax(0, 1fr));
+    }
+  }
+}
 
 @media (min-width: 768px) and (max-width: 1366px) {
   html {

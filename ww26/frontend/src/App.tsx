@@ -900,6 +900,7 @@ export default function App() {
         <div
           className={`ww-form-screen ww-form-screen--intro${step === 'identify' && isGroupManager ? ' ww-form-screen--group-picker' : ''}${step === 'store' || (step === 'performance' && isStoreParticipant) ? ' ww-form-screen--store-detail' : ''}`}
         >
+          <div className="ww-kiosk-container">
           <div className="ww-form-stage">
             <div
               className={`ww-form-stack${step === 'participant' || step === 'role' ? ' ww-form-stack--intro' : ''}${step === 'identify' && isGroupManager ? ' ww-form-stack--wide ww-form-stack--group-picker' : ''}${step === 'identify' && !isGroupManager ? ' ww-form-stack--store-picker' : ''}${step === 'group' || (step === 'performance' && isGroupManager) || (step === 'pentabin' && isGroupManager) ? ' ww-form-stack--wide ww-form-stack--group-detail' : ''}${step === 'store' || (step === 'performance' && isStoreParticipant) ? ' ww-form-stack--wide ww-form-stack--store-detail' : ''}${step === 'pentabin' && isStoreParticipant ? ' ww-form-stack--plan' : ''}${step === 'done' ? ' ww-form-stack--plan' : ''}`}
@@ -965,7 +966,7 @@ export default function App() {
               )}
 
               {step === 'identify' && isGroupManager && (
-                <section className="ww-panel ww-panel-form ww-panel-form--groups">
+                <section className="ww-panel-form ww-panel-form--groups">
                   <h2>{firstNameOnly(participantName)}</h2>
                   <p className="ww-lede">Select your group.</p>
                   {loading && !groupsLoaded && (
@@ -1281,6 +1282,7 @@ export default function App() {
                 </section>
               )}
             </div>
+          </div>
           </div>
         </div>
       )}

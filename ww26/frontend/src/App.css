@@ -456,15 +456,15 @@
 .ww-app-campaign:not(.ww-app-landing) .ww-form-screen--welcome .ww-header-form .ww-title {
   font-size: clamp(1.45rem, 4vw, 2.35rem);
   line-height: 1.15;
-  width: min(920px, calc(100vw - 2rem));
+  width: min(920px, calc(100% - 2rem));
 }
 
 .ww-panel-form--intro,
 .ww-panel-form--welcome,
 .ww-app-campaign:not(.ww-app-landing) .ww-panel-form--intro,
 .ww-app-campaign:not(.ww-app-landing) .ww-panel-form--welcome {
-  max-width: min(840px, calc(100vw - 1.5rem));
-  min-width: min(480px, calc(100vw - 1.5rem));
+  max-width: min(840px, calc(100% - 1.5rem));
+  min-width: 0;
   min-height: 420px;
   padding: 3.5rem 3rem 3.25rem;
   border-radius: 20px;
@@ -2408,7 +2408,8 @@
   margin: 1rem 0;
 }
 
-@media (min-width: 768px) and (orientation: landscape) {
+/* Desktop landscape only — iPad uses ipad.css (touch) */
+@media (min-width: 1367px) and (orientation: landscape) {
   .ww-app {
     --ww-top-inset: clamp(1rem, 2.5vh, 1.5rem);
     --ww-logo-h: clamp(40px, 6vh, 54px);
